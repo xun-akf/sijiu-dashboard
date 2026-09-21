@@ -17,6 +17,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SITE_BASE_PATH: ${{ github.repository == 'xun-akf/xun-akf.github.io' && '/' || '/sijiu-dashboard' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
@@ -31,4 +33,3 @@ jobs:
           path: ./out
       - id: deployment
         uses: actions/deploy-pages@v4
-

@@ -7,7 +7,7 @@ import { recalculateLatestDashboardWeek } from "@/lib/operating-metrics";
 import { publishSharedState, readSharedState, writeSharedState } from "@/lib/site-state";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase-config";
 
-export const SITE_BASE_PATH = "/sijiu-dashboard";
+export const SITE_BASE_PATH = process.env.NEXT_PUBLIC_SITE_BASE_PATH === "/" ? "" : "/sijiu-dashboard";
 export const siteUrl = (path = "/") => `${SITE_BASE_PATH}${path.startsWith("/") ? path : `/${path}`}`;
 
 export const dashboardClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -114,4 +114,3 @@ export async function dashboardFetch(input: RequestInfo | URL, init?: RequestIni
   }
   return jsonResponse({ error: "不支持的请求" }, 405);
 }
-
