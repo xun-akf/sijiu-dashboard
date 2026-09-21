@@ -576,6 +576,7 @@ export default function Home() {
     };
   }, []);
   useEffect(() => {
+    if (!accessRole) return;
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const refreshSharedData = () => {
       if (refreshTimer) clearTimeout(refreshTimer);
@@ -601,7 +602,7 @@ export default function Home() {
       if (refreshTimer) clearTimeout(refreshTimer);
       unsubscribe();
     };
-  }, []);
+  }, [accessRole]);
   const applyImport = async (parsed: S[], _week: string, deferSave = false, commitLocal = !deferSave) => {
     const importedByName = new Map(parsed.map((station) => [station.name, station]));
     const currentByName = new Map(stationData.map((station) => [station.name, station]));
@@ -733,7 +734,7 @@ export default function Home() {
         </nav>
         <div className="sidebar-foot">
           <span className="status-dot" />
-          {realtimeStatus === "connected" ? "实时同步已连接" : realtimeStatus === "connecting" ? "正在连接实时同步" : "实时同步暂时离线"}
+          {realtimeStatus === "connecting" ? "正在连接数据同步" : "已开启自动同步"}
           <small>更新至 {allWeeks().at(-1)}</small>
         </div>
       </aside>
@@ -941,7 +942,15 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         wi={wi}
         sn={sn}
         totalsData={t}
-        generatedAnalysis={sn === "全部场站" ? cfg.__summary__?.analysis : cfg[sn]?.analysis}
+        generatedAnalysis={(() => {
+          const saved = sn === "全部场站" ? cfg.__summary__?.analysis : cfg[sn]?.analysis;
+          if (saved && !saved.startsWith(sn === "全部场站" ? "全场充电量" : "充电量")) return saved;
+          const week = allWeeks()[wi];
+          if (!week) return saved;
+          return sn === "全部场站"
+            ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis
+            : generateStationAnalysis(scope(sn)[0], week, { ...emptyConfig, ...cfg[sn] });
+        })()}
       />
       <OverviewTrends
         sn={sn}
@@ -1585,7 +1594,10 @@ function Business({ sn }: { wi: number; sn: string }) {
     compact?: boolean;
   }) => {
     const name = item.station.name,
-      value = (cfg[name] || emptyConfig).analysis,
+      savedAnalysis = (cfg[name] || emptyConfig).analysis,
+      value = editingStation === name ? savedAnalysis :
+        savedAnalysis && !savedAnalysis.startsWith("充电量") ? savedAnalysis :
+        generateStationAnalysis(item.station, allWeeks()[latest], { ...emptyConfig, ...cfg[name] }),
       editing = editingStation === name;
     return (
       <div className={`analysis-view ${compact ? "compact" : ""}`}>

@@ -8,6 +8,16 @@ type RealtimeStatus = "connecting" | "connected" | "disconnected";
 export function subscribeToDashboardChanges(onChange: () => void, onStatus: (status: RealtimeStatus) => void) {
   let channel: RealtimeChannel | null = null;
   let stopped = false;
+  // Realtime is not guaranteed to deliver every event (for example when the
+  // browser sleeps or the table is absent from its publication).
+  const refreshTimer = window.setInterval(() => {
+    if (!document.hidden) onChange();
+  }, 30000);
+  const refreshOnReturn = () => {
+    if (!document.hidden) onChange();
+  };
+  window.addEventListener("focus", refreshOnReturn);
+  document.addEventListener("visibilitychange", refreshOnReturn);
   const start = async () => {
     onStatus("connecting");
     const { data } = await dashboardClient.auth.getSession();
@@ -28,7 +38,9 @@ export function subscribeToDashboardChanges(onChange: () => void, onStatus: (sta
   void start();
   return () => {
     stopped = true;
+    window.clearInterval(refreshTimer);
+    window.removeEventListener("focus", refreshOnReturn);
+    document.removeEventListener("visibilitychange", refreshOnReturn);
     if (channel) void dashboardClient.removeChannel(channel);
   };
 }
-
