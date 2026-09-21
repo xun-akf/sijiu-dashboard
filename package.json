@@ -9,6 +9,7 @@
     "install:ci": "bash scripts/install-ci.sh",
     "dev": "next dev",
     "build": "next build",
+    "build:pages": "next build",
     "start": "next start",
     "test": "npm run build && node --test tests/independent-deployment.test.mjs",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
