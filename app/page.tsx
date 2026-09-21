@@ -178,6 +178,7 @@ const DEFAULT_GRID_FEES: Record<string, string> = {};
 function useConfigs() {
   const [cfg, setCfg] = useState<Record<string, StationConfig>>({});
   const [loaded, setLoaded] = useState(false);
+  const lastLoadedConfig = useRef<string | null>(null);
   useEffect(() => {
     let live = true;
     const refresh = () => dashboardFetch("/api/dashboard-state", { cache: "no-store" })
@@ -187,7 +188,11 @@ function useConfigs() {
       })
       .then((shared) => {
         if (live && shared.configs && Object.keys(shared.configs).length) {
-          setCfg(shared.configs);
+          const serialized = JSON.stringify(shared.configs);
+          if (serialized !== lastLoadedConfig.current) {
+            lastLoadedConfig.current = serialized;
+            setCfg(shared.configs);
+          }
         }
         if (live) setLoaded(true);
       })
@@ -538,6 +543,8 @@ export default function Home() {
     [showPublishIssues, setShowPublishIssues] = useState(false),
     [loading, setLoading] = useState(true),
     [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  const lastLoadedData = useRef<string | null>(null);
+  const lastLoadedSharedConfigs = useRef<string | null>(null);
   // Legacy dashboard helpers synchronously read this snapshot during render.
   // eslint-disable-next-line react-hooks/globals
   stations = stationData;
@@ -560,10 +567,12 @@ export default function Home() {
           ? await stateResponse.json() as { stationData?: S[]; meta?: AdminMeta } & PartnerBrand
           : {};
         if (live && shared.stationData?.length) {
+          lastLoadedData.current = JSON.stringify(shared.stationData);
           setStationData(shared.stationData);
           setWi(Math.max(0, shared.stationData[0].records.length - 1));
         }
         if (live && shared.meta) setAdminMeta(shared.meta);
+        if (live && "configs" in shared) lastLoadedSharedConfigs.current = JSON.stringify(shared.configs);
         if (live && shared.reportName) setPartnerBrand({ operator: shared.operator, operatorName: shared.operatorName, reportName: shared.reportName });
       } catch (error) {
         console.warn("数据库暂不可用", error);
@@ -584,14 +593,27 @@ export default function Home() {
         try {
           const response = await dashboardFetch("/api/dashboard-state", { cache: "no-store" });
           if (!response.ok) return;
-          const shared = (await response.json()) as { stationData?: S[]; meta?: AdminMeta } & PartnerBrand;
+          const shared = (await response.json()) as { stationData?: S[]; configs?: Record<string, StationConfig>; meta?: AdminMeta } & PartnerBrand;
+          let changed = false;
           if (shared.stationData?.length) {
-            setStationData(shared.stationData);
-            setWi((current) => Math.min(current, shared.stationData![0].records.length - 1));
+            const serialized = JSON.stringify(shared.stationData);
+            if (serialized !== lastLoadedData.current) {
+              lastLoadedData.current = serialized;
+              changed = true;
+              setStationData(shared.stationData);
+              setWi((current) => Math.min(current, shared.stationData![0].records.length - 1));
+            }
           }
-          if (shared.meta) setAdminMeta(shared.meta);
-          if (shared.reportName) setPartnerBrand({ operator: shared.operator, operatorName: shared.operatorName, reportName: shared.reportName });
-          window.dispatchEvent(new Event("dashboard-state-changed"));
+          if (shared.configs) {
+            const serialized = JSON.stringify(shared.configs);
+            if (serialized !== lastLoadedSharedConfigs.current) {
+              lastLoadedSharedConfigs.current = serialized;
+              changed = true;
+            }
+          }
+          if (shared.meta) setAdminMeta((current) => JSON.stringify(current) === JSON.stringify(shared.meta) ? current : shared.meta!);
+          if (shared.reportName) setPartnerBrand((current) => current.reportName === shared.reportName && current.operator === shared.operator && current.operatorName === shared.operatorName ? current : { operator: shared.operator, operatorName: shared.operatorName, reportName: shared.reportName });
+          if (changed) window.dispatchEvent(new Event("dashboard-state-changed"));
         } catch (error) {
           console.warn("实时数据刷新失败", error);
         }
