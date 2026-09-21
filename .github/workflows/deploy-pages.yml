@@ -17,11 +17,19 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      NEXT_PUBLIC_SITE_BASE_PATH: ${{ github.repository == 'xun-akf/xun-akf.github.io' && '/' || '/sijiu-dashboard' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Select site base path
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          custom_domain=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq '.cname // ""' 2>/dev/null || true)
+          if [[ "$custom_domain" == "sijiu-dashboard.com" || "$GITHUB_REPOSITORY" == "xun-akf/xun-akf.github.io" ]]; then
+            echo 'NEXT_PUBLIC_SITE_BASE_PATH=/' >> "$GITHUB_ENV"
+          else
+            echo 'NEXT_PUBLIC_SITE_BASE_PATH=/sijiu-dashboard' >> "$GITHUB_ENV"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version: 22
