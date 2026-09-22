@@ -111,6 +111,7 @@ type StationConfig = {
   servicePricesJson: string;
   competitorsJson: string;
   analysis: string;
+  analysisByWeekJson: string;
   stationAliasesJson: string;
 };
 const emptyConfig: StationConfig = {
@@ -137,6 +138,7 @@ const emptyConfig: StationConfig = {
   servicePricesJson: "",
   competitorsJson: "",
   analysis: "",
+  analysisByWeekJson: "",
   stationAliasesJson: "",
 };
 type PeriodPrice = { peak: string; high: string; flat: string; valley: string };
@@ -215,8 +217,8 @@ function useConfigs() {
     }));
   const save = async (nextCfg: Record<string, StationConfig> = cfg, stationData?: S[]) => {
     if (!loaded) throw new Error("价格成本配置仍在加载，请稍后再保存，避免覆盖现有配置");
-    setCfg(nextCfg);
     await saveDashboardPatch({ configs: nextCfg, ...(stationData ? { stationData } : {}) });
+    setCfg(nextCfg);
     return true;
   };
   return { cfg, update, save, loaded };
@@ -247,6 +249,17 @@ async function saveDashboardPatch(patch: { stationData?: S[]; configs?: Record<s
   } finally {
     clearTimeout(timeout);
   }
+}
+async function saveManualStationAnalysis(station: string, week: string, analysis: string) {
+  const response = await dashboardFetch("/api/dashboard-state", { cache: "no-store" });
+  if (!response.ok) throw new Error("无法读取最新配置，请刷新后重试");
+  const shared = await response.json() as { configs?: Record<string, StationConfig> };
+  if (!shared.configs) throw new Error("站点配置尚未加载，无法保存分析");
+  const config = { ...emptyConfig, ...shared.configs[station] };
+  await saveDashboardPatch({ configs: {
+    ...shared.configs, [station]: withManualAnalysis(config, week, analysis),
+  } });
+  window.dispatchEvent(new Event("dashboard-state-changed"));
 }
 type CoreImportField = "station" | "period" | "peak" | "high" | "flat" | "valley" | "charge";
 type ImportRecognition = {
@@ -965,13 +978,11 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         sn={sn}
         totalsData={t}
         generatedAnalysis={(() => {
-          const saved = sn === "全部场站" ? cfg.__summary__?.analysis : cfg[sn]?.analysis;
-          if (saved && !saved.startsWith(sn === "全部场站" ? "全场充电量" : "充电量")) return saved;
           const week = allWeeks()[wi];
-          if (!week) return saved;
+          if (!week) return undefined;
           return sn === "全部场站"
             ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis
-            : generateStationAnalysis(scope(sn)[0], week, { ...emptyConfig, ...cfg[sn] });
+            : stationAnalysis(scope(sn)[0], week, { ...emptyConfig, ...cfg[sn] });
         })()}
       />
       <OverviewTrends
@@ -1586,40 +1597,47 @@ function StationAnalysis({
           />
         </Panel>
       </div>
+      {!isAll && r && <Panel title="当周运营分析" sub={r.week}>
+        <p>{stationAnalysis(selected, r.week, c)}</p>
+      </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
     </>
   );
 }
-function Business({ sn }: { wi: number; sn: string }) {
-  const latest = allWeeks().length - 1,
-    { cfg, update, save } = useConfigs(),
+function Business({ wi, sn }: { wi: number; sn: string }) {
+  const week = allWeeks()[wi],
+    canEdit = useContext(OperatorContext),
+    { cfg } = useConfigs(),
     [editingStation, setEditingStation] = useState<string | null>(null),
+    [draftAnalysis, setDraftAnalysis] = useState(""),
+    [saveError, setSaveError] = useState(""),
+    [saving, setSaving] = useState(false),
     [savedStation, setSavedStation] = useState<string | null>(null),
     rows = scope(sn)
-      .map((s) => ({ station: s, record: recordAt(s, latest) }))
+      .map((s) => ({ station: s, record: recordAt(s, wi) }))
       .filter((item): item is { station: S; record: R } => Boolean(item.record))
       .sort((a, b) => num(b.record.profit) - num(a.record.profit)),
     attention = rows
       .filter((x) => num(x.record.chargeChange) < -0.12)
       .sort((a, b) => num(a.record.chargeChange) - num(b.record.chargeChange)),
     doSave = async (name: string) => {
-      await save();
-      setEditingStation(null);
-      setSavedStation(name);
-      setTimeout(() => setSavedStation(null), 1500);
+      if (!canEdit || saving || !week) return;
+      setSaving(true);
+      setSaveError("");
+      try {
+        await saveManualStationAnalysis(name, week, draftAnalysis);
+        setEditingStation(null);
+        setSavedStation(name);
+        setTimeout(() => setSavedStation(null), 1500);
+      } catch (error) {
+        setSaveError(error instanceof Error ? error.message : "分析保存失败，请重试");
+      } finally {
+        setSaving(false);
+      }
     };
-  const AnalysisBlock = ({
-    item,
-    compact = false,
-  }: {
-    item: (typeof rows)[number];
-    compact?: boolean;
-  }) => {
+  const renderAnalysisBlock = (item: (typeof rows)[number], compact = false) => {
     const name = item.station.name,
-      savedAnalysis = (cfg[name] || emptyConfig).analysis,
-      value = editingStation === name ? savedAnalysis :
-        savedAnalysis && !savedAnalysis.startsWith("充电量") ? savedAnalysis :
-        generateStationAnalysis(item.station, allWeeks()[latest], { ...emptyConfig, ...cfg[name] }),
+      value = stationAnalysis(item.station, week, { ...emptyConfig, ...cfg[name] }),
       editing = editingStation === name;
     return (
       <div className={`analysis-view ${compact ? "compact" : ""}`}>
@@ -1627,25 +1645,26 @@ function Business({ sn }: { wi: number; sn: string }) {
           <>
             <textarea
               autoFocus
-              value={value}
-              onChange={(e) => update(name, "analysis", e.target.value)}
+              value={draftAnalysis}
+              onChange={(e) => setDraftAnalysis(e.target.value)}
               placeholder="填写主要原因与下一步改进措施…"
             />
             <div className="analysis-actions">
               <button className="ghost" onClick={() => setEditingStation(null)}>
                 取消
               </button>
-              <button className="save-button" onClick={() => doSave(name)}>
-                保存
+              <button className="save-button" disabled={saving} onClick={() => doSave(name)}>
+                {saving ? "保存中…" : "保存"}
               </button>
             </div>
+            {saveError && <small className="down">{saveError}</small>}
           </>
         ) : (
           <>
             <p>{value || "暂未填写运营分析"}</p>
-            <button onClick={() => setEditingStation(name)}>
+            {canEdit && <button onClick={() => { setDraftAnalysis(value); setSaveError(""); setEditingStation(name); }}>
               {value ? "编辑" : "添加分析"}
-            </button>
+            </button>}
             {savedStation === name && <small className="up">已保存 ✓</small>}
           </>
         )}
@@ -1656,8 +1675,8 @@ function Business({ sn }: { wi: number; sn: string }) {
     <>
       <div className="page-heading business-head">
         <div>
-          <span className="eyebrow">最新一周经营诊断</span>
-          <h2>{allWeeks()[latest]} 全场站分析</h2>
+          <span className="eyebrow">当周经营诊断</span>
+          <h2>{week} 全场站分析</h2>
           <p>优先关注严重下降站点，再查看完整利润排名与全场诊断。</p>
         </div>
         <span className="attention-count">重点关注 {attention.length} 个</span>
@@ -1682,7 +1701,7 @@ function Business({ sn }: { wi: number; sn: string }) {
                     </div>
                     <span className="down">{pct(x.record.chargeChange)}</span>
                   </div>
-                  <AnalysisBlock item={x} compact />
+                  {renderAnalysisBlock(x, true)}
                 </div>
               ))
             ) : (
@@ -1712,7 +1731,7 @@ function Business({ sn }: { wi: number; sn: string }) {
                 充电量 {qty(num(x.record.charge))} kWh · 经营利润{" "}
                 {money(num(x.record.profit))}
               </p>
-              <AnalysisBlock item={x} />
+              {renderAnalysisBlock(x)}
             </div>
           ))}
         </div>
@@ -1880,10 +1899,7 @@ function SingleStationTrend({ station }: { station: S }) {
     latest = station.records.at(-1)!,
     doSave = async () => {
       const latestWeek = station.records.at(-1)?.week || "",
-        updated = {
-          ...c,
-          analysis: generateStationAnalysis(station, latestWeek, c),
-        };
+        updated = { ...c, analysis: stationAnalysis(station, latestWeek, c) };
       await save({ ...cfg, [station.name]: updated });
       setEditing(false);
       setOriginalCompetitors(null);
@@ -2423,36 +2439,48 @@ function CompetitorEditor({
   );
 }
 function AdviceEditor({ station, record }: { station: S; record: R }) {
-  const { cfg, update, save } = useConfigs(),
+  const { cfg } = useConfigs(),
     c = { ...emptyConfig, ...cfg[station.name] },
     [editing, setEditing] = useState(false),
+    [draft, setDraft] = useState(""),
+    [error, setError] = useState(""),
+    [saving, setSaving] = useState(false),
+    canEdit = useContext(OperatorContext),
     doSave = async () => {
-      await save();
-      setEditing(false);
+      setSaving(true);
+      setError("");
+      try {
+        await saveManualStationAnalysis(station.name, record.week, draft);
+        setEditing(false);
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "分析保存失败");
+      } finally {
+        setSaving(false);
+      }
     };
   return (
     <>
       <div className="advice-actions">
         <span>系统建议可人工修订，保存后锁定</span>
-        <div>
-          <button onClick={() => setEditing((v) => !v)}>
+        {canEdit && <div>
+          <button onClick={() => { setDraft(stationAnalysis(station, record.week, c)); setError(""); setEditing((v) => !v); }}>
             {editing ? "取消修改" : "修改"}
           </button>
           {editing && (
-            <button className="save-button" onClick={doSave}>
-              保存并锁定
+            <button className="save-button" disabled={saving} onClick={doSave}>
+              {saving ? "保存中…" : "保存并锁定"}
             </button>
           )}
-        </div>
+        </div>}
       </div>
       <AutoAdvice station={station} record={record} cfg={c} />
-      <textarea
+      {editing ? <textarea
         className="manual-advice"
-        disabled={!editing}
-        value={c.analysis}
-        onChange={(e) => update(station.name, "analysis", e.target.value)}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
         placeholder="如需调整系统建议，可点击修改后填写最终执行方案…"
-      />
+      /> : <p>{stationAnalysis(station, record.week, c)}</p>}
+      {error && <small className="down">{error}</small>}
     </>
   );
 }
@@ -2566,13 +2594,28 @@ function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
       : "竞站价格暂未完整核验，先核查客流、设备在线情况与分时结构，不对原因作主观判断。";
   return `${metricChangeText("充电量", current.charge, previous?.charge ?? null)}，${metricChangeText("服务费收入", current.serviceRevenue, previous?.serviceRevenue ?? null)}，经营利润${money(num(current.profit))}；${cause}。${context ? `场景核验：${context}。` : ""}${action}`;
 }
+// Manual text is stored by station AND week in the published/draft configs JSON.
+// The legacy `analysis` field remains a generated/latest-week compatibility value.
+function manualAnalysis(config: StationConfig, week: string): string | undefined {
+  const entries = safeJson<Record<string, unknown>>(config.analysisByWeekJson, {});
+  return Object.prototype.hasOwnProperty.call(entries, week) && typeof entries[week] === "string"
+    ? entries[week] as string : undefined;
+}
+function stationAnalysis(station: S, week: string, config: StationConfig): string {
+  return manualAnalysis(config, week) ?? generateStationAnalysis(station, week, config);
+}
+function withManualAnalysis(config: StationConfig, week: string, text: string): StationConfig {
+  return { ...config, analysisByWeekJson: JSON.stringify({
+    ...safeJson<Record<string, string>>(config.analysisByWeekJson, {}), [week]: text,
+  }) };
+}
 function generateWeeklyAnalyses(source: S[], week: string, configs: Record<string, StationConfig>) {
   const next = { ...configs };
   source.forEach((station) => {
     const stationCfg = { ...emptyConfig, ...configs[station.name] };
     next[station.name] = {
       ...stationCfg,
-      analysis: generateStationAnalysis(station, week, stationCfg),
+      analysis: stationAnalysis(station, week, stationCfg),
     };
   });
   const recordPair = (station: S) => {
