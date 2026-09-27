@@ -1,4 +1,5 @@
 "use client";
+import "./diagnosis.css";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { strFromU8, unzipSync } from "fflate";
 import {
@@ -1609,10 +1610,10 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     canEdit = useContext(OperatorContext),
     { cfg } = useConfigs(),
     [editingStation, setEditingStation] = useState<string | null>(null),
-    [draftAnalysis, setDraftAnalysis] = useState(""),
     [saveError, setSaveError] = useState(""),
     [saving, setSaving] = useState(false),
     [savedStation, setSavedStation] = useState<string | null>(null),
+    editorRef = useRef<HTMLParagraphElement | null>(null),
     rows = scope(sn)
       .map((s) => ({ station: s, record: recordAt(s, wi) }))
       .filter((item): item is { station: S; record: R } => Boolean(item.record))
@@ -1625,7 +1626,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       setSaving(true);
       setSaveError("");
       try {
-        await saveManualStationAnalysis(name, week, draftAnalysis);
+        await saveManualStationAnalysis(name, week, editorRef.current?.innerText.trim() ?? "");
         setEditingStation(null);
         setSavedStation(name);
         setTimeout(() => setSavedStation(null), 1500);
@@ -1635,39 +1636,31 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         setSaving(false);
       }
     };
-  const renderAnalysisBlock = (item: (typeof rows)[number], compact = false) => {
+  const renderAnalysisBlock = (item: (typeof rows)[number]) => {
     const name = item.station.name,
-      value = stationAnalysis(item.station, week, { ...emptyConfig, ...cfg[name] }),
+      value = conciseStationDiagnosis(item.station, week, { ...emptyConfig, ...cfg[name] }),
       editing = editingStation === name;
     return (
-      <div className={`analysis-view ${compact ? "compact" : ""}`}>
-        {editing ? (
-          <>
-            <textarea
-              autoFocus
-              value={draftAnalysis}
-              onChange={(e) => setDraftAnalysis(e.target.value)}
-              placeholder="填写主要原因与下一步改进措施…"
-            />
-            <div className="analysis-actions">
-              <button className="ghost" onClick={() => setEditingStation(null)}>
-                取消
-              </button>
-              <button className="save-button" disabled={saving} onClick={() => doSave(name)}>
-                {saving ? "保存中…" : "保存"}
-              </button>
-            </div>
-            {saveError && <small className="down">{saveError}</small>}
-          </>
-        ) : (
-          <>
-            <p>{value || "暂未填写运营分析"}</p>
-            {canEdit && <button onClick={() => { setDraftAnalysis(value); setSaveError(""); setEditingStation(name); }}>
-              {value ? "编辑" : "添加分析"}
-            </button>}
-            {savedStation === name && <small className="up">已保存 ✓</small>}
-          </>
-        )}
+      <div className="analysis-view">
+        <p
+          key={`${name}-${week}-${editing ? "editing" : "view"}`}
+          ref={editing ? editorRef : undefined}
+          contentEditable={editing && canEdit}
+          suppressContentEditableWarning
+          aria-label={`${name}运营分析`}
+        >{value || "暂未填写运营分析"}</p>
+        {canEdit && <div className="analysis-actions">
+          {editing ? <>
+            <button className="ghost" disabled={saving} onClick={() => setEditingStation(null)}>取消</button>
+            <button className="save-button" disabled={saving} onClick={() => doSave(name)}>
+              {saving ? "保存中…" : "保存"}
+            </button>
+          </> : <button onClick={() => { setSaveError(""); setEditingStation(name); }}>
+            {value ? "编辑" : "添加分析"}
+          </button>}
+          {savedStation === name && !editing && <small className="up">已保存 ✓</small>}
+        </div>}
+        {editing && saveError && <small className="down">{saveError}</small>}
       </div>
     );
   };
@@ -1701,7 +1694,6 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
                     </div>
                     <span className="down">{pct(x.record.chargeChange)}</span>
                   </div>
-                  {renderAnalysisBlock(x, true)}
                 </div>
               ))
             ) : (
@@ -1896,7 +1888,6 @@ function SingleStationTrend({ station }: { station: S }) {
     c = { ...emptyConfig, ...cfg[station.name] },
     [editing, setEditing] = useState(false),
     [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
-    latest = station.records.at(-1)!,
     doSave = async () => {
       const latestWeek = station.records.at(-1)?.week || "",
         updated = { ...c, analysis: stationAnalysis(station, latestWeek, c) };
@@ -1979,12 +1970,6 @@ function SingleStationTrend({ station }: { station: S }) {
         cfg={c}
         update={update}
       />
-      <Panel
-        title="自动分析与可执行建议"
-        sub="根据周报电量变化、价格与竞站数据自动生成"
-      >
-        <AdviceEditor station={station} record={latest} />
-      </Panel>
     </>
   );
 }
@@ -2438,108 +2423,6 @@ function CompetitorEditor({
     </Panel>
   );
 }
-function AdviceEditor({ station, record }: { station: S; record: R }) {
-  const { cfg } = useConfigs(),
-    c = { ...emptyConfig, ...cfg[station.name] },
-    [editing, setEditing] = useState(false),
-    [draft, setDraft] = useState(""),
-    [error, setError] = useState(""),
-    [saving, setSaving] = useState(false),
-    canEdit = useContext(OperatorContext),
-    doSave = async () => {
-      setSaving(true);
-      setError("");
-      try {
-        await saveManualStationAnalysis(station.name, record.week, draft);
-        setEditing(false);
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : "分析保存失败");
-      } finally {
-        setSaving(false);
-      }
-    };
-  return (
-    <>
-      <div className="advice-actions">
-        <span>系统建议可人工修订，保存后锁定</span>
-        {canEdit && <div>
-          <button onClick={() => { setDraft(stationAnalysis(station, record.week, c)); setError(""); setEditing((v) => !v); }}>
-            {editing ? "取消修改" : "修改"}
-          </button>
-          {editing && (
-            <button className="save-button" disabled={saving} onClick={doSave}>
-              {saving ? "保存中…" : "保存并锁定"}
-            </button>
-          )}
-        </div>}
-      </div>
-      <AutoAdvice station={station} record={record} cfg={c} />
-      {editing ? <textarea
-        className="manual-advice"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        placeholder="如需调整系统建议，可点击修改后填写最终执行方案…"
-      /> : <p>{stationAnalysis(station, record.week, c)}</p>}
-      {error && <small className="down">{error}</small>}
-    </>
-  );
-}
-function AutoAdvice({
-  station,
-  record,
-  cfg,
-}: {
-  station: S;
-  record: R;
-  cfg: StationConfig;
-}) {
-  const change = num(record.chargeChange),
-    competitors = safeJson<Competitor[]>(cfg.competitorsJson, []),
-    latestWeek = station.records.at(-1)?.week || "2026年9月2周",
-    resolvedOwn = resolveWeeklyPrice(cfg.externalPricesJson, latestWeek),
-    own = Object.values(resolvedOwn).some(Boolean) ? resolvedOwn : {
-      peak: cfg.weeklyPeak,
-      high: cfg.weeklyHigh,
-      flat: cfg.weeklyFlat,
-      valley: cfg.weeklyValley,
-    },
-    keys = ["peak", "high", "flat", "valley"] as const,
-    labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" },
-    priceAdvice = keys.flatMap((key) => {
-      const v = competitors
-          .map((c) => Number((c.total || c)[key]))
-          .filter((x) => x > 0),
-        o = Number(own[key]);
-      if (!v.length || !o) return [];
-      const avg = v.reduce((a, b) => a + b, 0) / v.length,
-        diff = (o / avg - 1) * 100;
-      return [
-        `${labels[key]}段本站 ¥${o.toFixed(3)}，比竞站均价${diff >= 0 ? "高" : "低"} ${Math.abs(diff).toFixed(1)}%。`,
-      ];
-    });
-  const action =
-    change < -0.12
-      ? "先核查停枪与导航曝光，并对已核验的低价竞站做7天小幅调价测试。"
-      : change > 0.12
-        ? "保持当前价格，复盘增长时段并复制到同区域低效站。"
-        : "总体稳定，优先用平谷时段小幅调价测试提升利用率。";
-  return (
-    <div className="advice-box">
-      <div>
-        <b>{station.name}</b>
-        <span className={change < 0 ? "down" : "up"}>
-          {pct(record.chargeChange)}
-        </span>
-      </div>
-      <p>当周经营利润 {money(num(record.profit))}</p>
-      <ol>
-        {[...priceAdvice, action].map((x) => (
-          <li key={x}>{x}</li>
-        ))}
-      </ol>
-    </div>
-  );
-}
 const metricChangeText = (label: string, current: number | null, previous: number | null) => {
   if (!previous) return `${label}暂无可比上期`;
   const change = num(current) / previous - 1;
@@ -2603,6 +2486,16 @@ function manualAnalysis(config: StationConfig, week: string): string | undefined
 }
 function stationAnalysis(station: S, week: string, config: StationConfig): string {
   return manualAnalysis(config, week) ?? generateStationAnalysis(station, week, config);
+}
+function conciseStationDiagnosis(station: S, week: string, config: StationConfig): string {
+  const manual = manualAnalysis(config, week);
+  if (manual !== undefined) return manual;
+  const generated = generateStationAnalysis(station, week, config);
+  const detail = generated.split("；").slice(1).join("；");
+  if (!detail) return generated;
+  const sentences = detail.split("。").map((sentence) => sentence.trim())
+    .filter((sentence) => sentence && !sentence.startsWith("场景核验："));
+  return sentences.slice(0, 2).join("。") + (sentences.length ? "。" : "");
 }
 function withManualAnalysis(config: StationConfig, week: string, text: string): StationConfig {
   return { ...config, analysisByWeekJson: JSON.stringify({
