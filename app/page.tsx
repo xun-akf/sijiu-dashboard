@@ -2468,9 +2468,11 @@ function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
       value: Number((competitor.distance || "").match(/[\d.]+/)?.[0]),
     })).filter((item) => Number.isFinite(item.value)),
     nearest = [...validDistances].sort((a, b) => a.value - b.value)[0],
-    context = [cfg.location, cfg.customers, cfg.weather].filter(Boolean).join("；"),
+    // Weather is a station-level note without a week/date key. Reusing it for
+    // each weekly report can attach an old day's conditions to new data.
+    context = [cfg.location, cfg.customers].filter(Boolean).join("；"),
     cause = num(current.chargeChange) < -0.05
-      ? `${weakest ? `${weakest.label}段降幅最大（${pct(weakest.value)}）` : "分时段需继续核验"}${cfg.weather ? `，结合天气：${cfg.weather}` : ""}`
+      ? `${weakest ? `${weakest.label}段降幅最大（${pct(weakest.value)}）` : "分时段需继续核验"}`
       : `${strongest ? `${strongest.label}段表现较好（${pct(strongest.value)}）` : "各时段总体平稳"}`,
     action = competitors.length
       ? `${averagePriceDiff == null ? "竞站分时价格待补充" : `本站有效时段均价较周边${averagePriceDiff >= 0 ? "高" : "低"}${Math.abs(averagePriceDiff).toFixed(3)}元/度`}${nearest ? `，最近竞站为${nearest.name}` : "，距离待补充"}；建议优先核查下降时段的客流与设备状态。`
@@ -3130,7 +3132,7 @@ function Config({
       </div>
       <div className="cost-panel auto-analysis-panel" id="auto-analysis">
         <div className="section-head">
-          <div><h3>自动生成本周分析</h3><p>基于环比、尖峰平谷、服务费收入、利润、场景客群、天气和已有竞站数据生成；待核验内容不会猜测。</p></div>
+          <div><h3>自动生成本周分析</h3><p>基于环比、尖峰平谷、服务费收入、利润、场景客群和已有竞站数据生成；待核验内容不会猜测。</p></div>
           <div className="config-actions"><button className="panel-toggle" onClick={() => togglePanel("analysis")}>{openPanels.analysis ? "收起" : "详情/生成"}</button>{openPanels.analysis && <button onClick={previewAnalyses}>重新生成</button>}{analysisPreview && <button className="save-button" onClick={publishAnalyses}>确认发布</button>}</div>
         </div>
         {!openPanels.analysis ? (
