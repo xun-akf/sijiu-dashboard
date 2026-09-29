@@ -1,12 +1,13 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { LockKeyhole, Zap } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Zap } from "lucide-react";
 import { signInDashboard, siteUrl } from "@/lib/dashboard-browser";
 
 export default function AccessPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -34,7 +35,16 @@ export default function AccessPage() {
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div><label htmlFor="account" className="mb-2 block text-sm text-[#b6d0c6]">请输入账号</label><input id="account" name="account" type="text" autoComplete="username" required placeholder="请输入访问账号" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] px-4 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" /></div>
-          <div><label htmlFor="password" className="mb-2 block text-sm text-[#b6d0c6]">请输入密码</label><input id="password" name="password" type="password" autoComplete="current-password" required placeholder="请输入访问密码" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] px-4 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" />{error ? <p className="mt-2 text-sm text-[#ff9b73]">{error}</p> : null}</div>
+          <div>
+            <label htmlFor="password" className="mb-2 block text-sm text-[#b6d0c6]">请输入密码</label>
+            <div className="relative">
+              <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required placeholder="请输入访问密码" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] pl-4 pr-14 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" />
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "隐藏密码" : "显示密码"} aria-pressed={showPassword} className="absolute right-1 top-1 flex size-10 items-center justify-center rounded-lg text-[#8fb6a8] hover:bg-[#174437] hover:text-[#edf8f3] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#35d7a5]">
+                {showPassword ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
+              </button>
+            </div>
+            {error ? <p className="mt-2 text-sm text-[#ff9b73]">{error}</p> : null}
+          </div>
           <button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#35d7a5] font-semibold text-[#052019] disabled:opacity-60">{loading ? "正在验证…" : "进入周报系统"}</button>
         </form>
         <p className="mt-5 text-center text-xs text-[#658c7e]">登录状态将安全保存在当前浏览器</p>
@@ -42,4 +52,3 @@ export default function AccessPage() {
     </main>
   );
 }
-
