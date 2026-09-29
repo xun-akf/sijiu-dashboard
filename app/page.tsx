@@ -594,8 +594,8 @@ export default function Home() {
   const { cfg: periodConfigs } = useConfigs();
   const monthly = monthlyPeriods(stationData, periodConfigs);
   const weekly = weeklyFromDaily(stationData, periodConfigs);
-  activePeriodMode = periodMode;
-  stations = periodMode === "month" ? monthly.stations : weekly;
+  activePeriodMode = view === "config" ? "week" : periodMode;
+  stations = activePeriodMode === "month" ? monthly.stations : weekly;
   const selectedIndex = periodMode === "month"
     ? monthIndex < 0 ? Math.max(0, monthly.months.length - 1) : Math.min(monthIndex, Math.max(0, monthly.months.length - 1))
     : Math.min(wi, Math.max(0, allWeeks().length - 1));
@@ -1445,8 +1445,8 @@ function StationAnalysis({
               ? num(record.serviceRevenue) * num(record[period]) / num(record.charge)
               : 0);
           }, 0);
-        const charge = sum("charge"), serviceRevenue = sum("serviceRevenue"),
-          profit = sum("profit"), previousWeek = weeks[index - 1],
+        const charge = sum("charge"), serviceRevenue = activePeriodMode === "month" && rows.some((record) => num(record.charge) > 0 && record.serviceRevenue == null) ? null : sum("serviceRevenue"),
+          profit = activePeriodMode === "month" && rows.some((record) => num(record.charge) > 0 && record.profit == null) ? null : sum("profit"), previousWeek = weeks[index - 1],
           previousRows = previousWeek ? stations
             .map((station) => station.records.find((record) => record.week === previousWeek))
             .filter((record): record is R => Boolean(record)) : [],
@@ -1462,9 +1462,9 @@ function StationAnalysis({
           flatServiceRevenue: periodService("flat"),
           valleyServiceRevenue: periodService("valley"),
           electricityRevenue: sum("electricityRevenue"),
-          serviceChange: previousService ? serviceRevenue / previousService - 1 : null,
-          servicePerKwh: charge ? serviceRevenue / charge : null,
-          electricityProfitPerKwh: charge ? (profit - serviceRevenue) / charge : null,
+          serviceChange: previousService && serviceRevenue != null ? serviceRevenue / previousService - 1 : null,
+          servicePerKwh: charge && serviceRevenue != null ? serviceRevenue / charge : null,
+          electricityProfitPerKwh: charge && profit != null && serviceRevenue != null ? (profit - serviceRevenue) / charge : null,
           profit,
           peak: sum("peak"), high: sum("high"), flat: sum("flat"), valley: sum("valley"),
         } satisfies R;
@@ -1568,13 +1568,13 @@ function StationAnalysis({
         <Kpi
           icon={<CircleDollarSign />}
           label="每度服务费"
-          value={`¥${num(r?.servicePerKwh).toFixed(3)}`}
+          value={activePeriodMode === "month" && r?.servicePerKwh == null ? "待核算" : `¥${num(r?.servicePerKwh).toFixed(3)}`}
           sub="服务费收入 / kWh"
         />
         <Kpi
           icon={<Zap />}
           label="每度电费利润"
-          value={`¥${num(r?.electricityProfitPerKwh).toFixed(3)}`}
+          value={activePeriodMode === "month" && r?.electricityProfitPerKwh == null ? "待核算" : `¥${num(r?.electricityProfitPerKwh).toFixed(3)}`}
           sub="电费利润 / kWh"
         />
         <article className="kpi emphasis">
@@ -1585,7 +1585,7 @@ function StationAnalysis({
             <span>{activePeriodMode === "month" ? "当月经营利润" : "当周经营利润"}</span>
           </div>
           <div className="kpi-body">
-            <strong>{money(num(r?.profit))}</strong>
+            <strong>{activePeriodMode === "month" && r?.profit == null ? "待核算" : money(num(r?.profit))}</strong>
           </div>
           <div className="kpi-foot">
             <small>重点指标 · 经营利润口径</small>
@@ -3609,6 +3609,7 @@ function StationHistoryTable({
     },
     periodServiceRevenue = (record: R, period: keyof typeof serviceKeys) => {
       const stored = record[serviceKeys[period]];
+      if (activePeriodMode === "month" && stored == null) return null;
       if (stored != null) return num(stored);
       const prices = priceForWeek(stationCfg.servicePricesJson, record.week),
         priceValue = Number(prices[period] || 0);
@@ -3689,10 +3690,10 @@ function StationHistoryTable({
   }, [station.name, station.records.length]);
   const changeFor = (current: number, previous: number, index: number) =>
       index && previous ? current / previous - 1 : null,
-    cell = (value: number, previous: number, index: number, format: "qty" | "money" | "decimal" = "qty") => {
-      const display = format === "money" ? money(value)
+    cell = (value: number | null, previous: number | null, index: number, format: "qty" | "money" | "decimal" = "qty") => {
+      const display = value == null ? "待核算" : format === "money" ? money(value)
         : format === "decimal" ? `¥${value.toFixed(3)}` : qty(value),
-        change = changeFor(value, previous, index);
+        change = value == null || previous == null ? null : changeFor(value, previous, index);
       return <><b>{display}</b><em className={change == null ? "" : change >= 0 ? "up" : "down"}>{pct(change)}</em></>;
     },
     editableValue = (record: R, key: keyof R, service = false) => {
@@ -3703,7 +3704,7 @@ function StationHistoryTable({
         [draftKey]: event.target.value === "" ? null : Number(event.target.value),
       }))} />;
     },
-    rows: Array<{ section?: string; label?: string; value?: (record: R) => number; format?: "qty" | "money" | "decimal"; editKey?: keyof R; service?: boolean }> = [
+    rows: Array<{ section?: string; label?: string; value?: (record: R) => number | null; format?: "qty" | "money" | "decimal"; editKey?: keyof R; service?: boolean }> = [
       { section: "充电量" },
       { label: "尖", value: (record) => num(record.peak), editKey: "peak" },
       { label: "峰", value: (record) => num(record.high), editKey: "high" },
@@ -3715,16 +3716,16 @@ function StationHistoryTable({
       { label: "峰", value: (record) => periodServiceRevenue(record, "high"), format: "money", editKey: "high", service: true },
       { label: "平", value: (record) => periodServiceRevenue(record, "flat"), format: "money", editKey: "flat", service: true },
       { label: "谷", value: (record) => periodServiceRevenue(record, "valley"), format: "money", editKey: "valley", service: true },
-      { label: "总服务费收入", value: (record) => num(record.serviceRevenue), format: "money" },
+      { label: "总服务费收入", value: (record) => activePeriodMode === "month" ? record.serviceRevenue : num(record.serviceRevenue), format: "money" },
       { section: "总计" },
-      { label: "每度服务费", value: (record) => num(record.servicePerKwh), format: "decimal" },
-      { label: "每度电费利润", value: (record) => num(record.electricityProfitPerKwh), format: "decimal" },
-      { label: "经营利润", value: (record) => num(record.profit), format: "money" },
+      { label: "每度服务费", value: (record) => activePeriodMode === "month" ? record.servicePerKwh : num(record.servicePerKwh), format: "decimal" },
+      { label: "每度电费利润", value: (record) => activePeriodMode === "month" ? record.electricityProfitPerKwh : num(record.electricityProfitPerKwh), format: "decimal" },
+      { label: "经营利润", value: (record) => activePeriodMode === "month" ? record.profit : num(record.profit), format: "money" },
     ];
   return (
     <Panel
       title={aggregate ? "全部场站完整历史数据" : "单站完整历史数据"}
-      sub="2025年至今；左侧指标固定，周次横向排列并默认定位最新周"
+      sub={activePeriodMode === "month" ? "自然月历史；左侧指标固定，按月横向排列" : "2025年至今；左侧指标固定，周次横向排列并默认定位最新周"}
       extra="ranking station-history-panel"
     >
       {status && <div className="history-edit-status">{status}</div>}
@@ -4189,7 +4190,7 @@ function BarList({
               />
             </i>
           </div>
-          <strong>{money(num(x.record.profit))}</strong>
+                    <strong>{activePeriodMode === "month" && x.record.profit == null ? "待核算" : money(num(x.record.profit))}</strong>
           <small className={num(x.record.chargeChange) >= 0 ? "up" : "down"}>
             {pct(x.record.chargeChange)}
           </small>
