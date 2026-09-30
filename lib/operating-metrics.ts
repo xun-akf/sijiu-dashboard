@@ -29,7 +29,7 @@ export function normalizeTouPrice(price: TouPrice): TouPrice {
   };
 }
 
-export type EnergyRecord = { week: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null };
+export type EnergyRecord = { week: string; date?: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null };
 export type MetricConfig = {
   guns?: string;
   billingType?: string; unifiedPrice?: string; servicePricesJson?: string;
@@ -63,7 +63,9 @@ export function calculateOperatingMetrics(record: EnergyRecord, config: MetricCo
   let fees: Record<string, string> = {};
   try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
   try { fees = JSON.parse(monthly.gridFeesJson || "{}"); } catch {}
-  const weekPart = parts(record.week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
+  const weekPart = parts(record.week), accountingDate = record.date?.match(/^(\d{4})-(\d{2})-\d{2}$/),
+    month = String(accountingDate ? Number(accountingDate[2]) : weekPart.month),
+    yearMonth = `${accountingDate ? Number(accountingDate[1]) : weekPart.year}-${month}`;
   const rawCost = config.billingType === "一口价"
     ? Object.fromEntries(keys.map((key) => [key, config.unifiedPrice || ""])) as TouPrice
     : (costs[yearMonth] || costs[month])?.[config.billingType || "大工业电价"] || emptyPrice();
@@ -138,4 +140,3 @@ export function recalculateLatestDashboardWeek(input: unknown, rawConfigs: unkno
     return { ...station, records };
   });
 }
-

@@ -1334,3 +1334,4 @@
     width: 100%;
   }
 }
+.period-switch{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid #31584b;border-radius:9px;background:#0a211a}.period-switch button{padding:8px 13px;border:0;border-radius:6px;background:transparent;color:#9cb5aa;cursor:pointer}.period-switch button.active{background:#1a5b42;color:#e8fff4}.monthly-pricing-note{margin:0 0 14px;padding:11px 14px;border:1px solid #8a6c37;border-radius:8px;background:#302819;color:#f2d38b;font-size:12px}.filterbar .data-note{white-space:normal}
