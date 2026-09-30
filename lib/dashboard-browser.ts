@@ -27,13 +27,21 @@ const roleOf = (user: { app_metadata?: Record<string, unknown> } | null | undefi
 
 export async function signInDashboard(account: string, password: string) {
   const loginAccount = account.trim().toLowerCase();
+  // This existing partner password has no surrounding whitespace. Mobile copy/paste
+  // can add spaces or invisible separators before or after the supplied value.
+  const loginPassword = loginAccount === "sichuan-feifan"
+    ? password.replace(/^[\s\u200b-\u200d\u2060]+|[\s\u200b-\u200d\u2060]+$/g, "")
+    : password;
   let email = accountEmails[loginAccount];
   if (!email && loginAccount) {
     const { data } = await dashboardClient.rpc("resolve_dashboard_partner_login", { p_login_account: loginAccount });
     if (typeof data === "string") email = data;
   }
   if (!email) throw new Error("账号或密码不正确");
-  const { data, error } = await dashboardClient.auth.signInWithPassword({ email, password });
+  const { data, error } = await dashboardClient.auth.signInWithPassword({ email, password: loginPassword });
+  if (error && (error.status === 0 || /fetch|network|timeout/i.test(error.message))) {
+    throw new Error("无法连接认证服务，请检查网络后重试");
+  }
   const role = roleOf(data.user);
   if (error || !data.session || !role) {
     await dashboardClient.auth.signOut().catch(() => undefined);
