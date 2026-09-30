@@ -16,8 +16,9 @@ export default function AccessPage() {
     try {
       await signInDashboard(String(form.get("account") || ""), String(form.get("password") || ""));
       window.location.replace(siteUrl("/"));
-    } catch {
-      setError("账号或密码不正确，请重新输入。");
+    } catch (failure) {
+      setError(failure instanceof Error && failure.message.startsWith("无法连接认证服务")
+        ? failure.message : "账号或密码不正确。请点击小眼睛核对字符，并检查复制时是否带入空格。");
       setLoading(false);
     }
   }
