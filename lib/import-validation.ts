@@ -19,7 +19,7 @@ export type ValidationReport = {
 
 type RecordLike = Record<string, unknown> & { week?: unknown };
 type StationLike = { name?: unknown; records?: unknown };
-type MetricConfig = { billingType?: string; unifiedPrice?: string; servicePricesJson?: string; electricityPricesJson?: string; monthlyCostsJson?: string };
+type MetricConfig = { billingType?: string; purchaseCostType?: string; unifiedPrice?: string; servicePricesJson?: string; electricityPricesJson?: string; externalPricesJson?: string; monthlyCostsJson?: string };
 type Price = Record<"peak" | "high" | "flat" | "valley", string>;
 const missingMetricConfigs = (week: string, config: MetricConfig, monthly: MetricConfig) => {
   const blank = (): Price => ({ peak: "", high: "", flat: "", valley: "" });
@@ -35,12 +35,13 @@ const missingMetricConfigs = (week: string, config: MetricConfig, monthly: Metri
   };
   let costs: Record<string, Record<string, Price>> = {};
   try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
-  const service = resolve(config.servicePricesJson), electricity = resolve(config.electricityPricesJson);
+  const service = resolve(config.servicePricesJson), electricity = resolve(config.electricityPricesJson), external = resolve(config.externalPricesJson);
   const part = weekParts(week), month = String(part.month), yearMonth = `${part.year}-${part.month}`;
-  const rawCost = config.billingType === "一口价" ? Object.fromEntries(Object.keys(blank()).map((key) => [key, config.unifiedPrice || ""])) as Price : (costs[yearMonth] || costs[month])?.[config.billingType || "大工业电价"] || blank();
+  const costType = config.purchaseCostType || config.billingType || "大工业电价";
+  const rawCost = costType === "一口价" ? Object.fromEntries(Object.keys(blank()).map((key) => [key, config.unifiedPrice || ""])) as Price : (costs[yearMonth] || costs[month])?.[costType] || blank();
   const cost = { ...blank(), ...rawCost, peak: rawCost.peak || rawCost.high, high: rawCost.high || rawCost.peak };
   const valid = (price: Price) => Object.values(price).every((value) => value !== "" && Number.isFinite(Number(value)));
-  return [...(!valid(service) ? ["服务费价格"] : []), ...(!valid(electricity) ? ["售电价格"] : []), ...(!valid(cost) ? [config.billingType === "一口价" ? "一口价成本" : `${config.billingType || "大工业电价"}成本`] : [])];
+  return [...(!valid(service) ? ["服务费价格"] : []), ...(!(config.purchaseCostType ? valid(external) : valid(electricity)) ? [config.purchaseCostType ? "外显价格" : "售电价格"] : []), ...(!valid(cost) ? [costType === "一口价" ? "一口价成本" : `${costType}成本`] : [])];
 };
 
 const coreNumericFields = [
@@ -221,4 +222,3 @@ export function validateDashboardData(
     weekCount: canonicalWeeks.length,
   };
 }
-
