@@ -72,10 +72,16 @@ export async function readSharedState(client: AuthenticatedClient, role: AccessR
     const publishedTimes = (rows ?? []).filter((row) => Object.values(publishedKeys).includes(row.key as never)).map((row) => row.updated_at).filter(Boolean);
     const lastModifiedAt = draftTimes.sort().at(-1) ?? null;
     const lastPublishedAt = publishedTimes.sort().at(-1) ?? null;
+    const publishedStationData = (rows ?? []).find((row) => row.key === publishedKeys.stationData)?.value;
+    const publishedConfigs = (rows ?? []).find((row) => row.key === publishedKeys.configs)?.value;
+    const hasUnpublishedContent = publishedStationData !== undefined && result.stationData !== undefined
+      && JSON.stringify(result.stationData) !== JSON.stringify(publishedStationData)
+      || publishedConfigs !== undefined && result.configs !== undefined
+      && JSON.stringify(result.configs) !== JSON.stringify(publishedConfigs);
     result.meta = {
       lastModifiedAt,
       lastPublishedAt,
-      publishStatus: lastModifiedAt && (!lastPublishedAt || lastModifiedAt > lastPublishedAt) ? "draft" : "published",
+      publishStatus: hasUnpublishedContent || lastModifiedAt && (!lastPublishedAt || lastModifiedAt > lastPublishedAt) ? "draft" : "published",
     };
   }
   return result;
