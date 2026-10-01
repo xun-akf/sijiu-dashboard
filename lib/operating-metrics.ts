@@ -32,7 +32,8 @@ export function normalizeTouPrice(price: TouPrice): TouPrice {
 export type EnergyRecord = { week: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null };
 export type MetricConfig = {
   guns?: string;
-  billingType?: string; unifiedPrice?: string; servicePricesJson?: string;
+  billingType?: string; purchaseCostType?: string; unifiedPrice?: string; servicePricesJson?: string;
+  externalPricesJson?: string;
   electricityPricesJson?: string; monthlyCostsJson?: string; gridFeesJson?: string;
 };
 
@@ -40,18 +41,20 @@ export function missingMetricConfigs(week: string, config: MetricConfig, monthly
   const keys: TouKey[] = ["peak", "high", "flat", "valley"];
   const service = normalizeTouPrice(resolveWeeklyPrice(config.servicePricesJson || "", week));
   const electricity = normalizeTouPrice(resolveWeeklyPrice(config.electricityPricesJson || "", week));
+  const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", week));
   let costs: Record<string, Record<string, TouPrice>> = {};
   try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
   const weekPart = parts(week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
-  const rawCost = config.billingType === "一口价"
+  const costType = config.purchaseCostType || config.billingType || "大工业电价";
+  const rawCost = costType === "一口价"
     ? Object.fromEntries(keys.map((key) => [key, config.unifiedPrice || ""])) as TouPrice
-    : (costs[yearMonth] || costs[month])?.[config.billingType || "大工业电价"] || emptyPrice();
+    : (costs[yearMonth] || costs[month])?.[costType] || emptyPrice();
   const cost = normalizeTouPrice({ ...emptyPrice(), ...rawCost });
   const valid = (price: TouPrice) => keys.every((key) => price[key] !== "" && Number.isFinite(Number(price[key])));
   return [
     ...(!valid(service) ? ["服务费价格"] : []),
-    ...(!valid(electricity) ? ["售电价格"] : []),
-    ...(!valid(cost) ? [config.billingType === "一口价" ? "一口价成本" : `${config.billingType || "大工业电价"}成本`] : []),
+    ...(!(config.purchaseCostType ? valid(external) : valid(electricity)) ? [config.purchaseCostType ? "外显价格" : "售电价格"] : []),
+    ...(!valid(cost) ? [costType === "一口价" ? "一口价成本" : `${costType}成本`] : []),
   ];
 }
 
@@ -59,23 +62,28 @@ export function calculateOperatingMetrics(record: EnergyRecord, config: MetricCo
   const keys: TouKey[] = ["peak", "high", "flat", "valley"];
   const service = normalizeTouPrice(resolveWeeklyPrice(config.servicePricesJson || "", record.week));
   const electricity = normalizeTouPrice(resolveWeeklyPrice(config.electricityPricesJson || "", record.week));
+  const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", record.week));
   let costs: Record<string, Record<string, TouPrice>> = {};
   let fees: Record<string, string> = {};
   try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
   try { fees = JSON.parse(monthly.gridFeesJson || "{}"); } catch {}
   const weekPart = parts(record.week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
-  const rawCost = config.billingType === "一口价"
+  const costType = config.purchaseCostType || config.billingType || "大工业电价";
+  const rawCost = costType === "一口价"
     ? Object.fromEntries(keys.map((key) => [key, config.unifiedPrice || ""])) as TouPrice
-    : (costs[yearMonth] || costs[month])?.[config.billingType || "大工业电价"] || emptyPrice();
+    : (costs[yearMonth] || costs[month])?.[costType] || emptyPrice();
   const cost = normalizeTouPrice({ ...emptyPrice(), ...rawCost });
   const values = Object.fromEntries(keys.map((key) => [key, Number(record[key] || 0)])) as Record<TouKey, number>;
   const valid = (price: TouPrice) => keys.every((key) => price[key] !== "" && Number.isFinite(Number(price[key])));
-  const gridFee = config.billingType === "售电价" ? Number(fees[yearMonth] ?? fees[month] ?? 0) : 0;
+  const gridFee = costType === "售电价" ? Number(fees[yearMonth] ?? fees[month] ?? 0) : 0;
+  const useExternal = Boolean(config.purchaseCostType) && valid(external);
   const periodService = Object.fromEntries(keys.map((key) => [key, valid(service) ? values[key] * Number(service[key]) : null])) as Record<TouKey, number | null>;
-  const periodElectricityRevenue = Object.fromEntries(keys.map((key) => [key, valid(electricity) ? values[key] * Number(electricity[key]) : null])) as Record<TouKey, number | null>;
+  const periodElectricityRevenue = Object.fromEntries(keys.map((key) => [key, useExternal && valid(service)
+    ? values[key] * (Number(external[key]) - Number(service[key]))
+    : valid(electricity) ? values[key] * Number(electricity[key]) : null])) as Record<TouKey, number | null>;
   const periodProfit = Object.fromEntries(keys.map((key) => [key,
-    valid(service) && valid(electricity) && valid(cost)
-      ? values[key] * (Number(service[key]) + Number(electricity[key]) - Number(cost[key]) - gridFee)
+    valid(service) && (useExternal || valid(electricity)) && valid(cost)
+      ? values[key] * ((useExternal ? Number(external[key]) : Number(service[key]) + Number(electricity[key])) - Number(cost[key]) - gridFee)
       : null,
   ])) as Record<TouKey, number | null>;
   const sum = (source: Record<TouKey, number | null>) => valid(service) && keys.every((key) => source[key] != null)
@@ -138,4 +146,3 @@ export function recalculateLatestDashboardWeek(input: unknown, rawConfigs: unkno
     return { ...station, records };
   });
 }
-
