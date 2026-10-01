@@ -92,6 +92,7 @@ type StationConfig = {
   operator: string;
   guns: string;
   billingType: string;
+  purchaseCostType: string;
   location: string;
   customers: string;
   weather: string;
@@ -119,6 +120,7 @@ const emptyConfig: StationConfig = {
   operator: "",
   guns: "",
   billingType: "大工业电价",
+  purchaseCostType: "",
   location: "",
   customers: "",
   weather: "",
@@ -2898,15 +2900,16 @@ function Config({
     chosen = stations.find((s) => s.name === priceStation),
     record = chosen?.records.find((r) => r.week === priceWeek),
     monthKey = String(weekParts(priceWeek).month),
+    purchaseCostType = stationCfg.purchaseCostType || stationCfg.billingType,
     costPrice =
-      stationCfg.billingType === "一口价"
+      purchaseCostType === "一口价"
         ? {
             peak: stationCfg.unifiedPrice,
             high: stationCfg.unifiedPrice,
             flat: stationCfg.unifiedPrice,
             valley: stationCfg.unifiedPrice,
           }
-        : costs[monthKey]?.[stationCfg.billingType] || blankPrice(),
+        : costs[monthKey]?.[purchaseCostType] || blankPrice(),
     salePrice = external[priceWeek] || {
       peak: String(Number(electricityPrices[priceWeek]?.peak || 0) + Number(servicePrices[priceWeek]?.peak || 0)),
       high: String(Number(electricityPrices[priceWeek]?.high || 0) + Number(servicePrices[priceWeek]?.high || 0)),
@@ -2918,14 +2921,14 @@ function Config({
     ),
     estimate =
       record && complete
-        ? num(record.serviceRevenue) +
+        ? (stationCfg.purchaseCostType ? 0 : num(record.serviceRevenue)) +
           periods.reduce(
             (sum, [k]) =>
               sum +
               num(record[k]) *
                 (Number(salePrice[k]) -
                   Number(costPrice[k]) -
-                  (stationCfg.billingType === "售电价"
+                  (purchaseCostType === "售电价"
                     ? Number(gridFees[monthKey] || 0)
                     : 0)),
             0,
@@ -3353,6 +3356,7 @@ function Config({
                 <TableHead>最新周期</TableHead>
                 <TableHead>运营商</TableHead>
                 <TableHead>计费类型</TableHead>
+                <TableHead>购电成本口径</TableHead>
                 <TableHead>一口价成本</TableHead>
                 <TableHead>枪数量</TableHead>
               </TableRow>
@@ -3395,6 +3399,18 @@ function Config({
                         {billingTypes.map((x) => (
                           <option key={x}>{x}</option>
                         ))}
+                      </select>
+                    </TableCell>
+                    <TableCell>
+                      <select
+                        disabled={!editing}
+                        className="config-input"
+                        value={c.purchaseCostType}
+                        onChange={(e) => update(s.name, "purchaseCostType", e.target.value)}
+                        aria-label={`${s.name}购电成本口径`}
+                      >
+                        <option value="">跟随原计费类型</option>
+                        {billingTypes.map((x) => <option key={x} value={x}>{x}</option>)}
                       </select>
                     </TableCell>
                     <TableCell>
