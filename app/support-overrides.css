@@ -1334,3 +1334,85 @@
     width: 100%;
   }
 }
+
+/* Weekly report readability: keep the existing layout and color palette. */
+.dashboard-shell {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.dashboard-shell .topbar p,
+.dashboard-shell .filterbar label span,
+.dashboard-shell .data-note,
+.dashboard-shell .page-heading p,
+.dashboard-shell .panel-title p,
+.dashboard-shell .kpi-top,
+.dashboard-shell .kpi-foot small,
+.dashboard-shell .weekly-summary-status span,
+.dashboard-shell .weekly-summary-metrics span,
+.dashboard-shell .weekly-summary-focus > span,
+.dashboard-shell .weekly-summary-focus b,
+.dashboard-shell .station-meta span,
+.dashboard-shell .context-readonly span,
+.dashboard-shell .analysis-view p,
+.dashboard-shell .diagnosis-grid p,
+.dashboard-shell .empty-note {
+  font-size: 12px;
+  line-height: 1.55;
+}
+.dashboard-shell .panel-title h2 { font-size: 17px; }
+.dashboard-shell .kpi-body > strong { font-size: 24px; }
+.dashboard-shell .kpi-foot { height: auto; min-height: 22px; }
+.dashboard-shell .weekly-summary-status b,
+.dashboard-shell .context-readonly b { font-size: 14px; }
+.dashboard-shell .weekly-summary-focus b { max-width: 40%; }
+.dashboard-shell .filterbar select,
+.dashboard-shell .tab-list button,
+.dashboard-shell .actions button,
+.dashboard-shell .trend-toolbar button,
+.dashboard-shell .trend-toolbar select,
+.dashboard-shell .trend-filterbar button,
+.dashboard-shell .section-head select,
+.dashboard-shell .inline-selects select { font-size: 13px; }
+.dashboard-shell .table-tools,
+.dashboard-shell .table-scroll th,
+.dashboard-shell .table-scroll td,
+.dashboard-shell .history-table th,
+.dashboard-shell .history-table td,
+.dashboard-shell .history-matrix th,
+.dashboard-shell .history-matrix td,
+.dashboard-shell .chart-legend button,
+.dashboard-shell .chart-value-label,
+.dashboard-shell .xlabels,
+.dashboard-shell .mix-list span,
+.dashboard-shell .mix-list small,
+.dashboard-shell .mix-list strong,
+.dashboard-shell .money-mix button,
+.dashboard-shell .bar-list > div,
+.dashboard-shell .bar-list > div > small,
+.dashboard-shell .compare-cards span,
+.dashboard-shell .rolling-grid span { font-size: 12px; }
+.dashboard-shell .table-scroll th,
+.dashboard-shell .table-scroll td { height: auto; min-height: 38px; padding-top: 9px; padding-bottom: 9px; }
+.dashboard-shell .chart-tooltip,
+.dashboard-shell .chart-tooltip span,
+.dashboard-shell .trend-toolbar,
+.dashboard-shell .trend-filterbar span,
+.dashboard-shell .attention-main small { font-size: 12px; }
+.dashboard-shell .competitor-summary span,
+.dashboard-shell .competitor-summary p,
+.dashboard-shell .competitor-table-head,
+.dashboard-shell .competitor-row,
+.dashboard-shell .compact-fee-details b,
+.dashboard-shell .compact-fee-details span,
+.dashboard-shell .compact-fee-details small { font-size: 12px; }
+.dashboard-shell .competitor-summary b,
+.dashboard-shell .competitor-row > b { font-size: 13px; }
+.dashboard-shell .competitor-table { overflow-x: auto; }
+.dashboard-shell .competitor-table-head,
+.dashboard-shell .competitor-row { min-width: 1140px; }
+@media (max-width: 720px) {
+  .dashboard-shell .kpi-body > strong { font-size: 22px; }
+  .dashboard-shell .weekly-summary-focus b { max-width: 100%; }
+  .dashboard-shell .competitor-table { overflow: visible; }
+  .dashboard-shell .competitor-row { min-width: 0; }
+}
