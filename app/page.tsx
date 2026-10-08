@@ -1160,6 +1160,7 @@ function OverviewTrends({
       data: aggregate(raw(key)),
     })),
     periodProfitAt = (index: number, key: keyof PeriodPrice) => scope(sn).reduce((total, station) => {
+      if (isHistoricalActualWeek(allWeeks()[index] || "")) return total;
       const record = recordAt(station, index);
       if (!record) return total;
       const stationConfig = { ...emptyConfig, ...configs[station.name] };
@@ -1207,7 +1208,8 @@ function OverviewTrends({
     ],
     profitLines = [
       { name: "毛利总额", color: "#e8fff7", data: slice(profitTotal) },
-      ...profitParts.map((x) => ({ ...x, data: slice(x.data) })),
+      ...(slice(profitTotal).some((point) => isHistoricalActualWeek(point.week))
+        ? [] : profitParts.map((x) => ({ ...x, data: slice(x.data) }))),
     ];
   return (
     <div className="overview-trends">
@@ -1294,7 +1296,9 @@ function OverviewTrends({
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
-          <MoneyMixComparison current={profitMix} previous={prevProfitMix} />
+          {isHistoricalActualWeek(allWeeks()[wi] || "")
+            ? <p className="empty-note">该历史周按原表显示毛利总额，未保存分时毛利，不按现价推算。</p>
+            : <MoneyMixComparison current={profitMix} previous={prevProfitMix} />}
         </Panel>
       </div>
       <div className="trend-pair">
