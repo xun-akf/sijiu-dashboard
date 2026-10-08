@@ -29,12 +29,18 @@ export function normalizeTouPrice(price: TouPrice): TouPrice {
   };
 }
 
-export type EnergyRecord = { week: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null };
+export type EnergyRecord = { week: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null; weeklySegments?: EnergyRecord[] };
 export type MetricConfig = {
   guns?: string;
   billingType?: string; purchaseCostType?: string; unifiedPrice?: string; servicePricesJson?: string;
   externalPricesJson?: string;
   electricityPricesJson?: string; monthlyCostsJson?: string; gridFeesJson?: string;
+};
+type OperatingMetrics = {
+  service: TouPrice; electricity: TouPrice; cost: TouPrice; gridFee: number;
+  periodService: Record<TouKey, number | null>; periodProfit: Record<TouKey, number | null>;
+  serviceRevenue: number | null; electricityRevenue: number | null; profit: number | null;
+  servicePerKwh: number | null; electricityProfitPerKwh: number | null;
 };
 
 export function missingMetricConfigs(week: string, config: MetricConfig, monthly: MetricConfig): string[] {
@@ -58,8 +64,22 @@ export function missingMetricConfigs(week: string, config: MetricConfig, monthly
   ];
 }
 
-export function calculateOperatingMetrics(record: EnergyRecord, config: MetricConfig, monthly: MetricConfig) {
+export function calculateOperatingMetrics(record: EnergyRecord, config: MetricConfig, monthly: MetricConfig): OperatingMetrics {
   const keys: TouKey[] = ["peak", "high", "flat", "valley"];
+  if (record.weeklySegments?.length) {
+    const segments = record.weeklySegments.map((item) => calculateOperatingMetrics({ ...item, weeklySegments: undefined }, config, monthly));
+    const sumNullable = (values: (number | null)[]) => values.every((value) => value != null)
+      ? values.reduce<number>((sum, value) => sum + Number(value), 0) : null;
+    const periodService = Object.fromEntries(keys.map((key) => [key, sumNullable(segments.map((item) => item.periodService[key]))])) as Record<TouKey, number | null>;
+    const periodProfit = Object.fromEntries(keys.map((key) => [key, sumNullable(segments.map((item) => item.periodProfit[key]))])) as Record<TouKey, number | null>;
+    const serviceRevenue = sumNullable(segments.map((item) => item.serviceRevenue));
+    const electricityRevenue = sumNullable(segments.map((item) => item.electricityRevenue));
+    const profit = sumNullable(segments.map((item) => item.profit));
+    const charge = Number(record.charge || 0);
+    return { ...segments[0], periodService, periodProfit, serviceRevenue, electricityRevenue, profit,
+      servicePerKwh: charge && serviceRevenue != null ? serviceRevenue / charge : null,
+      electricityProfitPerKwh: charge && profit != null && serviceRevenue != null ? (profit - serviceRevenue) / charge : null };
+  }
   const service = normalizeTouPrice(resolveWeeklyPrice(config.servicePricesJson || "", record.week));
   const electricity = normalizeTouPrice(resolveWeeklyPrice(config.electricityPricesJson || "", record.week));
   const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", record.week));

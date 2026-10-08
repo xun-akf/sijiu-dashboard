@@ -33,8 +33,9 @@ import {
 import data from "./dashboard-data.json";
 import { subscribeToDashboardChanges } from "@/lib/dashboard-realtime";
 import { parseImportNumber, validateDashboardData, type ValidationReport } from "@/lib/import-validation";
+import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
-import { calculateOperatingMetrics, resolveWeeklyPrice } from "@/lib/operating-metrics";
+import { calculateOperatingMetrics, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -57,6 +58,7 @@ type R = {
   flat: number | null;
   valley: number | null;
   guns?: number | null;
+  weeklySegments?: EnergyRecord[];
 };
 type S = { name: string; records: R[] };
 type View = "overview" | "station" | "business" | "trend" | "config";
@@ -464,10 +466,8 @@ const importAliases: Record<CoreImportField, string[]> = {
   valley: ["谷电量", "谷段电量", "谷时段电量", "谷充电量"],
   charge: ["总充电量", "充电量合计", "合计充电量", "总电量", "充电量"],
 };
-const importWeek = (value: string) => {
+const importDate = (value: string) => {
   const clean = value.trim().replace(/\s/g, "");
-  const direct = clean.match(/^(?:(\d{4})年)?(\d{1,2})月(?:第)?(\d+)周$/);
-  if (direct) return `${direct[1] || 2026}年${Number(direct[2])}月${Number(direct[3])}周`;
   let date: Date | null = null;
   const serial = Number(clean);
   if (/^\d{5}(?:\.\d+)?$/.test(clean) && Number.isFinite(serial))
@@ -476,8 +476,18 @@ const importWeek = (value: string) => {
     const match = clean.match(/(20\d{2})[年/.\-](\d{1,2})[月/.\-](\d{1,2})/);
     if (match) date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
   }
-  if (!date || Number.isNaN(date.getTime())) return "";
-  const year = date.getUTCFullYear(), month = date.getUTCMonth() + 1, day = date.getUTCDate(), firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  return date && !Number.isNaN(date.getTime()) ? date : null;
+};
+const importWeek = (value: string) => {
+  const clean = value.trim().replace(/\s/g, "");
+  const direct = clean.match(/^(?:(\d{4})年)?(\d{1,2})月(?:第)?(\d+)周$/);
+  if (direct) return `${direct[1] || 2026}年${Number(direct[2])}月${Number(direct[3])}周`;
+  const date = importDate(value);
+  return date ? weekLabelFromDateUtc(date) : "";
+};
+const importCalendarWeek = (date: Date) => {
+  const year = date.getUTCFullYear(), month = date.getUTCMonth() + 1, day = date.getUTCDate();
+  const firstDay = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
   return `${year}年${month}月${Math.floor((day + firstDay - 1) / 7) + 1}周`;
 };
 
@@ -513,19 +523,28 @@ async function parseWeeklyWorkbook(file: File): Promise<WorkbookParseResult> {
     const required: CoreImportField[] = ["station", "period", "peak", "high", "flat", "valley"];
     const missing = required.filter((field) => !header.mapped[field]);
     if (missing.length) throw new Error(`核心字段无法识别：${missing.map((field) => ({ station: "站点名称", period: "周次/日期", peak: "尖电量", high: "峰电量", flat: "平电量", valley: "谷电量", charge: "总充电量" }[field])).join("、")}`);
-    const groups = new Map<string, { name: string; week: string; values: Record<string, number>; present: Set<string> }>();
+    type ImportGroup = { name: string; week: string; values: Record<string, number>; present: Set<string>; segments: Map<string, { values: Record<string, number>; present: Set<string> }> };
+    const groups = new Map<string, ImportGroup>();
     [...rows.entries()].filter(([number]) => number > header.rowNumber).forEach(([, row]) => {
       const name = String(row[header.mapped.station!] || "").replace(/\s*[（(]售电[）)]\s*/g, "").trim();
-      const week = importWeek(String(row[header.mapped.period!] || ""));
+      const period = String(row[header.mapped.period!] || "");
+      const week = importWeek(period);
       if (!name && !week) return;
       if (!name || !week) return;
-      const key = `${name}\u0000${week}`, group = groups.get(key) || { name, week, values: {}, present: new Set<string>() };
+      const key = `${name}\u0000${week}`, group: ImportGroup = groups.get(key) || { name, week, values: {}, present: new Set<string>(), segments: new Map() };
+      const date = importDate(period);
+      const segmentWeek = date ? importCalendarWeek(date) : week;
+      const segment = group.segments.get(segmentWeek) || { values: {} as Record<string, number>, present: new Set<string>() };
       (["peak", "high", "flat", "valley", "charge"] as const).forEach((field) => {
         const column = header.mapped[field];
         if (!column) return;
         const value = parseImportNumber(row[column]);
-        if (value !== null) { group.values[field] = (group.values[field] || 0) + value; group.present.add(field); }
+        if (value !== null) {
+          group.values[field] = (group.values[field] || 0) + value; group.present.add(field);
+          segment.values[field] = (segment.values[field] || 0) + value; segment.present.add(field);
+        }
       });
+      group.segments.set(segmentWeek, segment);
       groups.set(key, group);
     });
     if (!groups.size) throw new Error("已识别字段，但没有读取到有效的场站与周次数据");
@@ -533,7 +552,8 @@ async function parseWeeklyWorkbook(file: File): Promise<WorkbookParseResult> {
     groups.forEach((group) => {
       const list = byStation.get(group.name) || [];
       const tou = ["peak", "high", "flat", "valley"].every((field) => group.present.has(field));
-      list.push({ week: group.week, peak: group.present.has("peak") ? group.values.peak : null, high: group.present.has("high") ? group.values.high : null, flat: group.present.has("flat") ? group.values.flat : null, valley: group.present.has("valley") ? group.values.valley : null, charge: group.present.has("charge") ? group.values.charge : tou ? group.values.peak + group.values.high + group.values.flat + group.values.valley : null, chargeChange: null, serviceRevenue: null, serviceChange: null, servicePerKwh: null, electricityProfitPerKwh: null, profit: null });
+      const weeklySegments = [...group.segments].map(([week, segment]) => ({ week, peak: segment.present.has("peak") ? segment.values.peak : null, high: segment.present.has("high") ? segment.values.high : null, flat: segment.present.has("flat") ? segment.values.flat : null, valley: segment.present.has("valley") ? segment.values.valley : null, charge: segment.present.has("charge") ? segment.values.charge : null }));
+      list.push({ week: group.week, peak: group.present.has("peak") ? group.values.peak : null, high: group.present.has("high") ? group.values.high : null, flat: group.present.has("flat") ? group.values.flat : null, valley: group.present.has("valley") ? group.values.valley : null, charge: group.present.has("charge") ? group.values.charge : tou ? group.values.peak + group.values.high + group.values.flat + group.values.valley : null, chargeChange: null, serviceRevenue: null, serviceChange: null, servicePerKwh: null, electricityProfitPerKwh: null, profit: null, ...(group.segments.size > 1 ? { weeklySegments } : {}) });
       byStation.set(group.name, list);
     });
     const parsed = [...byStation].map(([name, records]) => ({ name, records: records.sort((a, b) => { const x = weekParts(a.week), y = weekParts(b.week); return x.year - y.year || x.month - y.month || x.week - y.week; }) }));
@@ -3136,7 +3156,7 @@ function Config({
           <>
             <div className="record-edit-grid">
               {editFields.map(([key, label]) => (
-                <label key={key}>{label}<input type="number" step="0.001" value={dataDraft[key] ?? ""} onChange={(event) => setDataDraft((current) => ({ ...current, [key]: event.target.value === "" ? null : Number(event.target.value) }))} /></label>
+                <label key={key}>{label}<input type="number" step="0.001" value={(dataDraft[key] as number | null | undefined) ?? ""} onChange={(event) => setDataDraft((current) => ({ ...current, [key]: event.target.value === "" ? null : Number(event.target.value) }))} /></label>
               ))}
             </div>
             <div className="record-edit-summary">
@@ -3699,7 +3719,7 @@ function StationHistoryTable({
     editableValue = (record: R, key: keyof R, service = false) => {
       if (editingWeek !== record.week || service && isHistoricalActualWeek(record.week) || (key === "serviceRevenue" || key === "profit") && !isHistoricalActualWeek(record.week)) return null;
       const draftKey = service ? serviceKeys[key as keyof typeof serviceKeys] : key;
-      return <input type="number" step="0.001" value={draft[draftKey] ?? ""} onChange={(event) => setDraft((value) => ({
+      return <input type="number" step="0.001" value={(draft[draftKey] as number | null | undefined) ?? ""} onChange={(event) => setDraft((value) => ({
         ...value,
         [draftKey]: event.target.value === "" ? null : Number(event.target.value),
       }))} />;
