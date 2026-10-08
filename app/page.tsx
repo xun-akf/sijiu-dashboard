@@ -35,7 +35,9 @@ import { subscribeToDashboardChanges } from "@/lib/dashboard-realtime";
 import { parseImportNumber, validateDashboardData, type ValidationReport } from "@/lib/import-validation";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
 import { calculateOperatingMetrics, resolveWeeklyPrice } from "@/lib/operating-metrics";
+
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
+const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
 type R = {
   week: string;
   charge: number | null;
@@ -1403,15 +1405,17 @@ function StationAnalysis({
           const value = row[key];
           return total + (typeof value === "number" ? value : 0);
         }, 0),
-          periodService = (period: "peak" | "high" | "flat" | "valley") => stations.reduce((total, station) => {
+          periodService = (period: "peak" | "high" | "flat" | "valley") => stations.reduce<number | null>((total, station) => {
             const record = station.records.find((item) => item.week === week);
             if (!record) return total;
             const storedKey = `${period}ServiceRevenue` as keyof R,
               stored = record[storedKey];
-            if (typeof stored === "number") return total + stored;
+            if (typeof stored === "number") return total == null ? null : total + stored;
+            if (isHistoricalActualWeek(week)) return null;
             const config = { ...emptyConfig, ...cfg[station.name] },
               weekPrices = resolveWeeklyPrice(config.servicePricesJson, week),
               price = Number(weekPrices[period] || 0);
+            if (total == null) return null;
             if (price) return total + num(record[period]) * price;
             return total + (num(record.charge)
               ? num(record.serviceRevenue) * num(record[period]) / num(record.charge)
@@ -2803,6 +2807,21 @@ function Config({
       const records = importedStation.records.map((record) => ({ ...record }));
       records.forEach((record, index) => {
         const week = record.week;
+        if (isHistoricalActualWeek(week)) {
+          const original = historical.find((item) => item.week === week);
+          if (original) Object.assign(record, {
+            serviceRevenue: original.serviceRevenue,
+            profit: original.profit,
+            electricityRevenue: original.electricityRevenue,
+            peakServiceRevenue: original.peakServiceRevenue,
+            highServiceRevenue: original.highServiceRevenue,
+            flatServiceRevenue: original.flatServiceRevenue,
+            valleyServiceRevenue: original.valleyServiceRevenue,
+            servicePerKwh: original.serviceRevenue != null && num(record.charge) ? original.serviceRevenue / num(record.charge) : null,
+            electricityProfitPerKwh: original.profit != null && original.serviceRevenue != null && num(record.charge) ? (original.profit - original.serviceRevenue) / num(record.charge) : null,
+          });
+          return;
+        }
         const metrics = calculateOperatingMetrics(record, stationConfig, monthly);
         record.guns = Number(stationConfig.guns) > 0 ? Number(stationConfig.guns) : null;
         record.peakServiceRevenue = metrics.periodService.peak;
@@ -3566,9 +3585,10 @@ function StationHistoryTable({
           + num(record.valley) * Number(prices.valley || 0);
       return value || (kind === "service" ? num(record.serviceRevenue) : 0);
     },
-    periodServiceRevenue = (record: R, period: keyof typeof serviceKeys) => {
+    periodServiceRevenue = (record: R, period: keyof typeof serviceKeys): number | null => {
       const stored = record[serviceKeys[period]];
       if (stored != null) return num(stored);
+      if (isHistoricalActualWeek(record.week)) return null;
       const prices = priceForWeek(stationCfg.servicePricesJson, record.week),
         priceValue = Number(prices[period] || 0);
       if (priceValue > 0) return num(record[period]) * priceValue;
@@ -3599,11 +3619,13 @@ function StationHistoryTable({
       setEditingWeek(record.week);
       setDraft({
         ...Object.fromEntries(Object.entries(record).map(([key, value]) => [key, typeof value === "number" ? round3(value) : value])) as R,
-        electricityRevenue: round3(calculatedRevenue(record, "electricity")),
-        peakServiceRevenue: round3(periodServiceRevenue(record, "peak")),
-        highServiceRevenue: round3(periodServiceRevenue(record, "high")),
-        flatServiceRevenue: round3(periodServiceRevenue(record, "flat")),
-        valleyServiceRevenue: round3(periodServiceRevenue(record, "valley")),
+        ...(!isHistoricalActualWeek(record.week) ? {
+          electricityRevenue: round3(calculatedRevenue(record, "electricity")),
+          peakServiceRevenue: round3(num(periodServiceRevenue(record, "peak"))),
+          highServiceRevenue: round3(num(periodServiceRevenue(record, "high"))),
+          flatServiceRevenue: round3(num(periodServiceRevenue(record, "flat"))),
+          valleyServiceRevenue: round3(num(periodServiceRevenue(record, "valley"))),
+        } : {}),
       });
       setStatus("");
     },
@@ -3611,6 +3633,21 @@ function StationHistoryTable({
       if (!editingWeek) return;
       setStatus("保存中…");
       try {
+        if (isHistoricalActualWeek(editingWeek)) {
+          const charge = num(draft.peak) + num(draft.high) + num(draft.flat) + num(draft.valley);
+          const serviceRevenue = draft.serviceRevenue == null ? null : num(draft.serviceRevenue);
+          const profit = draft.profit == null ? null : num(draft.profit);
+          const merged = await onRecordSave(station.name, editingWeek, {
+            ...draft, charge, serviceRevenue, profit,
+            servicePerKwh: serviceRevenue != null && charge ? serviceRevenue / charge : null,
+            electricityProfitPerKwh: serviceRevenue != null && profit != null && charge ? (profit - serviceRevenue) / charge : null,
+          }, true);
+          await save(undefined, merged);
+          setEditingWeek(null);
+          setDraft({});
+          setStatus("历史原表数值已保存，未按现价重算");
+          return;
+        }
         const serviceRevenue = num(draft.peakServiceRevenue)
           + num(draft.highServiceRevenue)
           + num(draft.flatServiceRevenue)
@@ -3648,21 +3685,22 @@ function StationHistoryTable({
   }, [station.name, station.records.length]);
   const changeFor = (current: number, previous: number, index: number) =>
       index && previous ? current / previous - 1 : null,
-    cell = (value: number, previous: number, index: number, format: "qty" | "money" | "decimal" = "qty") => {
+    cell = (value: number | null, previous: number | null, index: number, format: "qty" | "money" | "decimal" = "qty") => {
+      if (value == null) return <><b>—</b><em>—</em></>;
       const display = format === "money" ? money(value)
         : format === "decimal" ? `¥${value.toFixed(3)}` : qty(value),
-        change = changeFor(value, previous, index);
+        change = previous == null ? null : changeFor(value, previous, index);
       return <><b>{display}</b><em className={change == null ? "" : change >= 0 ? "up" : "down"}>{pct(change)}</em></>;
     },
     editableValue = (record: R, key: keyof R, service = false) => {
-      if (editingWeek !== record.week) return null;
+      if (editingWeek !== record.week || service && isHistoricalActualWeek(record.week) || (key === "serviceRevenue" || key === "profit") && !isHistoricalActualWeek(record.week)) return null;
       const draftKey = service ? serviceKeys[key as keyof typeof serviceKeys] : key;
       return <input type="number" step="0.001" value={draft[draftKey] ?? ""} onChange={(event) => setDraft((value) => ({
         ...value,
         [draftKey]: event.target.value === "" ? null : Number(event.target.value),
       }))} />;
     },
-    rows: Array<{ section?: string; label?: string; value?: (record: R) => number; format?: "qty" | "money" | "decimal"; editKey?: keyof R; service?: boolean }> = [
+    rows: Array<{ section?: string; label?: string; value?: (record: R) => number | null; format?: "qty" | "money" | "decimal"; editKey?: keyof R; service?: boolean }> = [
       { section: "充电量" },
       { label: "尖", value: (record) => num(record.peak), editKey: "peak" },
       { label: "峰", value: (record) => num(record.high), editKey: "high" },
@@ -3674,11 +3712,11 @@ function StationHistoryTable({
       { label: "峰", value: (record) => periodServiceRevenue(record, "high"), format: "money", editKey: "high", service: true },
       { label: "平", value: (record) => periodServiceRevenue(record, "flat"), format: "money", editKey: "flat", service: true },
       { label: "谷", value: (record) => periodServiceRevenue(record, "valley"), format: "money", editKey: "valley", service: true },
-      { label: "总服务费收入", value: (record) => num(record.serviceRevenue), format: "money" },
+      { label: "总服务费收入", value: (record) => record.serviceRevenue, format: "money", editKey: "serviceRevenue" },
       { section: "总计" },
       { label: "每度服务费", value: (record) => num(record.servicePerKwh), format: "decimal" },
       { label: "每度电费利润", value: (record) => num(record.electricityProfitPerKwh), format: "decimal" },
-      { label: "经营利润", value: (record) => num(record.profit), format: "money" },
+      { label: "经营利润", value: (record) => record.profit, format: "money", editKey: "profit" },
     ];
   return (
     <Panel
