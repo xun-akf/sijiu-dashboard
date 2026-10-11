@@ -60,6 +60,20 @@ const jsonResponse = (body: unknown, status = 200) => new Response(JSON.stringif
   status, headers: { "content-type": "application/json; charset=utf-8" },
 });
 
+// The page and its configuration hook can request the same snapshot together.
+// Share only in-flight reads; a later refresh must always see the latest data.
+const pendingStateReads = new Map<AccessRole, Promise<Awaited<ReturnType<typeof readSharedState>>>>();
+function readStateOnce(role: AccessRole) {
+  const pending = pendingStateReads.get(role);
+  if (pending) return pending;
+  const request = readSharedState(dashboardClient, role);
+  pendingStateReads.set(role, request);
+  void request.finally(() => {
+    if (pendingStateReads.get(role) === request) pendingStateReads.delete(role);
+  }).catch(() => undefined);
+  return request;
+}
+
 export async function dashboardFetch(input: RequestInfo | URL, init?: RequestInit) {
   const url = typeof input === "string" ? input : input instanceof URL ? input.pathname : input.url;
   const method = (init?.method || "GET").toUpperCase();
@@ -89,7 +103,7 @@ export async function dashboardFetch(input: RequestInfo | URL, init?: RequestIni
 
   if (!url.includes("/api/dashboard-state")) return fetch(input, init);
   if (method === "GET") {
-    try { return jsonResponse(await readSharedState(dashboardClient, auth.role)); }
+    try { return jsonResponse(await readStateOnce(auth.role)); }
     catch { return jsonResponse({ error: "共享数据暂时不可用" }, 503); }
   }
   if (auth.role !== "operator") return jsonResponse({ error: "仅主管理员可保存或发布" }, 403);

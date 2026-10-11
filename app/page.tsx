@@ -166,8 +166,16 @@ const weekOrderValue = (week: string) => {
   const match = week.replace(/\s/g, "").match(/^(?:(\d{4})年)?(\d{1,2})月(?:第)?(\d+)周$/);
   return Number(match?.[1] || 2026) * 1000 + Number(match?.[2] || 0) * 10 + Number(match?.[3] || 0);
 };
-const allWeeks = () => [...new Set(stations.flatMap((station) => station.records.map((record) => record.week)))]
-  .sort((left, right) => weekOrderValue(left) - weekOrderValue(right));
+const weekCache = new WeakMap<S[], string[]>();
+const allWeeks = () => {
+  let weeks = weekCache.get(stations);
+  if (!weeks) {
+    weeks = [...new Set(stations.flatMap((station) => station.records.map((record) => record.week)))]
+      .sort((left, right) => weekOrderValue(left) - weekOrderValue(right));
+    weekCache.set(stations, weeks);
+  }
+  return weeks;
+};
 const recordAt = (station: S, index: number) => station.records.find((record) => record.week === allWeeks()[index]);
 const round3 = (value: number | null | undefined) =>
   value == null ? null : Number(value.toFixed(3));
@@ -211,10 +219,21 @@ function useConfigs() {
       });
     void refresh();
     const handleRealtimeChange = () => void refresh();
+    const handleRemoteState = (event: Event) => {
+      const configs = (event as CustomEvent<Record<string, StationConfig>>).detail;
+      if (!configs) return;
+      const serialized = JSON.stringify(configs);
+      if (serialized !== lastLoadedConfig.current) {
+        lastLoadedConfig.current = serialized;
+        setCfg(configs);
+      }
+    };
     window.addEventListener("dashboard-state-changed", handleRealtimeChange);
+    window.addEventListener("dashboard-remote-configs", handleRemoteState);
     return () => {
       live = false;
       window.removeEventListener("dashboard-state-changed", handleRealtimeChange);
+      window.removeEventListener("dashboard-remote-configs", handleRemoteState);
     };
   }, []);
   const update = (name: string, key: keyof StationConfig, value: string) =>
@@ -651,7 +670,7 @@ export default function Home() {
           }
           if (shared.meta) setAdminMeta((current) => JSON.stringify(current) === JSON.stringify(shared.meta) ? current : shared.meta!);
           if (shared.reportName) setPartnerBrand((current) => current.reportName === shared.reportName && current.operator === shared.operator && current.operatorName === shared.operatorName ? current : { operator: shared.operator, operatorName: shared.operatorName, reportName: shared.reportName });
-          if (changed) window.dispatchEvent(new Event("dashboard-state-changed"));
+          if (changed && shared.configs) window.dispatchEvent(new CustomEvent("dashboard-remote-configs", { detail: shared.configs }));
         } catch (error) {
           console.warn("实时数据刷新失败", error);
         }
