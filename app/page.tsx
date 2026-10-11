@@ -101,6 +101,8 @@ type StationConfig = {
   customers: string;
   weather: string;
   event: string;
+  weatherByWeekJson: string;
+  eventByWeekJson: string;
   industryPrice: string;
   salePrice: string;
   unifiedPrice: string;
@@ -129,6 +131,8 @@ const emptyConfig: StationConfig = {
   customers: "",
   weather: "",
   event: "",
+  weatherByWeekJson: "",
+  eventByWeekJson: "",
   industryPrice: "",
   salePrice: "",
   unifiedPrice: "",
@@ -1492,8 +1496,14 @@ function StationAnalysis({
     }, [cfg, isAll, selected]),
     r = isAll ? chosen.records.find((record) => record.week === allWeeks()[wi]) || chosen.records.at(-1) : recordAt(chosen, wi) || chosen.records.at(-1),
     c = { ...emptyConfig, ...cfg[selected.name] },
+    selectedWeek = allWeeks()[wi] ?? r?.week ?? "",
+    weatherByWeek = safeJson<Record<string, string>>(c.weatherByWeekJson, {}),
+    eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
     [saved, setSaved] = useState(false);
+  const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
+    update(selected.name, field, JSON.stringify({ ...values, [selectedWeek]: value }));
+  };
   const doSave = async () => {
     await save();
     setEditing(false);
@@ -1547,31 +1557,31 @@ function StationAnalysis({
         {editing ? (
           <>
             <label>
-              近期天气
+              {selectedWeek}天气
               <input
-                value={c.weather}
-                onChange={(e) => update(selected.name, "weather", e.target.value)}
-                placeholder="如：连续降雨、气温下降"
+                value={weatherByWeek[selectedWeek] ?? ""}
+                onChange={(e) => updateWeekContext("weatherByWeekJson", weatherByWeek, e.target.value)}
+                placeholder="填写该周实际天气"
               />
             </label>
             <label>
-              特殊事件
+              {selectedWeek}特殊事件
               <input
-                value={c.event}
-                onChange={(e) => update(selected.name, "event", e.target.value)}
-                placeholder="如：节假日、道路施工、活动"
+                value={eventByWeek[selectedWeek] ?? ""}
+                onChange={(e) => updateWeekContext("eventByWeekJson", eventByWeek, e.target.value)}
+                placeholder="填写该周实际事件"
               />
             </label>
           </>
         ) : (
           <>
             <div className="context-readonly">
-              <span>近期天气</span>
-              <b>{c.weather || "暂无记录"}</b>
+              <span>{selectedWeek}天气</span>
+              <b>{weatherByWeek[selectedWeek] || "该周暂无记录"}</b>
             </div>
             <div className="context-readonly">
-              <span>特殊事件</span>
-              <b>{c.event || "暂无记录"}</b>
+              <span>{selectedWeek}特殊事件</span>
+              <b>{eventByWeek[selectedWeek] || "该周暂无记录"}</b>
             </div>
           </>
         )}
