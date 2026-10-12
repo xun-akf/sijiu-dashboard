@@ -4192,7 +4192,7 @@ function InteractiveChart({
       </svg>
       <div className="xlabels">
         {weeks.map((week) => (
-          <span key={week}>{week}{weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
+          <span key={week}>{week}</span>
         ))}
       </div>
       {showPrimaryLabels &&
