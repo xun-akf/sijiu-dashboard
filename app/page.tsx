@@ -1326,6 +1326,7 @@ function OverviewTrends({
         >
           <InteractiveChart
             lines={chargeLines}
+            showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
             valueFormatter={(value) => `${value.toFixed(2)} kWh`}
@@ -1350,6 +1351,7 @@ function OverviewTrends({
         >
           <InteractiveChart
             lines={profitLines}
+            showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
             valueFormatter={(value) => `¥${value.toFixed(2)}`}
@@ -4043,6 +4045,7 @@ function InteractiveChart({
   valueFormatter = chartWan,
   showPrimaryLabels = false,
   tooltipRequiresPin = false,
+  showWeekDateRange = false,
   primaryLabelFormatter = chartWanLabel,
 }: {
   lines: {
@@ -4057,6 +4060,7 @@ function InteractiveChart({
   valueFormatter?: (value: number) => string;
   showPrimaryLabels?: boolean;
   tooltipRequiresPin?: boolean;
+  showWeekDateRange?: boolean;
   primaryLabelFormatter?: (value: number) => string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -4192,7 +4196,7 @@ function InteractiveChart({
       </svg>
       <div className="xlabels">
         {weeks.map((week) => (
-          <span key={week}>{week}</span>
+          <span key={week}>{week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
         ))}
       </div>
       {showPrimaryLabels &&
