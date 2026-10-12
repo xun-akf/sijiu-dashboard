@@ -191,7 +191,24 @@ const weekParts = (week: string) => {
     week: Number(match?.[3] || 0),
   };
 };
-const shortWeek = (week: string) => week.replace(/^\d{4}年/, "");
+const weekDateRange = (label: string): string => {
+  const match = label.replace(/\s/g, "").match(/^(\d{4})年(\d{1,2})月(?:第)?(\d+)周$/);
+  if (!match) return "";
+  const year = Number(match[1]), month = Number(match[2]), ordinal = Number(match[3]);
+  if (month < 1 || month > 12 || ordinal < 1 || ordinal > 5) return "";
+  const wednesday = new Date(Date.UTC(year, month - 1, 1 + 7 * (ordinal - 1)));
+  wednesday.setUTCDate(wednesday.getUTCDate() + (3 - wednesday.getUTCDay() + 7) % 7);
+  const sunday = new Date(wednesday);
+  sunday.setUTCDate(wednesday.getUTCDate() - 3);
+  const saturday = new Date(sunday);
+  saturday.setUTCDate(sunday.getUTCDate() + 6);
+  const date = (value: Date) => `${value.getUTCMonth() + 1}.${value.getUTCDate()}`;
+  return `${date(sunday)}–${date(saturday)}`;
+};
+const displayWeek = (label: string) => {
+  const range = weekDateRange(label);
+  return range ? `${label}（${range}）` : label;
+};
 const colIndex = (col: string) =>
   [...col].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0);
 const DEFAULT_COSTS: Record<string, Record<string, PeriodPrice>> = {};
@@ -914,7 +931,7 @@ function Filters({
         <select value={wi} onChange={(e) => setWi(+e.target.value)}>
           {allWeeks().map((w, i) => (
             <option key={w} value={i}>
-              {w}
+              {displayWeek(w)}
             </option>
           ))}
         </select>
@@ -1042,7 +1059,7 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
       />
       <Panel
         title="18站完整经营结果"
-        sub={`${allWeeks()[wi]} · 尖峰平谷、收入、每度利润、当周利润同屏`}
+        sub={`${displayWeek(allWeeks()[wi])} · 尖峰平谷、收入、每度利润、当周利润同屏`}
         extra="ranking"
       >
         <StationTable
@@ -1292,7 +1309,7 @@ function OverviewTrends({
             }}
           >
             {visibleLabels.map((label) => (
-              <option key={label}>{label}</option>
+              <option key={label} value={label}>{mode === "week" ? displayWeek(label) : label}</option>
             ))}
           </select>
         </label>
@@ -1557,7 +1574,7 @@ function StationAnalysis({
         {editing ? (
           <>
             <label>
-              {selectedWeek}天气
+              {displayWeek(selectedWeek)}天气
               <input
                 value={weatherByWeek[selectedWeek] ?? ""}
                 onChange={(e) => updateWeekContext("weatherByWeekJson", weatherByWeek, e.target.value)}
@@ -1565,7 +1582,7 @@ function StationAnalysis({
               />
             </label>
             <label>
-              {selectedWeek}特殊事件
+              {displayWeek(selectedWeek)}特殊事件
               <input
                 value={eventByWeek[selectedWeek] ?? ""}
                 onChange={(e) => updateWeekContext("eventByWeekJson", eventByWeek, e.target.value)}
@@ -1576,11 +1593,11 @@ function StationAnalysis({
         ) : (
           <>
             <div className="context-readonly">
-              <span>{selectedWeek}天气</span>
+              <span>{displayWeek(selectedWeek)}天气</span>
               <b>{weatherByWeek[selectedWeek] || "该周暂无记录"}</b>
             </div>
             <div className="context-readonly">
-              <span>{selectedWeek}特殊事件</span>
+              <span>{displayWeek(selectedWeek)}特殊事件</span>
               <b>{eventByWeek[selectedWeek] || "该周暂无记录"}</b>
             </div>
           </>
@@ -1657,7 +1674,7 @@ function StationAnalysis({
           />
         </Panel>
       </div>
-      {!isAll && r && <Panel title="当周运营分析" sub={r.week}>
+      {!isAll && r && <Panel title="当周运营分析" sub={displayWeek(r.week)}>
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
@@ -1728,7 +1745,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       <div className="page-heading business-head">
         <div>
           <span className="eyebrow">当周经营诊断</span>
-          <h2>{week} 全场站分析</h2>
+          <h2>{displayWeek(week)} 全场站分析</h2>
           <p>优先关注严重下降站点，再查看完整利润排名与全场诊断。</p>
         </div>
         <span className="attention-count">重点关注 {attention.length} 个</span>
@@ -3138,7 +3155,7 @@ function Config({
       <div className="data-center-scope">
         <div>
           <span>当前编辑范围</span>
-          <b>{dataStation} · {dataWeek}</b>
+          <b>{dataStation} · {displayWeek(dataWeek)}</b>
         </div>
         <div className="station-search-select">
           <Search />
@@ -3165,7 +3182,7 @@ function Config({
           </div>}
         </div>
         <select value={dataWeek} onChange={(event) => { setDataWeek(event.target.value); setDataDraft({}); }}>
-          {allWeeks().map((week) => <option key={week}>{week}</option>)}
+          {allWeeks().map((week) => <option key={week} value={week}>{displayWeek(week)}</option>)}
         </select>
       </div>
       <SuboperatorManager stationNames={stations.map((station) => station.name)} onStatus={setStatus} />
@@ -3783,7 +3800,7 @@ function StationHistoryTable({
           <thead>
             <tr>
               <th className="metric-col">经营指标</th>
-              {station.records.map((record, index) => <th className={index === station.records.length - 1 ? "latest-week" : ""} key={record.week}>{record.week}{index === station.records.length - 1 && <small className="latest-badge">最新</small>}</th>)}
+              {station.records.map((record, index) => <th className={index === station.records.length - 1 ? "latest-week" : ""} key={record.week}>{displayWeek(record.week)}{index === station.records.length - 1 && <small className="latest-badge">最新</small>}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -3999,7 +4016,7 @@ function FilteredInteractiveChart({
         <label>
           时间
           <select value={labels[selectedEnd] || ""} onChange={(event) => setEndLabel(event.target.value)}>
-            {labels.map((label) => <option key={label}>{label}</option>)}
+            {labels.map((label) => <option key={label} value={label}>{mode === "week" ? displayWeek(label) : label}</option>)}
           </select>
         </label>
       </div>
@@ -4175,7 +4192,7 @@ function InteractiveChart({
       </svg>
       <div className="xlabels">
         {weeks.map((week) => (
-          <span key={week}>{week}</span>
+          <span key={week}>{week}{weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
         ))}
       </div>
       {showPrimaryLabels &&
