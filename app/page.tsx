@@ -1,5 +1,6 @@
 "use client";
 import "./diagnosis.css";
+import "./charging-mode.css";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { strFromU8, unzipSync } from "fflate";
 import {
@@ -36,6 +37,10 @@ import { parseImportNumber, validateDashboardData, type ValidationReport } from 
 import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
 import { calculateOperatingMetrics, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
+import ChargingModePage from "@/components/charging-mode-page";
+import PeriodViews from "@/components/period-views";
+import { ModeImportPanel } from "@/components/mode-import-panel";
+import { loadModeData } from "@/lib/mode-data";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -61,7 +66,7 @@ type R = {
   weeklySegments?: EnergyRecord[];
 };
 type S = { name: string; records: R[] };
-type View = "overview" | "station" | "business" | "trend" | "config";
+type View = "overview" | "station" | "business" | "trend" | "mode" | "config";
 type AdminMeta = { lastModifiedAt: string | null; lastPublishedAt: string | null; publishStatus: "published" | "draft" };
 type PartnerBrand = { operator?: string; operatorName?: string; reportName?: string };
 const OperatorContext = createContext(false);
@@ -90,6 +95,7 @@ const nav = [
   { id: "station" as View, label: "场站分析", icon: MapPin },
   { id: "trend" as View, label: "趋势洞察", icon: Activity },
   { id: "business" as View, label: "经营分析", icon: BarChart3 },
+  { id: "mode" as View, label: "充电模式", icon: BatteryCharging },
   { id: "config" as View, label: "数据中心", icon: Settings2 },
 ];
 type StationConfig = {
@@ -610,6 +616,10 @@ export default function Home() {
   const [view, setView] = useState<View>("overview"),
     [wi, setWi] = useState(baseStations[0]?.records.length - 1 || 0),
     [sn, setSn] = useState("全部场站"),
+    [operatorFilter,setOperatorFilter]=useState("全部运营商"),
+    [stationOperators,setStationOperators]=useState<Record<string,string>>({}),
+    [chargingMode, setChargingMode] = useState<"all" | "fast" | "slow">("all"),
+    [periodType, setPeriodType] = useState<"week" | "month">("week"),
     [stationData, setStationData] = useState<S[]>(baseStations),
     [exporting, setExporting] = useState(false),
     [admin, setAdmin] = useState(false),
@@ -625,7 +635,16 @@ export default function Home() {
   const lastLoadedSharedConfigs = useRef<string | null>(null);
   // Legacy dashboard helpers synchronously read this snapshot during render.
   // eslint-disable-next-line react-hooks/globals
-  stations = stationData;
+  stations = operatorFilter==="全部运营商"?stationData:stationData.filter((item)=>stationOperators[item.name]===operatorFilter);
+  const noWeeklyHistory=sn!=="全部场站" && stationData.some((item)=>item.name===sn && item.records.length===0);
+  useEffect(()=>{
+    if(!accessRole)return;
+    let live=true;
+    void loadModeData("2026-01-01","2026-01-01").then((result)=>{
+      if(live)setStationOperators(Object.fromEntries(result.profiles.map((p)=>[p.station_name,p.operator_name||"未分类运营商"])));
+    }).catch(()=>{});
+    return ()=>{live=false;};
+  },[accessRole]);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -721,7 +740,7 @@ export default function Home() {
         return x.year - y.year || x.month - y.month || x.week - y.week;
       });
       return { name, records };
-    }).filter((station) => station.records.length);
+    });
     if (!deferSave) await saveDashboardPatch({ stationData: merged });
     if (commitLocal) {
       const mergedWeeks = [...new Set(merged.flatMap((station) => station.records.map((record) => record.week)))];
@@ -891,14 +910,22 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{setOperatorFilter(value);setSn("全部场站");const visible=stationData.filter((item)=>value==="全部运营商"||stationOperators[item.name]===value);setWi(Math.max(0,new Set(visible.flatMap((item)=>item.records.map((r)=>r.week))).size-1));}} operatorOptions={[...new Set(stationData.map((item)=>stationOperators[item.name]).filter((x):x is string=>Boolean(x)))]} />
         )}{" "}
-        {view === "overview" && <Overview wi={wi} sn={sn} />}{" "}
-        {view === "station" && (
+        {view !== "config" && <div className="mode-switchbar">
+          <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+          <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>
+        </div>}
+        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <div className="mode-scope-notice">所选筛选按真实日期与充电模式读取。缺少分类或自然月日级总量时只展示已有实测数据，不估算、不显示旧周数据为月数据。</div>}
+        {view !== "config" && view !== "mode" && chargingMode === "all" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
+        {view === "overview" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Overview wi={wi} sn={sn} />}{" "}
+        {view === "station" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && (
           <StationAnalysis wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
-        {view === "business" && <Business wi={wi} sn={sn} />}{" "}
-        {view === "trend" && <TrendInsights sn={sn} />}{" "}
+        {view === "business" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Business wi={wi} sn={sn} />}{" "}
+        {view === "trend" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <TrendInsights sn={sn} />}{" "}
+        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} />}
+        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
@@ -918,23 +945,41 @@ function Filters({
   setWi,
   sn,
   setSn,
+  periodType,
+  operatorFilter,
+  setOperatorFilter,
+  operatorOptions,
 }: {
   wi: number;
   setWi: (v: number) => void;
   sn: string;
   setSn: (v: string) => void;
+  periodType: "week" | "month";
+  operatorFilter:string;
+  setOperatorFilter:(value:string)=>void;
+  operatorOptions:string[];
 }) {
+  const weeks=allWeeks();
+  const months=[...new Set(weeks.map((w)=>w.match(/^(\d{4}年\d{1,2}月)/)?.[1]).filter((x):x is string=>Boolean(x)))];
+  const selectedMonth=weeks[wi]?.match(/^(\d{4}年\d{1,2}月)/)?.[1] || months.at(-1) || "";
   return (
     <div className="filterbar">
       <label>
         <span>统计周期</span>
-        <select value={wi} onChange={(e) => setWi(+e.target.value)}>
-          {allWeeks().map((w, i) => (
+        {periodType==="month" ? <select value={selectedMonth} onChange={(e)=>setWi(weeks.findIndex((w)=>w.startsWith(e.target.value)))}>
+          {months.map((month)=><option key={month} value={month}>{month}</option>)}
+        </select> : <select value={wi} onChange={(e) => setWi(+e.target.value)}>
+          {weeks.map((w, i) => (
             <option key={w} value={i}>
               {displayWeek(w)}
             </option>
           ))}
-        </select>
+        </select>}
+        <ChevronDown />
+      </label>
+      <label>
+        <span>运营商</span>
+        <select value={operatorFilter} onChange={(e)=>setOperatorFilter(e.target.value)}><option>全部运营商</option>{operatorOptions.map((name)=><option key={name}>{name}</option>)}</select>
         <ChevronDown />
       </label>
       <label>
@@ -3188,6 +3233,7 @@ function Config({
         </select>
       </div>
       <SuboperatorManager stationNames={stations.map((station) => station.name)} onStatus={setStatus} />
+      <ModeImportPanel />
       <div className="cost-panel record-editor" id="record-editor">
         <div className="section-head">
           <div>
