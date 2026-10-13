@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calendarMonthRange, classifyDayOperatingMetrics, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
-import { loadModeData, type StationProfile } from "@/lib/mode-data";
+import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 import { calculateCalendarDay } from "@/lib/calendar-metrics";
 
 type Data = Awaited<ReturnType<typeof loadModeData>>;
@@ -36,7 +36,7 @@ function buildRows(data:Data,range:{start:string;end:string},names:Set<string>,m
     const totals=mode==="all"?(daily.length?daily:monthly):[];
     const charge=totals.length?totals.reduce((acc,r)=>acc+Number(r.total_kwh),0):facts.length?sum(facts.map((f)=>f.charge)):null;
     const amounts=Object.fromEntries(keys.map((key)=>[key,totals.length?sum(totals.map((r)=>r[`${key}_kwh`])):facts.length?sum(facts.map((f)=>f[key])):null])) as Record<typeof keys[number],number|null>;
-    const calculated=facts.map((f)=>classifyDayOperatingMetrics(f,data.tariffs,data.configs[profile.station_name] || {},data.configs.__monthly__ || {}));
+    const calculated=facts.map((f)=>modeOperatingMetrics(f,data,profile));
     const classified=calculated.length?sum(facts.map((f)=>f.charge)):null;
     const financiallyComplete=mode!=="all" || (charge!=null && classified!=null && Math.abs(charge-classified)<=0.02);
     const calendarMetrics=mode==="all" && daily.length?daily.map((row)=>{

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { calendarMonthRange, classifyDayOperatingMetrics, reconcileModes, summarizeMode, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
-import { loadModeData, type StationProfile } from "@/lib/mode-data";
+import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 
 type Fact = Awaited<ReturnType<typeof loadModeData>>["facts"][number];
 type Props = {
@@ -53,7 +53,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
     const metrics=(mode:ChargingMode)=>{
       const matching=facts.filter((x)=>x.mode===mode);
       if (!matching.length) return {electricityRevenue:null,serviceRevenue:null,profit:null};
-      const calculated=matching.map((fact)=>classifyDayOperatingMetrics(fact,data.tariffs,data.configs[profile.station_name] || {},data.configs.__monthly__ || {}));
+      const calculated=matching.map((fact)=>modeOperatingMetrics(fact,data,profile));
       const sum=(key:"electricityRevenue" | "serviceRevenue" | "profit")=>calculated.every((x)=>x[key]!=null)
         ? calculated.reduce((acc,x)=>acc+Number(x[key]),0) : null;
       return {electricityRevenue:sum("electricityRevenue"),serviceRevenue:sum("serviceRevenue"),profit:sum("profit")};
@@ -103,7 +103,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
         <div><span>分类充电量</span><strong>{number(classified," kWh")}</strong><small>{modeValues(totals.hasFast ? totals.fast : null,totals.hasSlow ? totals.slow : null," kWh")}</small></div>
         <div><span>未分类 / 异常</span><strong>{number(totals.knownTotals?totals.unknown:null," kWh")}</strong><small>{totals.excess>0 ? `分类电量超过站点总量 ${number(totals.excess)} kWh` : `可核对总量 ${totals.knownTotals}/${rows.length} 站；历史总量不会强制归类`}</small></div>
       </div>
-      <p className="empty-note">分类日期覆盖：仅当所选周期每天均有明确分类记录时展示单枪日均和利用率。场站总量来自原周报或自然月真实日期；缺少对应总量时不推算未分类电量。</p>
+      <p className="empty-note">分类日期覆盖：仅当所选周期每天均有明确分类记录时展示单枪日均和利用率。历史单模式场站沿用当周价格；双模式场站缺少历史分类价格时金额待补充。分时校验异常只保留真实总量，原始分时值保存在导入批次中，不自动凑平。金额为空表示缺少分时、价格或成本配置。</p>
       <div className="mode-kpis">
         <div><span>售电收入</span><strong>{number(selectedMetric("electricityRevenue")," 元")}</strong></div>
         <div><span>服务费收入</span><strong>{number(selectedMetric("serviceRevenue")," 元")}</strong></div>
@@ -127,7 +127,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
         <select value={sort} onChange={(e)=>setSort(e.target.value as typeof sort)}><option value="station">按站名</option><option value="guns">按枪数</option><option value="charge">按分类电量</option></select></div>
         <div className="mode-table-wrap"><table><thead><tr><th>场站</th><th>枪数</th><th>功率 kW</th><th>快充电量</th><th>慢充电量</th><th>未分类</th><th>收入 / 毛利 / 利用率</th></tr></thead>
           <tbody>{rows.map(({profile,fast,slow,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency})=><tr key={profile.station_name}>
-            <td><b>{profile.station_name}</b><small>{profile.operator_name} · {profile.region}</small></td>
+            <td><b>{profile.station_name}</b><small>{profile.operator_name} · {profile.region}</small><small>{profile.address || "地址待补充"}</small></td>
             <td>{modeValues(profile.fast_guns,profile.slow_guns)}</td>
             <td>{modeValues(profile.fast_power_kw,profile.slow_power_kw)}</td>
             <td>{number(fast.charge)}</td><td>{number(slow.charge)}</td>

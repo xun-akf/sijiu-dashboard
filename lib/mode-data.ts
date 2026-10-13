@@ -1,5 +1,7 @@
 import { dashboardClient, dashboardFetch } from "@/lib/dashboard-browser";
 import type { ModeEnergyFact, TariffVersion } from "@/lib/charging-mode";
+import { classifyDayOperatingMetrics } from "@/lib/charging-mode";
+import { calculateHistoricalModeDay } from "@/lib/operating-metrics";
 import type { ModeImportPreview } from "@/lib/mode-import";
 
 export type StationProfile = {
@@ -61,6 +63,15 @@ export async function loadModeData(start: string, end: string) {
       charge:Number(x.total_kwh),orders:x.orders,
     })),
   };
+}
+
+export function modeOperatingMetrics(fact:ModeEnergyFact,data:Awaited<ReturnType<typeof loadModeData>>,profile:StationProfile) {
+  const applicable=data.tariffs.some(v=>v.station_name===fact.stationName && v.effective_from<=fact.date && (!v.effective_until || v.effective_until>=fact.date) && (v.charging_mode==='all'||v.charging_mode===fact.mode));
+  const config=data.configs[profile.station_name]||{};
+  if(applicable) return classifyDayOperatingMetrics(fact,data.tariffs,config,data.configs.__monthly__||{});
+  // Legacy station prices cannot distinguish two coexisting charging modes.
+  if(Number(profile.fast_guns)>0 && Number(profile.slow_guns)>0) return {electricityRevenue:null,serviceRevenue:null,profit:null};
+  return calculateHistoricalModeDay(fact,config,data.configs.__monthly__||{});
 }
 
 export async function saveModeImport(file: File, preview: ModeImportPreview) {

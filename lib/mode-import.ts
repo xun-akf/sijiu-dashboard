@@ -2,6 +2,7 @@ import { strFromU8, unzipSync } from "fflate";
 import { parseImportNumber } from "@/lib/import-validation";
 import { matchStationNames } from "@/lib/station-matching";
 import { type ModeEnergyFact, upsertModeFacts } from "@/lib/charging-mode";
+import { aggregateOrderRows } from "@/lib/order-mode-import";
 
 type Column = "station" | "date" | "mode" | "device" | "peak" | "high" | "flat" | "valley" | "charge" | "orders";
 const aliases: Record<Column, string[]> = {
@@ -49,6 +50,25 @@ export async function parseModeWorkbook(file: File, stationNames: string[], stat
     ? [...parser.parseFromString(strFromU8(sharedFile), "text/xml").querySelectorAll("si")].map((node) => [...node.querySelectorAll("t")].map((t) => t.textContent || "").join(""))
     : [];
   const sheetPaths = Object.keys(zip).filter((path) => /^xl\/worksheets\/sheet\d+\.xml$/.test(path)).sort();
+  const orders:Record<string,string>[]=[];
+  for(const path of sheetPaths){
+    let header:Record<string,string>|null=null;
+    for(const xmlRow of parser.parseFromString(strFromU8(zip[path]),"text/xml").querySelectorAll("row")){
+      const cells:Record<string,string>={};
+      for(const cell of xmlRow.querySelectorAll("c")){
+        const col=(cell.getAttribute("r")||"").match(/[A-Z]+/)?.[0]||"";
+        const raw=cell.querySelector("v")?.textContent||"";
+        cells[col]=cell.getAttribute("t")==="s"?shared[Number(raw)]||"":[...cell.querySelectorAll("is t")].map(t=>t.textContent||"").join("")||raw;
+      }
+      if(!header && Object.values(cells).includes("服务交易号") && Object.values(cells).includes("充电总电量")){header=cells;continue;}
+      if(header)orders.push(Object.fromEntries(Object.entries(header).filter(([,name])=>name).map(([col,name])=>[name,cells[col]||""])));
+    }
+  }
+  if(orders.length){
+    const result=aggregateOrderRows(orders,stationNames,stationAliases);
+    if(!result.rows.length)throw new Error("没有目录内可导入的有电量订单");
+    return {sheet:"全部订单工作表",fieldMapping:{station:"充电站名称",date:"日期",mode:"充电模式（直流/交流）",charge:"充电总电量",audit:`跨表去重${result.duplicateOrders}笔；忽略目录外${result.ignoredEnergy.toFixed(3)}度；${result.invalidGroups}组分时异常暂不计算金额`},rows:result.rows,sourceRows:result.rawRows.map(r=>Object.fromEntries(Object.entries(r).map(([k,v])=>[k,String(v??"")]))),ignored:["客户信息、手机、车牌、VIN、原表收入等非电量字段"]};
+  }
   for (const [sheetIndex,path] of sheetPaths.entries()) {
     const sourceRows: Record<string,string>[] = [];
     parser.parseFromString(strFromU8(zip[path]),"text/xml").querySelectorAll("row").forEach((xmlRow) => {

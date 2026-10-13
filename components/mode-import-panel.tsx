@@ -15,6 +15,7 @@ export function ModeImportPanel() {
     setStatus("正在识别字段与站点…");setPreview(null);setFile(selected);
     try {
       const aliases=Object.fromEntries(profiles.filter((x)=>x.source_name).map((x)=>[x.source_name!,x.station_name]));
+      if(profiles.some(x=>x.station_name==="彩虹市场慢充站(充电免停15小时)"))aliases["蔚景云彩虹市场慢充站"]="彩虹市场慢充站(充电免停15小时)";
       const result=await parseModeWorkbook(selected,profiles.map((x)=>x.station_name),aliases);
       setPreview(result);setStatus(`识别到${result.rows.length}行；请核对日期、模式、站点和电量后导入`);
     } catch (error) {setStatus(error instanceof Error ? error.message : "无法读取文件");}
@@ -31,7 +32,7 @@ export function ModeImportPanel() {
   };
   return <section className="mode-panel" id="mode-import">
     <div className="section-head"><div><h3>充电模式数据导入</h3>
-      <p>只接收真实日期的快充/慢充数据；原周报导入继续使用上方原入口。</p></div>
+      <p>可直接导入充电服务监控原表：跨工作表去重，直流为快充、交流为慢充，仅统计目录内有电量订单。导入前显示预览，保存为草稿。</p></div>
       <div className="mode-import-actions"><a href={siteUrl("/charging-mode-import-template.xlsx")} download>下载空白模板</a>
       <label className="upload-button">选择分类 Excel<input type="file" accept=".xlsx" onChange={(e)=>{const selected=e.target.files?.[0];if(selected)void read(selected);e.target.value="";}} /></label></div>
     </div>
