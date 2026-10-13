@@ -12,6 +12,12 @@ type Props = {
   stationTotals: Record<string, number | null>;
 };
 const number = (value: number | null, suffix = "") => value == null ? "待导入分类数据" : `${value.toLocaleString("zh-CN",{maximumFractionDigits:2})}${suffix}`;
+const modeValues = (fast: number | null | undefined, slow: number | null | undefined, suffix = "") => {
+  const parts = [];
+  if (fast != null && fast > 0) parts.push(`快充 ${number(fast,suffix)}`);
+  if (slow != null && slow > 0) parts.push(`慢充 ${number(slow,suffix)}`);
+  return parts.length ? parts.join(" · ") : "—";
+};
 
 export default function ChargingModePage({week,station,operator,selectedMode,periodType,stationTotals}:Props) {
   const [data,setData]=useState<Awaited<ReturnType<typeof loadModeData>>>({profiles:[],facts:[],calendar:[],tariffs:[],configs:{}});
@@ -92,9 +98,9 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
       <p>{range.start}—{range.end} · {periodType==="month" ? "自然月" : "周日～周六"} · {rows.length}个授权场站</p></div></div>
     {loading ? <p className="empty-note">正在读取分类数据…</p> : error ? <p className="empty-note">{error}</p> : <>
       <div className="mode-kpis">
-        <div><span>充电枪数</span><strong>{shownGuns}</strong><small>快充 {totals.fastGuns} · 慢充 {totals.slowGuns}</small></div>
-        <div><span>设备功率</span><strong>{selectedMode==="fast" ? totals.fastPower : selectedMode==="slow" ? totals.slowPower : totals.fastPower+totals.slowPower} kW</strong><small>快充 {totals.fastPower} · 慢充 {totals.slowPower}</small></div>
-        <div><span>分类充电量</span><strong>{number(classified," kWh")}</strong><small>快充 {number(totals.hasFast ? totals.fast : null)} · 慢充 {number(totals.hasSlow ? totals.slow : null)}</small></div>
+        <div><span>充电枪数</span><strong>{shownGuns}</strong><small>{modeValues(totals.fastGuns,totals.slowGuns)}</small></div>
+        <div><span>设备功率</span><strong>{selectedMode==="fast" ? totals.fastPower : selectedMode==="slow" ? totals.slowPower : totals.fastPower+totals.slowPower} kW</strong><small>{modeValues(totals.fastPower,totals.slowPower," kW")}</small></div>
+        <div><span>分类充电量</span><strong>{number(classified," kWh")}</strong><small>{modeValues(totals.hasFast ? totals.fast : null,totals.hasSlow ? totals.slow : null," kWh")}</small></div>
         <div><span>未分类 / 异常</span><strong>{number(totals.knownTotals?totals.unknown:null," kWh")}</strong><small>{totals.excess>0 ? `分类电量超过站点总量 ${number(totals.excess)} kWh` : `可核对总量 ${totals.knownTotals}/${rows.length} 站；历史总量不会强制归类`}</small></div>
       </div>
       <p className="empty-note">分类日期覆盖：仅当所选周期每天均有明确分类记录时展示单枪日均和利用率。场站总量来自原周报或自然月真实日期；缺少对应总量时不推算未分类电量。</p>
@@ -108,7 +114,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
         <h3>快慢充经营与效率</h3>
         <p>金额仅在实际分类分时数据、对应价格版本与购电成本齐备时计算。同一时段内存在多种价格时须导入时间明细；利用率还需核实设备级额定功率。</p>
         <div className="mode-compare">
-          {(["fast","slow"] as const).filter((x)=>selectedMode==="all" || selectedMode===x).map((x)=>{
+          {(["fast","slow"] as const).filter((x)=>(selectedMode==="all" || selectedMode===x) && (x==="fast" ? totals.hasFast : totals.hasSlow)).map((x)=>{
             const val=x==="fast" ? totals.fast : totals.slow;
             const has=x==="fast" ? totals.hasFast : totals.hasSlow;
             const ratio=(totals.fast+totals.slow)>0 ? val/(totals.fast+totals.slow)*100 : null;
@@ -119,14 +125,14 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
       </section>
       <section className="mode-panel"><div className="mode-table-head"><h3>场站经营明细</h3>
         <select value={sort} onChange={(e)=>setSort(e.target.value as typeof sort)}><option value="station">按站名</option><option value="guns">按枪数</option><option value="charge">按分类电量</option></select></div>
-        <div className="mode-table-wrap"><table><thead><tr><th>场站</th><th>快/慢枪</th><th>快/慢功率 kW</th><th>快充电量</th><th>慢充电量</th><th>未分类</th><th>收入 / 毛利 / 利用率</th></tr></thead>
+        <div className="mode-table-wrap"><table><thead><tr><th>场站</th><th>枪数</th><th>功率 kW</th><th>快充电量</th><th>慢充电量</th><th>未分类</th><th>收入 / 毛利 / 利用率</th></tr></thead>
           <tbody>{rows.map(({profile,fast,slow,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency})=><tr key={profile.station_name}>
             <td><b>{profile.station_name}</b><small>{profile.operator_name} · {profile.region}</small></td>
-            <td>{profile.fast_guns ?? "—"} / {profile.slow_guns ?? "—"}</td>
-            <td>{profile.fast_power_kw ?? "—"} / {profile.slow_power_kw ?? "—"}</td>
+            <td>{modeValues(profile.fast_guns,profile.slow_guns)}</td>
+            <td>{modeValues(profile.fast_power_kw,profile.slow_power_kw)}</td>
             <td>{number(fast.charge)}</td><td>{number(slow.charge)}</td>
             <td>{coverage.excess ? "分类大于总量" : coverage.unclassified==null ? "暂无总量" : number(coverage.unclassified)}</td>
-            <td>快充毛利 {number(fastMetrics.profit)} · 慢充毛利 {number(slowMetrics.profit)}；快/慢利用率 {fastEfficiency.utilization==null?"待完整日数据":fastEfficiency.utilization.toFixed(1)+"%"} / {slowEfficiency.utilization==null?"待完整日数据":slowEfficiency.utilization.toFixed(1)+"%"}</td>
+            <td>{fast.charge!=null && <>快充毛利 {number(fastMetrics.profit)}；利用率 {fastEfficiency.utilization==null?"待完整日数据":fastEfficiency.utilization.toFixed(1)+"%"}</>}{fast.charge!=null && slow.charge!=null && " · "}{slow.charge!=null && <>慢充毛利 {number(slowMetrics.profit)}；利用率 {slowEfficiency.utilization==null?"待完整日数据":slowEfficiency.utilization.toFixed(1)+"%"}</>}{fast.charge==null && slow.charge==null && "待导入分类数据"}</td>
           </tr>)}</tbody></table></div>
       </section>
     </>}
