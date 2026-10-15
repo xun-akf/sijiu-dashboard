@@ -49,7 +49,7 @@ export function missingMetricConfigs(week: string, config: MetricConfig, monthly
   const electricity = normalizeTouPrice(resolveWeeklyPrice(config.electricityPricesJson || "", week));
   const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", week));
   let costs: Record<string, Record<string, TouPrice>> = {};
-  try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
+  try { costs = JSON.parse(config.monthlyCostsJson || monthly.monthlyCostsJson || "{}"); } catch {}
   const weekPart = parts(week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
   const costType = config.purchaseCostType || config.billingType || "大工业电价";
   const rawCost = costType === "一口价"
@@ -85,8 +85,8 @@ export function calculateOperatingMetrics(record: EnergyRecord, config: MetricCo
   const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", record.week));
   let costs: Record<string, Record<string, TouPrice>> = {};
   let fees: Record<string, string> = {};
-  try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
-  try { fees = JSON.parse(monthly.gridFeesJson || "{}"); } catch {}
+  try { costs = JSON.parse(config.monthlyCostsJson || monthly.monthlyCostsJson || "{}"); } catch {}
+  try { fees = JSON.parse(config.gridFeesJson || monthly.gridFeesJson || "{}"); } catch {}
   const weekPart = parts(record.week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
   const costType = config.purchaseCostType || config.billingType || "大工业电价";
   const rawCost = costType === "一口价"
