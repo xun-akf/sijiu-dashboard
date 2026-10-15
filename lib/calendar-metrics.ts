@@ -18,7 +18,7 @@ export function calculateCalendarDay(row:CalendarEnergyRow,config:MetricConfig,m
   const costType=config.purchaseCostType||config.billingType||"大工业电价";
   let costs:Record<string,Record<string,Record<string,string>>>;
   let fees:Record<string,string>;
-  try{costs=JSON.parse(monthly.monthlyCostsJson||"{}");fees=JSON.parse(monthly.gridFeesJson||"{}");}
+  try{costs=JSON.parse(config.monthlyCostsJson||monthly.monthlyCostsJson||"{}");fees=JSON.parse(config.gridFeesJson||monthly.gridFeesJson||"{}");}
   catch{return blank;}
   const cost=costType==="一口价"?Object.fromEntries(keys.map((key)=>[key,config.unifiedPrice]))
     :(costs[month]||costs[shortMonth])?.[costType];
