@@ -4349,10 +4349,12 @@ function BarList({
   rows: { station: S; record: R }[];
   danger?: boolean;
 }) {
+  const [showAll, setShowAll] = useState(false);
   const max = Math.max(...rows.map((x) => num(x.record.profit)), 1);
   return (
+    <>
     <div className="bar-list">
-      {rows.map((x, i) => (
+      {(showAll ? rows : rows.slice(0, 5)).map((x, i) => (
         <div key={x.station.name} className={i < 3 ? "top-three" : ""}>
           <span>{i + 1}</span>
           <div>
@@ -4373,6 +4375,8 @@ function BarList({
         </div>
       ))}
     </div>
+    {rows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rows.length} 站`}</button>}
+    </>
   );
 }
 function StationTable({
