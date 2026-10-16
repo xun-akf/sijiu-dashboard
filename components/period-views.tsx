@@ -13,6 +13,7 @@ type Props = { view:View; week:string; station:string; selectedMode:"all"|Chargi
 type Row = { name:string; profile:StationProfile; charge:number|null; peak:number|null; high:number|null; flat:number|null; valley:number|null; electricity:number|null; service:number|null; profit:number|null; unknown:number|null; days:number };
 const keys=["peak","high","flat","valley"] as const;
 const label=(x:number|null,unit="")=>x==null?"待导入真实数据":`${x.toLocaleString("zh-CN",{maximumFractionDigits:2})}${unit}`;
+const modeLabel=(value:number|null,charge:number|null,mode:Props["selectedMode"],unit="")=>value==null && mode!=="all"?(charge==null?"该模式暂无记录":"金额待核算"):label(value,unit);
 const sum=(values:(number|null)[])=>values.length && values.every((x)=>x!=null)?values.reduce<number>((acc,x)=>acc+Number(x),0):null;
 const iso=(date:Date)=>date.toISOString().slice(0,10);
 function rangeFor(week:string,periodType:Props["periodType"]){
@@ -106,20 +107,21 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,r
   const sorted=[...rows].sort((a,b)=>sort==="name"?a.name.localeCompare(b.name,"zh-CN"):Number(b[sort]??-Infinity)-Number(a[sort]??-Infinity));
   const title={overview:"运营总览",station:"场站分析",business:"经营分析",trend:"趋势洞察"}[view];
   const rangeText=`${current.start}—${current.end}`;
-  const dataNote=selectedMode==="all"?"月度按自然月真实日级总量汇总；仅有整月汇总的月份只用于月度，绝不拆为周度。未分类电量保留在场站总量中。":"仅统计已导入的实际快慢充分类记录；缺少记录的站点不按零处理。";
+  const metricLabel=(key:"charge"|"service"|"profit"|"electricity",unit="")=>modeLabel(metric(rows,key),totalCharge,selectedMode,unit);
+  const dataNote=selectedMode==="all"?"月度按自然月真实日级总量汇总；仅有整月汇总的月份只用于月度，绝不拆为周度。未分类电量保留在场站总量中。":"仅统计已录入的实际快慢充分类记录；该模式无记录不表示站点没有经营。";
   return <div className="mode-page period-view">
     <div className="page-heading"><div><span className="eyebrow">{periodType==="month"?"自然月":"周日～周六"} · {selectedMode==="all"?"全部":selectedMode==="fast"?"快充":"慢充"}</span><h2>{title}</h2><p>{rangeText} · {rows.length}个授权场站{completeness}</p></div></div>
     {error?<p className="empty-note">{error}</p>:!data?<p className="empty-note">正在读取统计数据…</p>:<>
       <p className="mode-scope-notice">{dataNote} 收入、毛利仅显示可核算站点的小计及覆盖数，缺失数据不按零值处理。</p>
       <div className="mode-kpis">
-        <div><span>{selectedMode==="all"?"总充电量":"实际分类电量"}</span><strong>{label(totalCharge," kWh")}</strong><small>有记录 {rows.filter((r)=>r.charge!=null).length} / {rows.length} 站</small></div>
-        <div><span>服务费收入{rows.some((r)=>r.service==null)?"（可核算小计）":""}</span><strong>{label(metric(rows,"service")," 元")}</strong><small>可计算 {rows.filter((r)=>r.service!=null).length} / {rows.length} 站</small></div>
-        <div><span>经营毛利{rows.some((r)=>r.profit==null)?"（可核算小计）":""}</span><strong>{label(metric(rows,"profit")," 元")}</strong><small>可计算 {rows.filter((r)=>r.profit!=null).length} / {rows.length} 站</small></div>
+        <div><span>{selectedMode==="all"?"总充电量":"实际分类电量"}</span><strong>{metricLabel("charge"," kWh")}</strong><small>有记录 {rows.filter((r)=>r.charge!=null).length} / {rows.length} 站</small></div>
+        <div><span>服务费收入{rows.some((r)=>r.service==null)?"（可核算小计）":""}</span><strong>{metricLabel("service"," 元")}</strong><small>可计算 {rows.filter((r)=>r.service!=null).length} / {rows.length} 站</small></div>
+        <div><span>经营毛利{rows.some((r)=>r.profit==null)?"（可核算小计）":""}</span><strong>{metricLabel("profit"," 元")}</strong><small>可计算 {rows.filter((r)=>r.profit!=null).length} / {rows.length} 站</small></div>
         <div><span>{periodType==="month"?"自然月环比":"周环比"}</span><strong>{change==null?"待两期完整数据":`${change>=0?"+":""}${change.toFixed(1)}%`}</strong></div>
       </div>
-      {view==="overview"&&<><section className="mode-panel"><h3>尖峰平谷电量</h3><div className="mode-kpis">{keys.map((key)=><div key={key}><span>{{peak:"尖",high:"峰",flat:"平",valley:"谷"}[key]}</span><strong>{label(metric(rows,key)," kWh")}</strong></div>)}</div></section><section className="mode-panel"><h3>场站概览</h3><StationTable rows={sorted.slice(0,10)} /></section></>}
-      {view==="station"&&<section className="mode-panel"><div className="mode-table-head"><h3>场站经营明细</h3><Sort sort={sort} setSort={setSort}/></div><StationTable rows={sorted}/></section>}
-      {view==="business"&&<><div className="mode-kpis"><div><span>售电收入</span><strong>{label(metric(rows,"electricity")," 元")}</strong></div><div><span>经营收入</span><strong>{label(sum([metric(rows,"electricity"),metric(rows,"service")])," 元")}</strong></div><div><span>毛利率</span><strong>{(()=>{const income=sum([metric(rows,"electricity"),metric(rows,"service")]),profit=metric(rows,"profit");return income && profit!=null?`${(profit/income*100).toFixed(1)}%`:"待导入真实数据";})()}</strong></div><div><span>已记录场站</span><strong>{rows.filter((r)=>r.charge!=null).length} / {rows.length}</strong></div></div><section className="mode-panel"><h3>分站经营对比</h3><StationTable rows={sorted}/></section></>}
+      {view==="overview"&&<><section className="mode-panel"><h3>尖峰平谷电量</h3><div className="mode-kpis">{keys.map((key)=><div key={key}><span>{{peak:"尖",high:"峰",flat:"平",valley:"谷"}[key]}</span><strong>{label(metric(rows,key)," kWh")}</strong></div>)}</div></section><section className="mode-panel"><h3>场站概览</h3><StationTable rows={sorted.slice(0,10)} mode={selectedMode}/></section></>}
+      {view==="station"&&<section className="mode-panel"><div className="mode-table-head"><h3>场站经营明细</h3><Sort sort={sort} setSort={setSort}/></div><StationTable rows={sorted} mode={selectedMode}/></section>}
+      {view==="business"&&<><div className="mode-kpis"><div><span>售电收入</span><strong>{metricLabel("electricity"," 元")}</strong></div><div><span>经营收入</span><strong>{label(sum([metric(rows,"electricity"),metric(rows,"service")])," 元")}</strong></div><div><span>毛利率</span><strong>{(()=>{const income=sum([metric(rows,"electricity"),metric(rows,"service")]),profit=metric(rows,"profit");return income && profit!=null?`${(profit/income*100).toFixed(1)}%`:"待导入真实数据";})()}</strong></div><div><span>已记录场站</span><strong>{rows.filter((r)=>r.charge!=null).length} / {rows.length}</strong></div></div><section className="mode-panel"><h3>分站经营对比</h3><StationTable rows={sorted} mode={selectedMode}/></section></>}
       {view==="trend"&&<section className="mode-panel"><h3>六期充电量趋势</h3><div className="period-trend">{trend.map(({range,charge})=><div key={range.start}><span>{range.start.slice(5)}</span><div className="mode-bar"><i style={{width:charge==null?"0%":`${Math.max(2,charge/Math.max(...trend.map((x)=>x.charge||0),1)*100)}%`}} /></div><b>{label(charge," kWh")}</b></div>)}</div><p>趋势只采用真实日期的分类数据；缺失日期不插值。上期毛利 {label(metric(before,"profit")," 元")}。</p></section>}
     </>}
   </div>;
@@ -127,6 +129,6 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,r
 function Sort({sort,setSort}:{sort:"charge"|"profit"|"name";setSort:(value:"charge"|"profit"|"name")=>void}){
   return <select value={sort} onChange={(e)=>setSort(e.target.value as typeof sort)}><option value="charge">按电量</option><option value="profit">按毛利</option><option value="name">按站名</option></select>;
 }
-function StationTable({rows}:{rows:Row[]}){
-  return <div className="mode-table-wrap"><table><thead><tr><th>场站</th><th>电量 kWh</th><th>尖/峰/平/谷 kWh</th><th>售电收入</th><th>服务费</th><th>毛利</th><th>覆盖日期</th></tr></thead><tbody>{rows.map((r)=><tr key={r.name}><td><b>{r.name}</b><small>{r.profile.operator_name}</small></td><td>{label(r.charge)}</td><td>{keys.map((key)=>r[key]==null?"—":label(r[key])).join(" / ")}</td><td>{label(r.electricity)}</td><td>{label(r.service)}</td><td>{label(r.profit)}</td><td>{r.days||"暂无记录"}</td></tr>)}</tbody></table></div>;
+function StationTable({rows,mode}:{rows:Row[];mode:Props["selectedMode"]}){
+  return <div className="mode-table-wrap"><table><thead><tr><th>场站</th><th>电量 kWh</th><th>尖/峰/平/谷 kWh</th><th>售电收入</th><th>服务费</th><th>毛利</th><th>覆盖日期</th></tr></thead><tbody>{rows.map((r)=><tr key={r.name}><td><b>{r.name}</b><small>{r.profile.operator_name}</small></td><td>{modeLabel(r.charge,r.charge,mode)}</td><td>{keys.map((key)=>r[key]==null?"—":label(r[key])).join(" / ")}</td><td>{modeLabel(r.electricity,r.charge,mode)}</td><td>{modeLabel(r.service,r.charge,mode)}</td><td>{modeLabel(r.profit,r.charge,mode)}</td><td>{r.days||"暂无记录"}</td></tr>)}</tbody></table></div>;
 }
