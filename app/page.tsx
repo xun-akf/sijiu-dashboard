@@ -1763,14 +1763,6 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       return { name: station.name, charge: current.length ? current.reduce((sum, fact) => sum + fact.charge, 0) : null,
         previous: previous.length ? previous.reduce((sum, fact) => sum + fact.charge, 0) : null };
     }),
-    contributionRows = rows.map((item) => {
-      const previous = wi > 0 ? recordAt(item.station, wi - 1) : undefined;
-      return {name:item.station.name, charge:item.record.charge, previous:previous?.charge ?? null};
-    }),
-    activeRows = analysisMode === "all" ? contributionRows : classifiedRows,
-    rankedContribution = [...activeRows].filter((item) => item.charge !== null).sort((a,b) =>
-      (b.charge != null && b.previous != null ? b.charge - b.previous : -Infinity) -
-      (a.charge != null && a.previous != null ? a.charge - a.previous : -Infinity)),
     doSave = async (name: string) => {
       if (!canEdit || saving || !week) return;
       setSaving(true);
@@ -1834,21 +1826,16 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         <span className="attention-count">重点关注 {attention.length} 个</span>
       </div>
       <div className="business-analysis-controls">
-        <div className="metric-switch">{(["contribution", "diagnosis"] as const).map((value) => <button key={value} className={analysisView === value ? "active" : ""} onClick={() => setAnalysisView(value)}>{value === "contribution" ? "各站贡献度排名" : "全场站数据诊断"}</button>)}</div>
-        <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>
+        <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => setAnalysisView("diagnosis")}>全场站数据诊断分析</button></div>
+        {analysisView === "diagnosis" && <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>}
       </div>
-      {analysisView === "contribution" && <details className="data-disclosure"><summary>各站充电量贡献度排名 <span>展开查看全部场站</span></summary><Panel title="各站充电量贡献度排名" sub="与上周同模式实测电量比较；缺少任一期记录不计算增减">
-        {classificationError && analysisMode !== "all" ? <p className="empty-note">{classificationError}</p> : analysisMode !== "all" && !classified ? <p className="empty-note">正在读取分类记录…</p> :
-        <div className="business-contribution-list">{rankedContribution.length ? rankedContribution.map((item, index) => <div key={item.name}><b>{index + 1}. {item.name}</b><span>{item.charge?.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh</span><strong>{item.previous == null || item.charge == null ? "上期数据待补充" : `${item.charge - item.previous >= 0 ? "+" : ""}${(item.charge - item.previous).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</strong></div>) : <p className="empty-note">该模式暂无真实分类记录</p>}</div>}
-      </Panel></details>}
-      {analysisView === "diagnosis" && analysisMode !== "all" && <details className="data-disclosure"><summary>{analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断 <span>展开查看全部场站</span></summary><Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录；缺少分类数据保持待补充">
-        {classificationError ? <p className="empty-note">{classificationError}</p> : !classified ? <p className="empty-note">正在读取分类记录…</p> : <div className="business-contribution-list">{classifiedRows.map((item) => <div key={item.name}><b>{item.name}</b><span>{item.charge == null ? "待导入分类数据" : `${item.charge.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</span><strong>{item.charge == null || item.previous == null ? "上期或本期分类待补充" : pct(item.previous > 0 ? item.charge / item.previous - 1 : null)}</strong></div>)}</div>}
+      {analysisView === "contribution" && <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏"><BarList rows={rows} /></Panel>}
+      {analysisView === "diagnosis" && <p className="business-diagnosis-summary">{analysisMode === "all" ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis || "本周运营诊断待补充" : `${analysisMode === "fast" ? "快充" : "慢充"}仅按真实分类记录诊断；缺失分类的场站不列入分析。`}</p>}
+      {analysisView === "diagnosis" && analysisMode !== "all" && <details className="data-disclosure"><summary>{analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断 <span>展开查看有记录场站</span></summary><Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录">
+        {classificationError ? <p className="empty-note">{classificationError}</p> : !classified ? <p className="empty-note">正在读取分类记录…</p> : <div className="business-contribution-list">{classifiedRows.filter((item) => item.charge != null).length ? classifiedRows.filter((item) => item.charge != null).map((item) => <div key={item.name}><b>{item.name}</b><span>{item.charge?.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh</span><strong>{item.previous == null ? "上期分类待补充" : pct(item.previous > 0 && item.charge != null ? item.charge / item.previous - 1 : null)}</strong></div>) : <p className="empty-note">该模式暂无真实分类记录</p>}</div>}
       </Panel></details>}
       {analysisView === "diagnosis" && analysisMode === "all" && <>
       <div className="content-grid equal">
-        <details className="data-disclosure"><summary>经营利润排名 <span>展开查看 {rows.length} 站</span></summary><Panel title="经营利润排名" sub="排名、利润与充电量环比同屏">
-          <BarList rows={rows} />
-        </Panel></details>
         <Panel
           title={`重点下降站点 · ${attention.length}个`}
           sub="充电量环比下降超过 12%，按降幅排序"

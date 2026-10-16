@@ -150,6 +150,7 @@
 .mode-detail-panel.data-disclosure > summary, .mode-panel.data-disclosure > summary { margin: 0; }
 .mode-detail-panel.data-disclosure[open] > summary, .mode-panel.data-disclosure[open] > summary { margin-bottom: 12px; }
 .history-data-disclosure { margin-top: 8px; }
+.business-diagnosis-summary { margin: 8px 0 12px; padding: 12px 14px; border: 1px solid #2b5145; border-radius: 9px; background: #102c24; color: #cce8db; font-size: 11px; line-height: 1.6; }
 @media (max-width: 700px) { .business-contribution-list > div { grid-template-columns: 1fr auto; } .business-contribution-list strong { grid-column: 1 / -1; } }
 .chart-tooltip.ranked > b {
   grid-column: 1 / -1;
