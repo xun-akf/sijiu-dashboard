@@ -41,6 +41,7 @@ import ChargingModePage from "@/components/charging-mode-page";
 import PeriodViews from "@/components/period-views";
 import { ModeImportPanel } from "@/components/mode-import-panel";
 import { loadModeData } from "@/lib/mode-data";
+import { sundaySaturdayRange } from "@/lib/charging-mode";
 import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
 import { dashboardClient } from "@/lib/dashboard-browser";
@@ -849,7 +850,7 @@ export default function Home() {
               <button
                 key={x.id}
                 className={view === x.id ? "active" : ""}
-                onClick={() => { setView(x.id); if (x.id === "station") setPeriodType("week"); }}
+                onClick={() => { setView(x.id); if (x.id === "station" || x.id === "business") setPeriodType("week"); }}
               >
                 <I />
                 {x.label}
@@ -919,7 +920,7 @@ export default function Home() {
           <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view==="trend"?"week":periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
         {view !== "config" && view !== "trend" && <div className="mode-switchbar">
-          <div className="metric-switch">{(view === "station" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+          <div className="metric-switch">{(view === "station" || view === "business" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
@@ -1735,6 +1736,10 @@ function StationAnalysis({
 }
 function Business({ wi, sn }: { wi: number; sn: string }) {
   const week = allWeeks()[wi],
+    [analysisMode, setAnalysisMode] = useState<"all" | "fast" | "slow">("all"),
+    [analysisView, setAnalysisView] = useState<"contribution" | "diagnosis">("contribution"),
+    [classified, setClassified] = useState<Awaited<ReturnType<typeof loadModeData>> | null>(null),
+    [classificationError, setClassificationError] = useState(""),
     canEdit = useContext(OperatorContext),
     { cfg } = useConfigs(),
     [editingStation, setEditingStation] = useState<string | null>(null),
@@ -1749,6 +1754,23 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     attention = rows
       .filter((x) => num(x.record.chargeChange) < -0.12)
       .sort((a, b) => num(a.record.chargeChange) - num(b.record.chargeChange)),
+    range = week ? sundaySaturdayRange(week) : null,
+    priorStart = range ? new Date(Date.parse(range.start + "T00:00:00Z") - 7 * 86400000).toISOString().slice(0, 10) : "",
+    classifiedRows = analysisMode === "all" || !classified || !range ? [] : scope(sn).map((station) => {
+      const facts = classified.facts.filter((fact) => fact.stationName === station.name && fact.mode === analysisMode);
+      const current = facts.filter((fact) => fact.date >= range.start && fact.date <= range.end);
+      const previous = facts.filter((fact) => fact.date >= priorStart && fact.date < range.start);
+      return { name: station.name, charge: current.length ? current.reduce((sum, fact) => sum + fact.charge, 0) : null,
+        previous: previous.length ? previous.reduce((sum, fact) => sum + fact.charge, 0) : null };
+    }),
+    contributionRows = rows.map((item) => {
+      const previous = wi > 0 ? recordAt(item.station, wi - 1) : undefined;
+      return {name:item.station.name, charge:item.record.charge, previous:previous?.charge ?? null};
+    }),
+    activeRows = analysisMode === "all" ? contributionRows : classifiedRows,
+    rankedContribution = [...activeRows].filter((item) => item.charge !== null).sort((a,b) =>
+      (b.charge != null && b.previous != null ? b.charge - b.previous : -Infinity) -
+      (a.charge != null && a.previous != null ? a.charge - a.previous : -Infinity)),
     doSave = async (name: string) => {
       if (!canEdit || saving || !week) return;
       setSaving(true);
@@ -1764,6 +1786,15 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         setSaving(false);
       }
     };
+  useEffect(() => {
+    if (analysisMode === "all" || !range) return;
+    let live = true;
+    setClassified(null);
+    loadModeData(priorStart, range.end).then((result) => {
+      if (live) { setClassified(result); setClassificationError(""); }
+    }).catch(() => { if (live) setClassificationError("分类数据读取失败，请稍后重试"); });
+    return () => { live = false; };
+  }, [analysisMode, priorStart, range?.end]);
   const renderAnalysisBlock = (item: (typeof rows)[number]) => {
     const name = item.station.name,
       value = conciseStationDiagnosis(item.station, week, { ...emptyConfig, ...cfg[name] }),
@@ -1802,6 +1833,18 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         </div>
         <span className="attention-count">重点关注 {attention.length} 个</span>
       </div>
+      <div className="business-analysis-controls">
+        <div className="metric-switch">{(["contribution", "diagnosis"] as const).map((value) => <button key={value} className={analysisView === value ? "active" : ""} onClick={() => setAnalysisView(value)}>{value === "contribution" ? "各站贡献度排名" : "全场站数据诊断"}</button>)}</div>
+        <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>
+      </div>
+      {analysisView === "contribution" && <Panel title="各站充电量贡献度排名" sub="与上周同模式实测电量比较；缺少任一期记录不计算增减">
+        {classificationError && analysisMode !== "all" ? <p className="empty-note">{classificationError}</p> : analysisMode !== "all" && !classified ? <p className="empty-note">正在读取分类记录…</p> :
+        <div className="business-contribution-list">{rankedContribution.length ? rankedContribution.map((item, index) => <div key={item.name}><b>{index + 1}. {item.name}</b><span>{item.charge?.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh</span><strong>{item.previous == null || item.charge == null ? "上期数据待补充" : `${item.charge - item.previous >= 0 ? "+" : ""}${(item.charge - item.previous).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</strong></div>) : <p className="empty-note">该模式暂无真实分类记录</p>}</div>}
+      </Panel>}
+      {analysisView === "diagnosis" && analysisMode !== "all" && <Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录；缺少分类数据保持待补充">
+        {classificationError ? <p className="empty-note">{classificationError}</p> : !classified ? <p className="empty-note">正在读取分类记录…</p> : <div className="business-contribution-list">{classifiedRows.map((item) => <div key={item.name}><b>{item.name}</b><span>{item.charge == null ? "待导入分类数据" : `${item.charge.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</span><strong>{item.charge == null || item.previous == null ? "上期或本期分类待补充" : pct(item.previous > 0 ? item.charge / item.previous - 1 : null)}</strong></div>)}</div>}
+      </Panel>}
+      {analysisView === "diagnosis" && analysisMode === "all" && <>
       <div className="content-grid equal">
         <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏">
           <BarList rows={rows} />
@@ -1856,6 +1899,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
           ))}
         </div>
       </Panel>
+      </>}
     </>
   );
 }

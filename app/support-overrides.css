@@ -133,6 +133,14 @@
 .period-data-note { margin: 12px 0 22px; color: #a8c6b9; font-size: 11px; }
 .period-data-note summary { width: fit-content; cursor: pointer; }
 .period-data-note p { margin: 8px 0 0; line-height: 1.6; }
+.business-analysis-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+.business-analysis-controls .metric-switch { margin-bottom: 0; }
+.business-contribution-list { display: grid; gap: 0; margin-top: 10px; }
+.business-contribution-list > div { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(100px, auto) minmax(140px, auto); align-items: center; gap: 14px; padding: 11px 4px; border-bottom: 1px solid #234239; font-size: 11px; }
+.business-contribution-list b { overflow-wrap: anywhere; font-weight: 500; }
+.business-contribution-list span { color: #d4eee1; text-align: right; }
+.business-contribution-list strong { color: #82dcac; text-align: right; font-weight: 600; }
+@media (max-width: 700px) { .business-contribution-list > div { grid-template-columns: 1fr auto; } .business-contribution-list strong { grid-column: 1 / -1; } }
 .chart-tooltip.ranked > b {
   grid-column: 1 / -1;
 }
