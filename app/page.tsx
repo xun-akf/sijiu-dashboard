@@ -1815,6 +1815,19 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       </div>
     );
   };
+  const modeDiagnosis = (() => {
+    if (classificationError) return classificationError;
+    if (!classified) return "正在读取分类记录…";
+    const recorded = classifiedRows.filter((item) => item.charge != null);
+    if (!recorded.length) return `本周${analysisMode === "fast" ? "快充" : "慢充"}待导入分类数据，暂无可核实的经营结论。`;
+    const comparable = recorded.filter((item) => item.previous != null);
+    const charge = recorded.reduce((sum, item) => sum + Number(item.charge), 0);
+    const changes = comparable.map((item) => ({ name: item.name, delta: Number(item.charge) - Number(item.previous) })).sort((a, b) => b.delta - a.delta);
+    const highest = changes[0], lowest = changes.at(-1);
+    const leader = highest && highest.delta > 0 ? `主要增长来自${highest.name}（+${highest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
+    const laggard = lowest && lowest.delta < 0 ? `主要下降来自${lowest.name}（${lowest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
+    return `本周${analysisMode === "fast" ? "快充" : "慢充"}有${recorded.length}站录入真实分类电量，合计${charge.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度；其中${comparable.length}站有上周同模式记录可比较。${leader}${laggard}${recorded.length < scope(sn).length ? `其余${scope(sn).length - recorded.length}站分类待补充，未按零值处理。` : ""}`;
+  })();
   return (
     <>
       <div className="page-heading business-head">
@@ -1830,11 +1843,9 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         {analysisView === "diagnosis" && <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>}
       </div>
       {analysisView === "contribution" && <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏"><BarList rows={rows} /></Panel>}
-      {analysisView === "diagnosis" && <p className="business-diagnosis-summary">{analysisMode === "all" ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis || "本周运营诊断待补充" : `${analysisMode === "fast" ? "快充" : "慢充"}仅按真实分类记录诊断；缺失分类的场站不列入分析。`}</p>}
-      {analysisView === "diagnosis" && analysisMode !== "all" && <details className="data-disclosure"><summary>{analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断 <span>展开查看有记录场站</span></summary><Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录">
-        {classificationError ? <p className="empty-note">{classificationError}</p> : !classified ? <p className="empty-note">正在读取分类记录…</p> : <div className="business-contribution-list">{classifiedRows.filter((item) => item.charge != null).length ? classifiedRows.filter((item) => item.charge != null).map((item) => <div key={item.name}><b>{item.name}</b><span>{item.charge?.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh</span><strong>{item.previous == null ? "上期分类待补充" : pct(item.previous > 0 && item.charge != null ? item.charge / item.previous - 1 : null)}</strong></div>) : <p className="empty-note">该模式暂无真实分类记录</p>}</div>}
-      </Panel></details>}
+      {analysisView === "diagnosis" && <p className="business-diagnosis-summary">{analysisMode === "all" ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis || "本周运营诊断待补充" : modeDiagnosis}</p>}
       {analysisView === "diagnosis" && analysisMode === "all" && <>
+      <details className="data-disclosure"><summary>逐站分析与编辑 <span>展开查看 {rows.length} 站</span></summary>
       <div className="content-grid equal">
         <Panel
           title={`重点下降站点 · ${attention.length}个`}
@@ -1860,7 +1871,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
           </div>
         </Panel>
       </div>
-      <details className="data-disclosure"><summary>全场站数据诊断 <span>展开查看 {rows.length} 站</span></summary><Panel
+      <Panel
         title="全场站数据诊断"
         sub="默认展示结果；需要时再添加或编辑运营分析"
         extra="ranking"
