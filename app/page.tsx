@@ -3830,16 +3830,15 @@ function StationHistoryTable({
       { label: "每度电费利润", value: (record) => num(record.electricityProfitPerKwh), format: "decimal" },
       { label: "经营利润", value: (record) => record.profit, format: "money", editKey: "profit" },
     ],
-    compactLabels = new Set(["总充电量", "总服务费收入", "每度服务费", "每度电费利润", "经营利润"]),
-    visibleRows = fullHistory ? rows : rows.filter((row, index) => index >= 1 && index <= 6 || Boolean(row.label && compactLabels.has(row.label)));
+    visibleRows = fullHistory ? rows : rows.filter((_, index) => index >= 1 && index <= 5);
   return (
     <Panel
       title={aggregate ? "全部场站完整历史数据" : "单站完整历史数据"}
-      sub="2025年至今；默认展示尖峰平谷电量与核心经营指标，服务费分时明细可展开"
+      sub="2025年至今；默认只展示尖峰平谷与总充电量，收入利润等完整明细可展开"
       extra="ranking station-history-panel"
     >
       {status && <div className="history-edit-status">{status}</div>}
-      <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起服务费分时明细" : "展开服务费分时明细与编辑"}</button>
+      <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
         <table className="history-matrix">
           <thead>
