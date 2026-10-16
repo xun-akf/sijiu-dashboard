@@ -41,6 +41,9 @@ import ChargingModePage from "@/components/charging-mode-page";
 import PeriodViews from "@/components/period-views";
 import { ModeImportPanel } from "@/components/mode-import-panel";
 import { loadModeData } from "@/lib/mode-data";
+import stationCatalog from "@/data/station-catalog-20261018.json";
+import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
+import { dashboardClient } from "@/lib/dashboard-browser";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -635,13 +638,16 @@ export default function Home() {
   const lastLoadedSharedConfigs = useRef<string | null>(null);
   // Legacy dashboard helpers synchronously read this snapshot during render.
   // eslint-disable-next-line react-hooks/globals
-  stations = operatorFilter==="全部运营商"?stationData:stationData.filter((item)=>stationOperators[item.name]===operatorFilter);
+  const catalogOperators = Object.fromEntries(stationCatalog.map((item) => [item.name,item.operator]));
+  const scopedNames = new Set(scopedStationNames(stationData.map((item) => item.name),operatorFilter,catalogOperators,stationOperators));
+  stations = stationData.filter((item) => scopedNames.has(item.name));
+  const reportingNames=reportingStationNames(stations,allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周",periodType);
   const noWeeklyHistory=sn!=="全部场站" && stationData.some((item)=>item.name===sn && item.records.length===0);
   useEffect(()=>{
     if(!accessRole)return;
     let live=true;
-    void loadModeData("2026-01-01","2026-01-01").then((result)=>{
-      if(live)setStationOperators(Object.fromEntries(result.profiles.map((p)=>[p.station_name,p.operator_name||"未分类运营商"])));
+    void Promise.resolve(dashboardClient.from("dashboard_station_profiles").select("station_name,operator_name")).then(({data,error})=>{
+      if(live && !error && data)setStationOperators(Object.fromEntries(data.filter((p)=>p.operator_name).map((p)=>[p.station_name,p.operator_name])));
     }).catch(()=>{});
     return ()=>{live=false;};
   },[accessRole]);
@@ -910,7 +916,7 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{setOperatorFilter(value);setSn("全部场站");const visible=stationData.filter((item)=>value==="全部运营商"||stationOperators[item.name]===value);setWi(Math.max(0,new Set(visible.flatMap((item)=>item.records.map((r)=>r.week))).size-1));}} operatorOptions={[...new Set(stationData.map((item)=>stationOperators[item.name]).filter((x):x is string=>Boolean(x)))]} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
         {view !== "config" && <div className="mode-switchbar">
           <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
@@ -924,8 +930,8 @@ export default function Home() {
         )}{" "}
         {view === "business" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Business wi={wi} sn={sn} />}{" "}
         {view === "trend" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <TrendInsights sn={sn} />}{" "}
-        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} />}
-        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} />}
+        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}

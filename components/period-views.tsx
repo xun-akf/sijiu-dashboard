@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { calendarMonthRange, classifyDayOperatingMetrics, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
 import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 import { calculateCalendarDay } from "@/lib/calendar-metrics";
+import { sumAvailableMetrics } from "@/lib/weekly-display";
 
 type Data = Awaited<ReturnType<typeof loadModeData>>;
 type View = "overview" | "station" | "business" | "trend";
-type Props = { view:View; week:string; station:string; selectedMode:"all"|ChargingMode; periodType:"week"|"month"; stationTotals:Record<string,number|null> };
+type Props = { view:View; week:string; station:string; selectedMode:"all"|ChargingMode; periodType:"week"|"month"; reportingNames:string[]; stationTotals:Record<string,number|null> };
 type Row = { name:string; profile:StationProfile; charge:number|null; peak:number|null; high:number|null; flat:number|null; valley:number|null; electricity:number|null; service:number|null; profit:number|null; unknown:number|null; days:number };
 const keys=["peak","high","flat","valley"] as const;
 const label=(x:number|null,unit="")=>x==null?"待导入真实数据":`${x.toLocaleString("zh-CN",{maximumFractionDigits:2})}${unit}`;
@@ -60,9 +61,9 @@ function metric(rows:Row[],key:"charge"|"electricity"|"service"|"profit"|typeof 
     const available=values.filter((x):x is number=>x!=null);
     return available.length?available.reduce((acc,x)=>acc+x,0):null;
   }
-  return sum(values);
+  return sumAvailableMetrics(values).value;
 }
-export default function PeriodViews({view,week,station,selectedMode,periodType,stationTotals}:Props){
+export default function PeriodViews({view,week,station,selectedMode,periodType,reportingNames,stationTotals}:Props){
   const current=useMemo(()=>rangeFor(week,periodType),[week,periodType]);
   const prior=useMemo(()=>previousRange(current.start,periodType),[current.start,periodType]);
   const trendRanges=useMemo(()=>{
@@ -80,7 +81,7 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,s
     return ()=>{live=false;};
   },[trendRanges,current.end]);
   // The dashboard state's station list is already server-scoped to the signed-in account.
-  const names=useMemo(()=>new Set(Object.keys(stationTotals).filter((name)=>station==="全部场站" || station===name)),[stationTotals,station]);
+  const names=useMemo(()=>new Set(reportingNames.filter((name)=>station==="全部场站" || station===name)),[reportingNames,station]);
   const rows=useMemo(()=>data?buildRows(data,current,names,selectedMode,stationTotals,periodType==="week"):[],[data,current,names,selectedMode,stationTotals,periodType]);
   const before=useMemo(()=>data?buildRows(data,prior,names,selectedMode,stationTotals,false):[],[data,prior,names,selectedMode,stationTotals]);
   const trend=useMemo(()=>data?trendRanges.map((range)=>({range,charge:metric(buildRows(data,range,names,selectedMode,stationTotals,false),"charge")})):[],[data,trendRanges,names,selectedMode,stationTotals]);
@@ -98,11 +99,11 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,s
   return <div className="mode-page period-view">
     <div className="page-heading"><div><span className="eyebrow">{periodType==="month"?"自然月":"周日～周六"} · {selectedMode==="all"?"全部":selectedMode==="fast"?"快充":"慢充"}</span><h2>{title}</h2><p>{rangeText} · {rows.length}个授权场站{completeness}</p></div></div>
     {error?<p className="empty-note">{error}</p>:!data?<p className="empty-note">正在读取统计数据…</p>:<>
-      <p className="mode-scope-notice">{dataNote} 收入、毛利仅在分时电量及对应价格、成本齐备时显示；不完整范围不作为全站合计。</p>
+      <p className="mode-scope-notice">{dataNote} 收入、毛利仅显示可核算站点的小计及覆盖数，缺失数据不按零值处理。</p>
       <div className="mode-kpis">
         <div><span>{selectedMode==="all"?"总充电量":"实际分类电量"}</span><strong>{label(totalCharge," kWh")}</strong><small>有记录 {rows.filter((r)=>r.charge!=null).length} / {rows.length} 站</small></div>
-        <div><span>服务费收入</span><strong>{label(metric(rows,"service")," 元")}</strong><small>可计算 {rows.filter((r)=>r.service!=null).length} / {rows.length} 站；不完整不显示合计</small></div>
-        <div><span>经营毛利</span><strong>{label(metric(rows,"profit")," 元")}</strong><small>可计算 {rows.filter((r)=>r.profit!=null).length} / {rows.length} 站；不完整不显示合计</small></div>
+        <div><span>服务费收入{rows.some((r)=>r.service==null)?"（可核算小计）":""}</span><strong>{label(metric(rows,"service")," 元")}</strong><small>可计算 {rows.filter((r)=>r.service!=null).length} / {rows.length} 站</small></div>
+        <div><span>经营毛利{rows.some((r)=>r.profit==null)?"（可核算小计）":""}</span><strong>{label(metric(rows,"profit")," 元")}</strong><small>可计算 {rows.filter((r)=>r.profit!=null).length} / {rows.length} 站</small></div>
         <div><span>{periodType==="month"?"自然月环比":"周环比"}</span><strong>{change==null?"待两期完整数据":`${change>=0?"+":""}${change.toFixed(1)}%`}</strong></div>
       </div>
       {view==="overview"&&<><section className="mode-panel"><h3>尖峰平谷电量</h3><div className="mode-kpis">{keys.map((key)=><div key={key}><span>{{peak:"尖",high:"峰",flat:"平",valley:"谷"}[key]}</span><strong>{label(metric(rows,key)," kWh")}</strong></div>)}</div></section><section className="mode-panel"><h3>场站概览</h3><StationTable rows={sorted.slice(0,10)} /></section></>}
