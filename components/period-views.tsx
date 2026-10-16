@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { calendarMonthRange, classifyDayOperatingMetrics, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
 import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 import { calculateCalendarDay } from "@/lib/calendar-metrics";
-import { sumAvailableMetrics } from "@/lib/weekly-display";
+import { displayedModeMetric, sumAvailableMetrics, type StoredWeeklyResult } from "@/lib/weekly-display";
+import stationCatalog from "@/data/station-catalog-20261018.json";
 
 type Data = Awaited<ReturnType<typeof loadModeData>>;
 type View = "overview" | "station" | "business" | "trend";
-type Props = { view:View; week:string; station:string; selectedMode:"all"|ChargingMode; periodType:"week"|"month"; reportingNames:string[]; stationTotals:Record<string,number|null> };
+type Props = { view:View; week:string; station:string; selectedMode:"all"|ChargingMode; periodType:"week"|"month"; reportingNames:string[]; stationTotals:Record<string,number|null>; stationRecords:Record<string,StoredWeeklyResult|undefined> };
 type Row = { name:string; profile:StationProfile; charge:number|null; peak:number|null; high:number|null; flat:number|null; valley:number|null; electricity:number|null; service:number|null; profit:number|null; unknown:number|null; days:number };
 const keys=["peak","high","flat","valley"] as const;
 const label=(x:number|null,unit="")=>x==null?"待导入真实数据":`${x.toLocaleString("zh-CN",{maximumFractionDigits:2})}${unit}`;
@@ -28,14 +29,24 @@ function previousRange(start:string,periodType:Props["periodType"]){
   const first=iso(date);date.setUTCDate(date.getUTCDate()+6);
   return {start:first,end:iso(date)};
 }
-function buildRows(data:Data,range:{start:string;end:string},names:Set<string>,mode:Props["selectedMode"],stationTotals:Props["stationTotals"],weekly:boolean):Row[]{
-  return data.profiles.filter((p)=>names.has(p.station_name)).map((profile)=>{
+function buildRows(data:Data,range:{start:string;end:string},names:Set<string>,mode:Props["selectedMode"],stationTotals:Props["stationTotals"],weekly:boolean,stationRecords:Props["stationRecords"]):Row[]{
+  const known=new Map(data.profiles.map((profile)=>[profile.station_name,profile]));
+  const catalog=new Map(stationCatalog.map((item)=>[item.name,item]));
+  return [...names].map((name):StationProfile=>{
+    const item=catalog.get(name);
+    return known.get(name)||{station_name:name,operator_name:item?.operator||null,address:item?.address||null,
+      region:item?.region||null,guns:item?.guns??null,fast_guns:item?.fastGuns??null,slow_guns:item?.slowGuns??null,
+      power_kw:item?.powerKw??null,fast_power_kw:item?.fastPowerKw??null,slow_power_kw:item?.slowPowerKw??null,
+      operation_status:item?.status||null};
+  }).map((profile)=>{
     const facts=data.facts.filter((f)=>f.stationName===profile.station_name && f.date>=range.start && f.date<=range.end && (mode==="all" || f.mode===mode));
     const isFullMonth=range.start.endsWith("-01") && calendarMonthRange(Number(range.start.slice(0,4)),Number(range.start.slice(5,7))).end===range.end;
     const daily=data.calendar.filter((r)=>r.station_name===profile.station_name && r.granularity==="day" && r.period_start>=range.start && r.period_start<=range.end);
     const monthly=isFullMonth && !daily.length?data.calendar.filter((r)=>r.station_name===profile.station_name && r.granularity==="month" && r.period_start===range.start):[];
     const totals=mode==="all"?(daily.length?daily:monthly):[];
-    const charge=totals.length?totals.reduce((acc,r)=>acc+Number(r.total_kwh),0):facts.length?sum(facts.map((f)=>f.charge)):null;
+    const classifiedCharge=totals.length?totals.reduce((acc,r)=>acc+Number(r.total_kwh),0):facts.length?sum(facts.map((f)=>f.charge)):null;
+    const legacy=weekly?stationRecords[profile.station_name]:undefined;
+    const charge=mode==="all"&&weekly&&legacy?.charge!=null?Number(legacy.charge):classifiedCharge;
     const amounts=Object.fromEntries(keys.map((key)=>[key,totals.length?sum(totals.map((r)=>r[`${key}_kwh`])):facts.length?sum(facts.map((f)=>f[key])):null])) as Record<typeof keys[number],number|null>;
     const calculated=facts.map((f)=>modeOperatingMetrics(f,data,profile));
     const classified=calculated.length?sum(facts.map((f)=>f.charge)):null;
@@ -45,9 +56,9 @@ function buildRows(data:Data,range:{start:string;end:string},names:Set<string>,m
       return splitRule?{electricityRevenue:null,serviceRevenue:null,profit:null}:calculateCalendarDay(row,data.configs[profile.station_name]||{},data.configs.__monthly__||{});
     }):[];
     const results=calendarMetrics.length?calendarMetrics:financiallyComplete?calculated:[];
-    const electricity=results.length?sum(results.map((x)=>x.electricityRevenue)):null;
-    const service=results.length?sum(results.map((x)=>x.serviceRevenue)):null;
-    const profit=results.length?sum(results.map((x)=>x.profit)):null;
+    const electricity=displayedModeMetric(mode,weekly?"week":"month",legacy,results.length?sum(results.map((x)=>x.electricityRevenue)):null,"electricityRevenue");
+    const service=displayedModeMetric(mode,weekly?"week":"month",legacy,results.length?sum(results.map((x)=>x.serviceRevenue)):null,"serviceRevenue");
+    const profit=displayedModeMetric(mode,weekly?"week":"month",legacy,results.length?sum(results.map((x)=>x.profit)):null,"profit");
     const stationTotal=mode==="all"?charge:weekly?stationTotals[profile.station_name]:null;
     const diff=stationTotal==null || charge==null?null:stationTotal-charge;
     return {name:profile.station_name,profile,charge,...amounts,electricity,service,profit,
@@ -63,7 +74,7 @@ function metric(rows:Row[],key:"charge"|"electricity"|"service"|"profit"|typeof 
   }
   return sumAvailableMetrics(values).value;
 }
-export default function PeriodViews({view,week,station,selectedMode,periodType,reportingNames,stationTotals}:Props){
+export default function PeriodViews({view,week,station,selectedMode,periodType,reportingNames,stationTotals,stationRecords}:Props){
   const current=useMemo(()=>rangeFor(week,periodType),[week,periodType]);
   const prior=useMemo(()=>previousRange(current.start,periodType),[current.start,periodType]);
   const trendRanges=useMemo(()=>{
@@ -82,9 +93,9 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,r
   },[trendRanges,current.end]);
   // The dashboard state's station list is already server-scoped to the signed-in account.
   const names=useMemo(()=>new Set(reportingNames.filter((name)=>station==="全部场站" || station===name)),[reportingNames,station]);
-  const rows=useMemo(()=>data?buildRows(data,current,names,selectedMode,stationTotals,periodType==="week"):[],[data,current,names,selectedMode,stationTotals,periodType]);
-  const before=useMemo(()=>data?buildRows(data,prior,names,selectedMode,stationTotals,false):[],[data,prior,names,selectedMode,stationTotals]);
-  const trend=useMemo(()=>data?trendRanges.map((range)=>({range,charge:metric(buildRows(data,range,names,selectedMode,stationTotals,false),"charge")})):[],[data,trendRanges,names,selectedMode,stationTotals]);
+  const rows=useMemo(()=>data?buildRows(data,current,names,selectedMode,stationTotals,periodType==="week",stationRecords):[],[data,current,names,selectedMode,stationTotals,periodType,stationRecords]);
+  const before=useMemo(()=>data?buildRows(data,prior,names,selectedMode,stationTotals,false,stationRecords):[],[data,prior,names,selectedMode,stationTotals,stationRecords]);
+  const trend=useMemo(()=>data?trendRanges.map((range)=>({range,charge:metric(buildRows(data,range,names,selectedMode,stationTotals,false,stationRecords),"charge")})):[],[data,trendRanges,names,selectedMode,stationTotals,stationRecords]);
   const totalCharge=metric(rows,"charge"),previousCharge=metric(before,"charge");
   const lastDaily=data?.calendar.filter((r)=>r.granularity==="day" && r.period_start>=current.start && r.period_start<=current.end && names.has(r.station_name)).map((r)=>r.period_start).sort().at(-1);
   const monthOnly=data?.calendar.some((r)=>r.granularity==="month" && r.period_start===current.start && names.has(r.station_name));
