@@ -3871,7 +3871,6 @@ function StationHistoryTable({
       extra="ranking station-history-panel"
     >
       {status && <div className="history-edit-status">{status}</div>}
-      <details className="data-disclosure history-data-disclosure"><summary>历史数据明细 <span>展开查看全部周次</span></summary>
       <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
         <table className="history-matrix">
@@ -3901,7 +3900,6 @@ function StationHistoryTable({
           </tbody>
         </table>
       </div>
-      </details>
     </Panel>
   );
 }
