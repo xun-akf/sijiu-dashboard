@@ -11,7 +11,7 @@
     "build": "next build",
     "build:pages": "next build",
     "start": "next start",
-    "test": "npm run build && node --test tests/independent-deployment.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate"
   },

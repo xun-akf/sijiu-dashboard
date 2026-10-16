@@ -1,0 +1,742 @@
+{
+  "飞凡都江堰充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.7499",
+      "flat": "0.5899",
+      "valley": "0.3999"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.25",
+      "flat": "0.24",
+      "valley": "0.22"
+    },
+    "external": {
+      "peak": "",
+      "high": "0.9999",
+      "flat": "0.8299",
+      "valley": "0.6199"
+    }
+  },
+  "飞凡金堂万达充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.6299",
+      "flat": "0.4199",
+      "valley": "0.2799"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.21",
+      "flat": "0.23",
+      "valley": "0.18"
+    },
+    "external": {
+      "peak": "",
+      "high": "0.8399",
+      "flat": "0.6499",
+      "valley": "0.4599"
+    }
+  },
+  "飞凡龙泉万达充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.6499",
+      "flat": "0.4099",
+      "valley": "0.1899"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.3",
+      "flat": "0.28",
+      "valley": "0.27"
+    },
+    "external": {
+      "peak": "",
+      "high": "0.9499",
+      "flat": "0.6899",
+      "valley": "0.45990000000000003"
+    }
+  },
+  "麦电-佛山创雄华府充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.27",
+      "flat": "0.76",
+      "valley": "0.35"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.13",
+      "flat": "0.27",
+      "valley": "0.41"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.03",
+      "valley": "0.76"
+    }
+  },
+  "黄埔鱼珠智谷充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.8499",
+      "flat": "0.6999",
+      "valley": "0.6899"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.47",
+      "flat": "0.22",
+      "valley": "0.11"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.3199",
+      "flat": "0.9198999999999999",
+      "valley": "0.7998999999999999"
+    }
+  },
+  "大电锤一心社区充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.8",
+      "flat": "0.57",
+      "valley": "0.32"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.3",
+      "flat": "0.3",
+      "valley": "0.31"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.1",
+      "flat": "0.8699999999999999",
+      "valley": "0.63"
+    }
+  },
+  "蔚景云山水奇境民宿充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "蔚景云汉庭酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.15",
+      "flat": "1.15",
+      "valley": "1.15"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "1.25",
+      "valley": "1.25"
+    }
+  },
+  "蔚景云桔子酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.15",
+      "flat": "1.15",
+      "valley": "1.15"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "1.25",
+      "valley": "1.25"
+    }
+  },
+  "雅悦蓝天酒店慢充站（地下室负二）": {
+    "electricity": {
+      "peak": "",
+      "high": "1.1",
+      "flat": "1.0",
+      "valley": "0.89"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.2000000000000002",
+      "flat": "1.1",
+      "valley": "0.99"
+    }
+  },
+  "蔚景云108社温泉度假酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.15",
+      "flat": "1.15",
+      "valley": "1.15"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "1.25",
+      "valley": "1.25"
+    }
+  },
+  "蔚景云太古里汉庭酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.15",
+      "flat": "1.15",
+      "valley": "1.15"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "1.25",
+      "valley": "1.25"
+    }
+  },
+  "蔚景云希尔顿欢朋酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.18",
+      "flat": "1.08",
+      "valley": "0.98"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.28",
+      "flat": "1.1800000000000002",
+      "valley": "1.08"
+    }
+  },
+  "蔚景云阿嘎山居民宿充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "蔚景云浮生半日闲清居充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "蔚景云上品雅园小区充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.9",
+      "flat": "0.9",
+      "valley": "0.9"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.15",
+      "flat": "0.15",
+      "valley": "0.15"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.05",
+      "flat": "1.05",
+      "valley": "1.05"
+    }
+  },
+  "蔚景云迎宾路慢充站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.1",
+      "flat": "0.9",
+      "valley": "0.598"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.2000000000000002",
+      "flat": "1.0",
+      "valley": "0.698"
+    }
+  },
+  "蔚景云江上名都酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.38",
+      "flat": "1.38",
+      "valley": "1.38"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.48",
+      "flat": "1.48",
+      "valley": "1.48"
+    }
+  },
+  "彩虹市场慢充站(充电免停15小时)": {
+    "electricity": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "0.98",
+      "valley": "0.76"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.35",
+      "flat": "1.08",
+      "valley": "0.86"
+    }
+  },
+  "蔚景云三色林度假民宿充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "宜宾市生态环境局充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.77",
+      "flat": "0.77",
+      "valley": "0.77"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.03",
+      "flat": "0.03",
+      "valley": "0.03"
+    },
+    "external": {
+      "peak": "",
+      "high": "0.8",
+      "flat": "0.8",
+      "valley": "0.8"
+    }
+  },
+  "蔚景云星程酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.18",
+      "flat": "1.18",
+      "valley": "1.18"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.28",
+      "flat": "1.28",
+      "valley": "1.28"
+    }
+  },
+  "蔚景云设计师酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.18",
+      "flat": "1.18",
+      "valley": "1.18"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.28",
+      "flat": "1.28",
+      "valley": "1.28"
+    }
+  },
+  "蔚景云观月雪民宿充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "雅悦蓝天酒店超充站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.79",
+      "flat": "0.55",
+      "valley": "0.33"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.2",
+      "flat": "0.2",
+      "valley": "0.2"
+    },
+    "external": {
+      "peak": "",
+      "high": "0.99",
+      "flat": "0.75",
+      "valley": "0.53"
+    }
+  },
+  "蔚景云汉诚酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.1",
+      "flat": "1.1",
+      "valley": "1.1"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.2000000000000002",
+      "flat": "1.2000000000000002",
+      "valley": "1.2000000000000002"
+    }
+  },
+  "蔚景云中和执法大队充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.0",
+      "flat": "1.0",
+      "valley": "1.0"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.2",
+      "flat": "0.2",
+      "valley": "0.2"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.2",
+      "flat": "1.2",
+      "valley": "1.2"
+    }
+  },
+  "蔚景云松潘火车站超充站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.2493",
+      "flat": "1.0139",
+      "valley": "0.7786"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.3493000000000002",
+      "flat": "1.1139000000000001",
+      "valley": "0.8785999999999999"
+    }
+  },
+  "蔚景云古尔沟卓邸康钦酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.35",
+      "valley": "1.3"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.4500000000000002",
+      "valley": "1.4000000000000001"
+    }
+  },
+  "蔚景云谢家坝大桥充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.15",
+      "flat": "1.15",
+      "valley": "1.15"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.25",
+      "flat": "1.25",
+      "valley": "1.25"
+    }
+  },
+  "蔚景云海螺镇重卡站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.0689",
+      "flat": "0.7862",
+      "valley": "0.5034"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.1689",
+      "flat": "0.8862",
+      "valley": "0.6033999999999999"
+    }
+  },
+  "蔚景云麦子酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.2",
+      "flat": "1.0",
+      "valley": "0.75"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.3",
+      "flat": "1.1",
+      "valley": "0.85"
+    }
+  },
+  "蔚景云东格尔度假酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.3",
+      "flat": "1.2",
+      "valley": "1.1"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.4000000000000001",
+      "flat": "1.3",
+      "valley": "1.2000000000000002"
+    }
+  },
+  "蔚景云丽呈望山栖酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.18",
+      "flat": "1.18",
+      "valley": "1.18"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.28",
+      "flat": "1.28",
+      "valley": "1.28"
+    }
+  },
+  "蔚景云求吉乡快充站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.4",
+      "flat": "1.4",
+      "valley": "1.4"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.5",
+      "flat": "1.5",
+      "valley": "1.5"
+    }
+  },
+  "蔚景云禅驿黑竹沟度假酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "1.18",
+      "flat": "1.18",
+      "valley": "1.18"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.1",
+      "flat": "0.1",
+      "valley": "0.1"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.28",
+      "flat": "1.28",
+      "valley": "1.28"
+    }
+  },
+  "阳充-天鹏酒店充电站": {
+    "electricity": {
+      "peak": "",
+      "high": "0.85",
+      "flat": "0.85",
+      "valley": "0.85"
+    },
+    "service": {
+      "peak": "",
+      "high": "0.5",
+      "flat": "0.5",
+      "valley": "0.5"
+    },
+    "external": {
+      "peak": "",
+      "high": "1.35",
+      "flat": "1.35",
+      "valley": "1.35"
+    }
+  }
+}
