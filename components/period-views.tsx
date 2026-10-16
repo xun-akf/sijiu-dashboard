@@ -112,17 +112,17 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,r
   return <div className="mode-page period-view">
     <div className="page-heading"><div><span className="eyebrow">{periodType==="month"?"自然月":"周日～周六"} · {selectedMode==="all"?"全部":selectedMode==="fast"?"快充":"慢充"}</span><h2>{title}</h2><p>{rangeText} · {rows.length}个授权场站{completeness}</p></div></div>
     {error?<p className="empty-note">{error}</p>:!data?<p className="empty-note">正在读取统计数据…</p>:<>
-      <p className="mode-scope-notice">{dataNote} 收入、毛利仅显示可核算站点的小计及覆盖数，缺失数据不按零值处理。</p>
       <div className="mode-kpis">
         <div><span>{selectedMode==="all"?"总充电量":"实际分类电量"}</span><strong>{metricLabel("charge"," kWh")}</strong><small>有记录 {rows.filter((r)=>r.charge!=null).length} / {rows.length} 站</small></div>
         <div><span>服务费收入{rows.some((r)=>r.service==null)?"（可核算小计）":""}</span><strong>{metricLabel("service"," 元")}</strong><small>可计算 {rows.filter((r)=>r.service!=null).length} / {rows.length} 站</small></div>
         <div><span>经营毛利{rows.some((r)=>r.profit==null)?"（可核算小计）":""}</span><strong>{metricLabel("profit"," 元")}</strong><small>可计算 {rows.filter((r)=>r.profit!=null).length} / {rows.length} 站</small></div>
         <div><span>{periodType==="month"?"自然月环比":"周环比"}</span><strong>{change==null?"待两期完整数据":`${change>=0?"+":""}${change.toFixed(1)}%`}</strong></div>
       </div>
-      {view==="overview"&&<><section className="mode-panel"><h3>尖峰平谷电量</h3><div className="mode-kpis">{keys.map((key)=><div key={key}><span>{{peak:"尖",high:"峰",flat:"平",valley:"谷"}[key]}</span><strong>{label(metric(rows,key)," kWh")}</strong></div>)}</div></section><section className="mode-panel"><h3>场站概览</h3><StationTable rows={sorted.slice(0,10)} mode={selectedMode}/></section></>}
+      {view==="overview"&&<><section className="mode-panel"><h3>尖峰平谷电量</h3><div className="mode-kpis">{keys.map((key)=><div key={key}><span>{{peak:"尖",high:"峰",flat:"平",valley:"谷"}[key]}</span><strong>{label(metric(rows,key)," kWh")}</strong></div>)}</div></section><details className="mode-panel overview-stations"><summary>场站概览 <span>展开查看全部 {sorted.length} 站</span></summary><StationTable rows={sorted} mode={selectedMode}/></details></>}
       {view==="station"&&<section className="mode-panel"><div className="mode-table-head"><h3>场站经营明细</h3><Sort sort={sort} setSort={setSort}/></div><StationTable rows={sorted} mode={selectedMode}/></section>}
       {view==="business"&&<><div className="mode-kpis"><div><span>售电收入</span><strong>{metricLabel("electricity"," 元")}</strong></div><div><span>经营收入</span><strong>{label(sum([metric(rows,"electricity"),metric(rows,"service")])," 元")}</strong></div><div><span>毛利率</span><strong>{(()=>{const income=sum([metric(rows,"electricity"),metric(rows,"service")]),profit=metric(rows,"profit");return income && profit!=null?`${(profit/income*100).toFixed(1)}%`:"待导入真实数据";})()}</strong></div><div><span>已记录场站</span><strong>{rows.filter((r)=>r.charge!=null).length} / {rows.length}</strong></div></div><section className="mode-panel"><h3>分站经营对比</h3><StationTable rows={sorted} mode={selectedMode}/></section></>}
       {view==="trend"&&<section className="mode-panel"><h3>六期充电量趋势</h3><div className="period-trend">{trend.map(({range,charge})=><div key={range.start}><span>{range.start.slice(5)}</span><div className="mode-bar"><i style={{width:charge==null?"0%":`${Math.max(2,charge/Math.max(...trend.map((x)=>x.charge||0),1)*100)}%`}} /></div><b>{label(charge," kWh")}</b></div>)}</div><p>趋势只采用真实日期的分类数据；缺失日期不插值。上期毛利 {label(metric(before,"profit")," 元")}。</p></section>}
+      <details className="period-data-note"><summary>数据口径与缺失说明</summary><p>{dataNote} 收入、毛利仅显示可核算站点的小计及覆盖数，缺失数据不按零值处理。</p></details>
     </>}
   </div>;
 }

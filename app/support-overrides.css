@@ -126,6 +126,13 @@
 .chart-legend-details summary { cursor: pointer; width: fit-content; padding: 5px 9px; border: 1px solid #315347; border-radius: 6px; }
 .chart-legend-details .chart-legend { position: absolute; top: 30px; left: 0; right: 0; justify-content: flex-start; max-height: 170px; overflow: auto; padding: 9px; border: 1px solid #315347; border-radius: 8px; background: #0b211b; box-shadow: 0 10px 24px #0008; }
 .chart-tooltip.ranked small { display: block; margin-top: 8px; color: #819e92; }
+.overview-stations > summary { cursor: pointer; display: flex; justify-content: space-between; align-items: center; color: #e6f7f0; font-size: 15px; font-weight: 600; list-style: none; }
+.overview-stations > summary::-webkit-details-marker { display: none; }
+.overview-stations > summary span { color: #8fb5a5; font-size: 11px; font-weight: 400; }
+.overview-stations[open] > summary { margin-bottom: 14px; }
+.period-data-note { margin: 12px 0 22px; color: #a8c6b9; font-size: 11px; }
+.period-data-note summary { width: fit-content; cursor: pointer; }
+.period-data-note p { margin: 8px 0 0; line-height: 1.6; }
 .chart-tooltip.ranked > b {
   grid-column: 1 / -1;
 }

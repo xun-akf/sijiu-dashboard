@@ -849,7 +849,7 @@ export default function Home() {
               <button
                 key={x.id}
                 className={view === x.id ? "active" : ""}
-                onClick={() => setView(x.id)}
+                onClick={() => { setView(x.id); if (x.id === "station") setPeriodType("week"); }}
               >
                 <I />
                 {x.label}
@@ -919,10 +919,9 @@ export default function Home() {
           <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view==="trend"?"week":periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
         {view !== "config" && view !== "trend" && <div className="mode-switchbar">
-          <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+          <div className="metric-switch">{(view === "station" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
-        {view !== "mode" && view !== "config" && periodType === "month" && <div className="mode-scope-notice">自然月按真实日级数据汇总；缺失记录不估算。</div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
         {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
         {view === "station" && periodType === "week" && !noWeeklyHistory && (
