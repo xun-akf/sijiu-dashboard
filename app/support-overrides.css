@@ -115,15 +115,17 @@
   overflow: auto;
 }
 .chart-tooltip.ranked {
-  width: min(760px, 78vw);
-  max-width: min(760px, 78vw);
-  max-height: none;
-  overflow: visible;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 18px;
+  width: min(390px, 76vw);
+  max-width: min(390px, 76vw);
+  max-height: 235px;
+  overflow: auto;
+  display: block;
   padding: 10px 12px;
 }
+.chart-legend-details { position: relative; z-index: 7; min-height: 26px; font-size: 11px; color: #a9c8bc; }
+.chart-legend-details summary { cursor: pointer; width: fit-content; padding: 5px 9px; border: 1px solid #315347; border-radius: 6px; }
+.chart-legend-details .chart-legend { position: absolute; top: 30px; left: 0; right: 0; justify-content: flex-start; max-height: 170px; overflow: auto; padding: 9px; border: 1px solid #315347; border-radius: 8px; background: #0b211b; box-shadow: 0 10px 24px #0008; }
+.chart-tooltip.ranked small { display: block; margin-top: 8px; color: #819e92; }
 .chart-tooltip.ranked > b {
   grid-column: 1 / -1;
 }

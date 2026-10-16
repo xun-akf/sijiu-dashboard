@@ -920,18 +920,18 @@ export default function Home() {
         )}{" "}
         {view !== "config" && view !== "trend" && <div className="mode-switchbar">
           <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
-          <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>
+          {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
-        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <div className="mode-scope-notice">所选筛选按真实日期与充电模式读取。缺少分类或自然月日级总量时只展示已有实测数据，不估算、不显示旧周数据为月数据。</div>}
-        {view !== "config" && view !== "mode" && chargingMode === "all" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
-        {view === "overview" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "station" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && (
+        {view !== "mode" && view !== "config" && periodType === "month" && <div className="mode-scope-notice">自然月按真实日级数据汇总；缺失记录不估算。</div>}
+        {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
+        {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "station" && periodType === "week" && !noWeeklyHistory && (
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
-        {view === "business" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
         {view === "trend" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
-        {view !== "mode" && view !== "config" && view !== "trend" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view !== "mode" && view !== "config" && view !== "trend" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
@@ -1868,7 +1868,7 @@ function TrendInsights({ sn }: { sn: string }) {
 function AllStationTrendSummary() {
   const latest = allWeeks().length - 1,
     [mode, setMode] = useState<
-      "all" | "top5" | "growth" | "decline" | "custom"
+      "total" | "all" | "top5" | "growth" | "decline" | "custom"
     >("top5"),
     [focus, setFocus] = useState<string | null>(null),
     [custom, setCustom] = useState<string[]>([]),
@@ -1890,7 +1890,9 @@ function AllStationTrendSummary() {
           num(recordAt(b, latest)?.chargeChange),
       ),
     shown =
-      mode === "all"
+      mode === "total"
+        ? []
+        : mode === "all"
         ? stations
         : mode === "growth"
           ? growth
@@ -1921,7 +1923,7 @@ function AllStationTrendSummary() {
       })),
     },
     lines = [
-      aggregate,
+      ...(mode === "total" ? [aggregate] : []),
       ...shown.map((station, index) => ({
         name: station.name,
         color: colors[index % colors.length],
@@ -1937,14 +1939,15 @@ function AllStationTrendSummary() {
         <Sparkles />
         <div>
           <b>场站充电量趋势</b>
-          <span>默认聚焦 TOP5；选择单站查看竞站价格与本站趋势。</span>
+          <span>默认聚焦 TOP5；可切换全场总量或选择单站查看。</span>
         </div>
       </div>
       <div className="trend-filterbar">
         {(
           [
-            ["all", "全部"],
+            ["total", "全场总量"],
             ["top5", "TOP5"],
+            ["all", "全部场站"],
             ["growth", "增长"],
             ["decline", "下降"],
             ["custom", "自定义"],
@@ -1961,7 +1964,7 @@ function AllStationTrendSummary() {
             {label}
           </button>
         ))}
-        <span>当前显示 {shown.length} 个场站 + 全场趋势</span>
+        <span>当前显示 {mode === "total" ? "全场总量" : `${shown.length} 个场站`}</span>
       </div>
       {mode === "custom" && (
         <div className="trend-custom-list">
@@ -1985,7 +1988,7 @@ function AllStationTrendSummary() {
       )}
       <Panel
         title="充电量趋势对比"
-        sub="悬停查看本周、上周、环比与当前排名；点击图例聚焦场站"
+        sub="选择场站查看趋势；悬停查看该时段明细"
       >
         <FilteredInteractiveChart
           lines={lines}
@@ -4109,6 +4112,11 @@ function InteractiveChart({
   const [pinned, setPinned] = useState<number | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
   const visibleLines = lines.filter((line) => !hidden.includes(line.name));
+  const tooltipLines = rankedTooltip && visibleLines.length > 6
+    ? focusedLine
+      ? visibleLines.filter((line) => line.name === focusedLine)
+      : [...visibleLines].sort((a, b) => (b.data[pinned ?? hover ?? 0]?.value || 0) - (a.data[pinned ?? hover ?? 0]?.value || 0)).slice(0, 6)
+    : visibleLines;
   const weeks = lines[0]?.data.map((point) => point.week) ?? [];
   const activePoint = pinned ?? hover;
   const all = visibleLines.flatMap((line) =>
@@ -4121,7 +4129,7 @@ function InteractiveChart({
     145 - ((value - min) / Math.max(max - min, 1)) * 112;
   return (
     <div className={`interactive-chart ${large ? "large" : ""}`}>
-      <div className="chart-legend">
+      {rankedTooltip && lines.length > 8 ? <details className="chart-legend-details"><summary>选择场站（{lines.length}）{focusedLine ? ` · ${focusedLine}` : ""}</summary><div className="chart-legend">
         {lines.map((line) => (
           <button
             key={line.name}
@@ -4140,7 +4148,7 @@ function InteractiveChart({
             {line.name}
           </button>
         ))}
-      </div>
+      </div></details> : <div className="chart-legend">{lines.map((line) => <button key={line.name} className={focusedLine === line.name ? "focused" : ""} onClick={() => onFocusLine?.(focusedLine === line.name ? null : line.name)}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
       <svg
         viewBox="0 0 100 170"
         preserveAspectRatio="none"
@@ -4262,7 +4270,7 @@ function InteractiveChart({
           style={{ left: `${Math.min(82, Math.max(9, x(activePoint)))}%` }}
         >
           <b>{weeks[activePoint]}{pinned !== null ? " · 已固定" : ""}</b>
-          {visibleLines.map((line) => (
+          {tooltipLines.map((line) => (
             <span key={line.name}>
               <i style={{ background: line.color }} />
               {line.name}
@@ -4287,6 +4295,7 @@ function InteractiveChart({
               </strong>
             </span>
           ))}
+          {rankedTooltip && visibleLines.length > tooltipLines.length && <small>显示前 6 站；选择场站可查看单站明细</small>}
         </div>
       )}
     </div>
