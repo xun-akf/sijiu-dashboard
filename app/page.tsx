@@ -916,9 +916,9 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view==="trend"?"week":periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view !== "config" && <div className="mode-switchbar">
+        {view !== "config" && view !== "trend" && <div className="mode-switchbar">
           <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>
         </div>}
@@ -929,9 +929,9 @@ export default function Home() {
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
         {view === "business" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "trend" && chargingMode === "all" && periodType === "week" && !noWeeklyHistory && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
+        {view === "trend" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
-        {view !== "mode" && view !== "config" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view !== "mode" && view !== "config" && view !== "trend" && (chargingMode !== "all" || periodType === "month") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
@@ -1936,8 +1936,8 @@ function AllStationTrendSummary() {
       <div className="executive-note">
         <Sparkles />
         <div>
-          <b>18站趋势洞察</b>
-          <span>默认聚焦 TOP5；点击场站后突出该线，其余曲线自动降权。</span>
+          <b>场站充电量趋势</b>
+          <span>默认聚焦 TOP5；选择单站查看竞站价格与本站趋势。</span>
         </div>
       </div>
       <div className="trend-filterbar">
@@ -1994,19 +1994,6 @@ function AllStationTrendSummary() {
           onFocusLine={setFocus}
           rankedTooltip
           valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
-      <Panel
-        title="18站最新周经营结果"
-        sub="一次查看全部场站，不用逐站切换"
-        extra="ranking"
-      >
-        <StationTable
-          rows={stations
-            .map((s) => ({ station: s, record: recordAt(s, latest) }))
-            .filter((item): item is { station: S; record: R } => Boolean(item.record))
-            .sort((a, b) => num(b.record.profit) - num(a.record.profit))}
-          detailed
         />
       </Panel>
     </>
@@ -3687,6 +3674,7 @@ function StationHistoryTable({
     { cfg, save } = useConfigs(),
     stationCfg = { ...emptyConfig, ...cfg[station.name] },
     [editingWeek, setEditingWeek] = useState<string | null>(null),
+    [fullHistory, setFullHistory] = useState(false),
     [draft, setDraft] = useState<Partial<R>>({}),
     [status, setStatus] = useState(""),
     serviceKeys = {
@@ -3841,14 +3829,17 @@ function StationHistoryTable({
       { label: "每度服务费", value: (record) => num(record.servicePerKwh), format: "decimal" },
       { label: "每度电费利润", value: (record) => num(record.electricityProfitPerKwh), format: "decimal" },
       { label: "经营利润", value: (record) => record.profit, format: "money", editKey: "profit" },
-    ];
+    ],
+    compactLabels = new Set(["总充电量", "总服务费收入", "每度服务费", "每度电费利润", "经营利润"]),
+    visibleRows = fullHistory ? rows : rows.filter((row) => row.label && compactLabels.has(row.label));
   return (
     <Panel
       title={aggregate ? "全部场站完整历史数据" : "单站完整历史数据"}
-      sub="2025年至今；左侧指标固定，周次横向排列并默认定位最新周"
+      sub="2025年至今；默认显示核心指标，完整分时明细可展开"
       extra="ranking station-history-panel"
     >
       {status && <div className="history-edit-status">{status}</div>}
+      <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起分时明细" : "展开完整分时明细与编辑"}</button>
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
         <table className="history-matrix">
           <thead>
@@ -3858,7 +3849,7 @@ function StationHistoryTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => row.section ? (
+            {visibleRows.map((row, rowIndex) => row.section ? (
               <tr className="history-section-row" key={row.section}><th className="metric-col">{row.section}</th><td colSpan={station.records.length} /></tr>
             ) : (
               <tr key={`${row.label}-${rowIndex}`}>
@@ -3870,7 +3861,7 @@ function StationHistoryTable({
                 })}
               </tr>
             ))}
-            {admin && !aggregate && <tr className="history-actions-row">
+            {fullHistory && admin && !aggregate && <tr className="history-actions-row">
               <th className="metric-col">操作</th>
               {station.records.map((record, index) => <td className={index === station.records.length - 1 ? "latest-week" : ""} key={record.week}>{editingWeek === record.week ? <div className="history-row-actions"><button className="ghost" onClick={() => setEditingWeek(null)}>取消</button><button className="save-button" onClick={saveEdit}>保存</button></div> : <button className="history-edit-button" onClick={() => beginEdit(record)}>修改</button>}</td>)}
             </tr>}
