@@ -110,7 +110,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
         const charge=mode==="fast"?totals.fast:totals.slow,available=mode==="fast"?totals.hasFast:totals.hasSlow,ratio=totals.fast+totals.slow>0?charge/(totals.fast+totals.slow)*100:null;
         return <div className={`mode-compare-row ${mode}`} key={mode}><div><b>{modeName(mode)}</b><span>{mode==="fast"?totals.fastGuns:totals.slowGuns}枪 · {mode==="fast"?totals.fastPower:totals.slowPower} kW</span></div><strong>{fmt(available?charge:null," kWh")}</strong><div className="mode-share"><i style={{width:`${ratio||0}%`}}/></div><em>{ratio==null?"待导入":`${ratio.toFixed(1)}%`}</em><small>服务费 {fmt(metricSum(mode,"serviceRevenue")," 元")} · 毛利 {fmt(metricSum(mode,"profit")," 元")}</small></div>;
       })}</div></section>}
-      <section className="mode-detail-panel"><div className="mode-table-head"><div><h3>场站经营明细</h3><p>{visibleRows.length}个场站 · 当前为{selectedMode==="all"?"全部模式":modeName(selectedMode)}口径</p></div><div className="mode-table-tools"><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="搜索场站"/><label><input type="checkbox" checked={onlyAttention} onChange={event=>setOnlyAttention(event.target.checked)}/>仅看待核</label><select value={sort} onChange={event=>setSort(event.target.value as typeof sort)}><option value="charge">按充电量</option><option value="profit">按毛利</option>{selectedMode!=="all"&&<option value="utilization">按利用率</option>}<option value="station">按站名</option></select></div></div>
+      <details className="mode-detail-panel data-disclosure"><summary>场站经营明细 <span>展开查看 {visibleRows.length} 站</span></summary><div className="mode-table-head"><p>当前为{selectedMode==="all"?"全部模式":modeName(selectedMode)}口径</p><div className="mode-table-tools"><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="搜索场站"/><label><input type="checkbox" checked={onlyAttention} onChange={event=>setOnlyAttention(event.target.checked)}/>仅看待核</label><select value={sort} onChange={event=>setSort(event.target.value as typeof sort)}><option value="charge">按充电量</option><option value="profit">按毛利</option>{selectedMode!=="all"&&<option value="utilization">按利用率</option>}<option value="station">按站名</option></select></div></div>
         <div className="mode-table-wrap"><table><thead><tr><th>场站</th>{selectedMode==="all"?<><th>快/慢枪数</th><th>快充电量</th><th>慢充电量</th></>:<><th>{modeName(selectedMode)}枪数</th><th>充电量</th></>}<th>服务费收入</th><th>经营毛利</th><th>{selectedMode==="all"?"状态":"利用率"}</th><th></th></tr></thead><tbody>
           {visibleRows.map(row=>{
             const keys=modeKeys(selectedMode),detailOpen=expanded===row.profile.station_name;
@@ -122,7 +122,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
             </Fragment>;
           })}
         </tbody></table>{!visibleRows.length&&<p className="mode-empty">没有符合筛选条件的场站</p>}</div>
-      </section>
+      </details>
     </>}
   </div>;
 }

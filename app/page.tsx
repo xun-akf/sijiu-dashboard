@@ -1108,7 +1108,7 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         previousMix={prevMix}
         configs={cfg}
       />
-      <Panel
+      <details className="data-disclosure weekly-overview-disclosure"><summary>全部场站经营结果 <span>展开查看 {selected.length} 站</span></summary><Panel
         title="18站完整经营结果"
         sub={`${displayWeek(allWeeks()[wi])} · 尖峰平谷、收入、每度利润、当周利润同屏`}
         extra="ranking"
@@ -1119,7 +1119,7 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
           )}
           detailed
         />
-      </Panel>
+      </Panel></details>
     </>
   );
 }
@@ -1837,18 +1837,18 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         <div className="metric-switch">{(["contribution", "diagnosis"] as const).map((value) => <button key={value} className={analysisView === value ? "active" : ""} onClick={() => setAnalysisView(value)}>{value === "contribution" ? "各站贡献度排名" : "全场站数据诊断"}</button>)}</div>
         <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>
       </div>
-      {analysisView === "contribution" && <Panel title="各站充电量贡献度排名" sub="与上周同模式实测电量比较；缺少任一期记录不计算增减">
+      {analysisView === "contribution" && <details className="data-disclosure"><summary>各站充电量贡献度排名 <span>展开查看全部场站</span></summary><Panel title="各站充电量贡献度排名" sub="与上周同模式实测电量比较；缺少任一期记录不计算增减">
         {classificationError && analysisMode !== "all" ? <p className="empty-note">{classificationError}</p> : analysisMode !== "all" && !classified ? <p className="empty-note">正在读取分类记录…</p> :
         <div className="business-contribution-list">{rankedContribution.length ? rankedContribution.map((item, index) => <div key={item.name}><b>{index + 1}. {item.name}</b><span>{item.charge?.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh</span><strong>{item.previous == null || item.charge == null ? "上期数据待补充" : `${item.charge - item.previous >= 0 ? "+" : ""}${(item.charge - item.previous).toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</strong></div>) : <p className="empty-note">该模式暂无真实分类记录</p>}</div>}
-      </Panel>}
-      {analysisView === "diagnosis" && analysisMode !== "all" && <Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录；缺少分类数据保持待补充">
+      </Panel></details>}
+      {analysisView === "diagnosis" && analysisMode !== "all" && <details className="data-disclosure"><summary>{analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断 <span>展开查看全部场站</span></summary><Panel title={`${analysisMode === "fast" ? "快充" : "慢充"}场站数据诊断`} sub="仅使用对应模式真实分类记录；缺少分类数据保持待补充">
         {classificationError ? <p className="empty-note">{classificationError}</p> : !classified ? <p className="empty-note">正在读取分类记录…</p> : <div className="business-contribution-list">{classifiedRows.map((item) => <div key={item.name}><b>{item.name}</b><span>{item.charge == null ? "待导入分类数据" : `${item.charge.toLocaleString("zh-CN", { maximumFractionDigits: 2 })} kWh`}</span><strong>{item.charge == null || item.previous == null ? "上期或本期分类待补充" : pct(item.previous > 0 ? item.charge / item.previous - 1 : null)}</strong></div>)}</div>}
-      </Panel>}
+      </Panel></details>}
       {analysisView === "diagnosis" && analysisMode === "all" && <>
       <div className="content-grid equal">
-        <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏">
+        <details className="data-disclosure"><summary>经营利润排名 <span>展开查看 {rows.length} 站</span></summary><Panel title="经营利润排名" sub="排名、利润与充电量环比同屏">
           <BarList rows={rows} />
-        </Panel>
+        </Panel></details>
         <Panel
           title={`重点下降站点 · ${attention.length}个`}
           sub="充电量环比下降超过 12%，按降幅排序"
@@ -1873,7 +1873,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
           </div>
         </Panel>
       </div>
-      <Panel
+      <details className="data-disclosure"><summary>全场站数据诊断 <span>展开查看 {rows.length} 站</span></summary><Panel
         title="全场站数据诊断"
         sub="默认展示结果；需要时再添加或编辑运营分析"
         extra="ranking"
@@ -1898,7 +1898,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
             </div>
           ))}
         </div>
-      </Panel>
+      </Panel></details>
       </>}
     </>
   );
@@ -3387,7 +3387,7 @@ function Config({
               ))}</div>
             </div>
           )}
-          <div className="import-preview-table">
+          <details className="data-disclosure" open><summary>导入数据预览 <span>点击收起或展开</span></summary><div className="import-preview-table">
             <table>
               <thead>
                 <tr>
@@ -3422,7 +3422,7 @@ function Config({
                 })}
               </tbody>
             </table>
-          </div>
+          </div></details>
           <details className="ignored-stations"><summary>已忽略 {preview.matches.filter((match) => match.status === "ignored").length} 个非看板站点</summary><p>{preview.matches.filter((match) => match.status === "ignored").map((match) => match.excelName).join("、") || "无"}</p></details>
         </div>
       )}
@@ -3884,6 +3884,7 @@ function StationHistoryTable({
       extra="ranking station-history-panel"
     >
       {status && <div className="history-edit-status">{status}</div>}
+      <details className="data-disclosure history-data-disclosure"><summary>历史数据明细 <span>展开查看全部周次</span></summary>
       <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
         <table className="history-matrix">
@@ -3913,6 +3914,7 @@ function StationHistoryTable({
           </tbody>
         </table>
       </div>
+      </details>
     </Panel>
   );
 }
