@@ -135,6 +135,8 @@
 .period-data-note p { margin: 8px 0 0; line-height: 1.6; }
 .business-analysis-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
 .business-ranking-grid { display:grid; grid-template-columns:minmax(390px,1.5fr) minmax(240px,1fr) minmax(240px,1fr); gap:12px; align-items:start; }
+.business-mode-diagnoses { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.business-mode-diagnoses .business-diagnosis-summary { margin:0; }
 .business-rank-panel { min-width:0; padding:17px; }
 .business-ranking-grid .ranking-scroll { max-height:470px; overflow-y:auto; scrollbar-color:#3a6b57 #102820; padding-right:5px; }
 .business-change-list { display:grid; gap:9px; margin-top:15px; }
@@ -142,7 +144,7 @@
 .business-change-list b { overflow-wrap:anywhere; font-size:12px; font-weight:500; }
 .business-change-list strong { justify-self:start; font-size:15px; }
 @media(max-width:1150px) { .business-ranking-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .business-ranking-grid .business-rank-panel:first-child { grid-column:1/-1; } }
-@media(max-width:700px) { .business-ranking-grid { grid-template-columns:1fr; } .business-ranking-grid .business-rank-panel:first-child { grid-column:auto; } }
+@media(max-width:700px) { .business-ranking-grid,.business-mode-diagnoses { grid-template-columns:1fr; } .business-ranking-grid .business-rank-panel:first-child { grid-column:auto; } }
 .business-analysis-controls .metric-switch { margin-bottom: 0; }
 .business-contribution-list { display: grid; gap: 0; margin-top: 10px; }
 .business-contribution-list > div { display: grid; grid-template-columns: minmax(170px, 1fr) minmax(100px, auto) minmax(140px, auto); align-items: center; gap: 14px; padding: 11px 4px; border-bottom: 1px solid #234239; font-size: 11px; }
