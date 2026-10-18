@@ -5,7 +5,6 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { strFromU8, unzipSync } from "fflate";
 import {
   Activity,
-  BarChart3,
   BatteryCharging,
   Building2,
   ChevronDown,
@@ -71,7 +70,7 @@ type R = {
   weeklySegments?: EnergyRecord[];
 };
 type S = { name: string; records: R[] };
-type View = "overview" | "station" | "business" | "trend" | "mode" | "config";
+type View = "overview" | "station" | "business" | "mode" | "config";
 type AdminMeta = { lastModifiedAt: string | null; lastPublishedAt: string | null; publishStatus: "published" | "draft" };
 type PartnerBrand = { operator?: string; operatorName?: string; reportName?: string };
 const OperatorContext = createContext(false);
@@ -98,8 +97,7 @@ const importValue = (value: number | null | undefined) => value == null
 const nav = [
   { id: "overview" as View, label: "运营总览", icon: LayoutDashboard },
   { id: "station" as View, label: "场站分析", icon: MapPin },
-  { id: "trend" as View, label: "趋势洞察", icon: Activity },
-  { id: "business" as View, label: "经营分析", icon: BarChart3 },
+  { id: "business" as View, label: "趋势洞察", icon: Activity },
   { id: "mode" as View, label: "充电模式", icon: BatteryCharging },
   { id: "config" as View, label: "数据中心", icon: Settings2 },
 ];
@@ -928,9 +926,9 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view === "trend" ? "week" : periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view !== "config" && view !== "trend" && view !== "station" && view !== "business" && <div className="mode-switchbar">
+        {view !== "config" && view !== "station" && view !== "business" && <div className="mode-switchbar">
           <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
@@ -940,9 +938,8 @@ export default function Home() {
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
         {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "trend" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} previousStationRecords={Object.fromEntries(stations.map((item)=>[item.name,wi>0?recordAt(item,wi-1) as StoredWeeklyResult|undefined:undefined]))} />}
-        {view !== "mode" && view !== "config" && view !== "trend" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view !== "mode" && view !== "config" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
@@ -1945,172 +1942,6 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         </div>
       </Panel></details>
       </>}
-    </>
-  );
-}
-function TrendInsights({ sn }: { sn: string }) {
-  if (sn === "全部场站") return <AllStationTrendSummary />;
-  const chosen = stations.find((s) => s.name === sn)!;
-  return <SingleStationTrend station={chosen} />;
-}
-function AllStationTrendSummary() {
-  const latest = allWeeks().length - 1,
-    [mode, setMode] = useState<
-      "total" | "all" | "top5" | "growth" | "decline" | "custom"
-    >("top5"),
-    [focus, setFocus] = useState<string | null>(null),
-    [custom, setCustom] = useState<string[]>([]),
-    ranked = [...stations].sort(
-      (a, b) => num(recordAt(b, latest)?.charge) - num(recordAt(a, latest)?.charge),
-    ),
-    growth = [...stations]
-      .filter((s) => num(recordAt(s, latest)?.chargeChange) >= 0)
-      .sort(
-        (a, b) =>
-          num(recordAt(b, latest)?.chargeChange) -
-          num(recordAt(a, latest)?.chargeChange),
-      ),
-    decline = [...stations]
-      .filter((s) => num(recordAt(s, latest)?.chargeChange) < 0)
-      .sort(
-        (a, b) =>
-          num(recordAt(a, latest)?.chargeChange) -
-          num(recordAt(b, latest)?.chargeChange),
-      ),
-    shown =
-      mode === "total"
-        ? []
-        : mode === "all"
-        ? stations
-        : mode === "growth"
-          ? growth
-          : mode === "decline"
-            ? decline
-            : mode === "custom"
-              ? stations.filter((s) => custom.includes(s.name))
-              : ranked.slice(0, 5),
-    colors = [
-      "#36d399",
-      "#ffb454",
-      "#66a8ff",
-      "#c28cff",
-      "#ff7474",
-      "#5eead4",
-      "#f9a8d4",
-      "#a3e635",
-    ],
-    aggregate = {
-      name: "全场趋势",
-      color: "#e8fff7",
-      data: allWeeks().map((week, index) => ({
-        week,
-        value: stations.reduce(
-          (sum, station) => sum + num(recordAt(station, index)?.charge),
-          0,
-        ),
-      })),
-    },
-    lines = [
-      ...(mode === "total" ? [aggregate] : []),
-      ...shown.map((station, index) => ({
-        name: station.name,
-        color: colors[index % colors.length],
-        data: station.records.map((record) => ({
-          week: record.week,
-          value: num(record.charge),
-        })),
-      })),
-    ];
-  return (
-    <>
-      <div className="executive-note">
-        <Sparkles />
-        <div>
-          <b>场站充电量趋势</b>
-          <span>默认聚焦 TOP5；可切换全场总量或选择单站查看。</span>
-        </div>
-      </div>
-      <div className="trend-filterbar">
-        {(
-          [
-            ["total", "全场总量"],
-            ["top5", "TOP5"],
-            ["all", "全部场站"],
-            ["growth", "增长"],
-            ["decline", "下降"],
-            ["custom", "自定义"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            className={mode === key ? "active" : ""}
-            onClick={() => {
-              setMode(key);
-              setFocus(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-        <span>当前显示 {mode === "total" ? "全场总量" : `${shown.length} 个场站`}</span>
-      </div>
-      {mode === "custom" && (
-        <div className="trend-custom-list">
-          {stations.map((station) => (
-            <label key={station.name}>
-              <input
-                type="checkbox"
-                checked={custom.includes(station.name)}
-                onChange={() =>
-                  setCustom((value) =>
-                    value.includes(station.name)
-                      ? value.filter((name) => name !== station.name)
-                      : [...value, station.name],
-                  )
-                }
-              />
-              {station.name}
-            </label>
-          ))}
-        </div>
-      )}
-      <Panel
-        title="充电量趋势对比"
-        sub="选择场站查看趋势；悬停查看该时段明细"
-      >
-        <FilteredInteractiveChart
-          lines={lines}
-          large
-          focusedLine={focus}
-          onFocusLine={setFocus}
-          rankedTooltip
-          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
-    </>
-  );
-}
-function SingleStationTrend({ station }: { station: S }) {
-  return (
-    <>
-      <div className="page-heading trend-head">
-        <div>
-          <span className="eyebrow">本站尖峰平谷趋势</span>
-          <h2>{station.name}</h2>
-        </div>
-      </div>
-      <Panel title="本站尖峰平谷充电量趋势" sub="移动鼠标联动查看各时段电量">
-        <FilteredInteractiveChart
-          lines={[
-            { name: "尖段", color: "#ff6b6b", data: station.records.map((r) => ({ week: r.week, value: num(r.peak) })) },
-            { name: "峰段", color: "#ffb454", data: station.records.map((r) => ({ week: r.week, value: num(r.high) })) },
-            { name: "平段", color: "#36d399", data: station.records.map((r) => ({ week: r.week, value: num(r.flat) })) },
-            { name: "谷段", color: "#6f8cff", data: station.records.map((r) => ({ week: r.week, value: num(r.valley) })) },
-          ]}
-          large
-          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
     </>
   );
 }
