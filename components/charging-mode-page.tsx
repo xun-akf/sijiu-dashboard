@@ -38,18 +38,26 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
         power_kw:item?.powerKw??null,fast_power_kw:item?.fastPowerKw??null,slow_power_kw:item?.slowPowerKw??null,
         operation_status:item?.status||null};
     });
-    return profiles.filter(profile=>reportingNames.includes(profile.station_name)&&(station==="全部场站"||profile.station_name===station)).map(profile=>{
+    return profiles.filter(profile=>reportingNames.includes(profile.station_name)&&(station==="全部场站"||profile.station_name===station)&&(selectedMode==="all"||Number(selectedMode==="fast"?profile.fast_guns:profile.slow_guns)>0)).map(profile=>{
     const facts=data.facts.filter(fact=>fact.stationName===profile.station_name);
-    const fast=summarizeMode(facts,range.start,range.end,"fast"),slow=summarizeMode(facts,range.start,range.end,"slow");
     const priorFast=summarizeMode(facts,priorRange.start,priorRange.end,"fast"),priorSlow=summarizeMode(facts,priorRange.start,priorRange.end,"slow");
     const daily=data.calendar.filter(item=>item.station_name===profile.station_name&&item.granularity==="day"&&item.period_start>=range.start&&item.period_start<=range.end);
     const month=data.calendar.find(item=>item.station_name===profile.station_name&&item.granularity==="month"&&item.period_start===range.start);
     const priorDaily=data.calendar.filter(item=>item.station_name===profile.station_name&&item.granularity==="day"&&item.period_start>=priorRange.start&&item.period_start<=priorRange.end);
     const priorMonth=data.calendar.find(item=>item.station_name===profile.station_name&&item.granularity==="month"&&item.period_start===priorRange.start);
     const actualTotal=daily.length?daily.reduce((sum,item)=>sum+Number(item.total_kwh),0):periodType==="month"&&month?Number(month.total_kwh):periodType==="week"?stationTotals[profile.station_name]??null:null;
+    const legacy=stationRecords[profile.station_name];
+    const fastGuns=Number(profile.fast_guns||0),slowGuns=Number(profile.slow_guns||0);
+    const soleMode=fastGuns>0&&slowGuns===0?"fast":slowGuns>0&&fastGuns===0?"slow":null;
+    const conflictingFact=facts.some(fact=>fact.date>=range.start&&fact.date<=range.end&&fact.mode!==soleMode);
+    const inferredMode=periodType==="week"&&actualTotal!=null&&soleMode&&!conflictingFact?soleMode:null;
+    const weeklySummary={charge:actualTotal,peak:legacy?.peak??null,high:legacy?.high??null,flat:legacy?.flat??null,valley:legacy?.valley??null,orders:null,days:periodDays,rows:1};
+    const fast=inferredMode==="fast"?weeklySummary:summarizeMode(facts,range.start,range.end,"fast");
+    const slow=inferredMode==="slow"?weeklySummary:summarizeMode(facts,range.start,range.end,"slow");
     const coverage=reconcileModes(actualTotal,fast,slow);
     const metrics=(mode:ChargingMode)=>{
       const matching=modeFactsInRange(facts,mode,range.start,range.end);
+      if(inferredMode===mode)return {electricityRevenue:legacy?.electricityRevenue??null,serviceRevenue:legacy?.serviceRevenue??null,profit:legacy?.profit??null};
       if(!matching.length)return {electricityRevenue:null,serviceRevenue:null,profit:null};
       const calculated=matching.map(fact=>modeOperatingMetrics(fact,data,profile));
       const sum=(key:MoneyKey)=>calculated.every(item=>item[key]!=null)?calculated.reduce((total,item)=>total+Number(item[key]),0):null;
@@ -68,7 +76,6 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
       return {daily:summary.charge/guns/periodDays,utilization:summary.charge/power/24/periodDays*100};
     };
     const fastMetrics=metrics("fast"),slowMetrics=metrics("slow"),fastEfficiency=efficiency("fast"),slowEfficiency=efficiency("slow");
-    const legacy=stationRecords[profile.station_name];
     const classifiedCharge=scopedModeSummary(selectedMode,{value:fast.charge||0,available:fast.charge!=null},{value:slow.charge||0,available:slow.charge!=null}).value;
     const selectedCharge=selectedMode==="all"?actualTotal:classifiedCharge;
     const priorTotal=periodType==="week"?previousStationRecords[profile.station_name]?.charge??null:priorDaily.length===priorDays?priorDaily.reduce((sum,item)=>sum+Number(item.total_kwh),0):priorMonth?Number(priorMonth.total_kwh):null;
@@ -86,7 +93,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     const selectedService=displayedModeMetric(selectedMode,periodType,legacy,amount("serviceRevenue"),"serviceRevenue");
     const selectedElectricity=displayedModeMetric(selectedMode,periodType,legacy,amount("electricityRevenue"),"electricityRevenue");
     const selectedUtilization=selectedMode==="fast"?fastEfficiency.utilization:selectedMode==="slow"?slowEfficiency.utilization:null;
-    const attention=coverage.excess>0||coverage.unclassified==null||modeKeys(selectedMode).some(mode=>{
+    const attention=coverage.excess>0||coverage.unclassified==null||modeKeys(selectedMode).filter(mode=>Number(mode==="fast"?profile.fast_guns:profile.slow_guns)>0).some(mode=>{
       const summary=mode==="fast"?fast:slow,modeMetrics=mode==="fast"?fastMetrics:slowMetrics;
       return summary.charge==null||modeMetrics.profit==null;
     });
@@ -96,8 +103,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const totals=rows.reduce((acc,row)=>({fastGuns:acc.fastGuns+Number(row.profile.fast_guns||0),slowGuns:acc.slowGuns+Number(row.profile.slow_guns||0),fastPower:acc.fastPower+Number(row.profile.fast_power_kw||0),slowPower:acc.slowPower+Number(row.profile.slow_power_kw||0),fast:acc.fast+(row.fast.charge||0),slow:acc.slow+(row.slow.charge||0),hasFast:acc.hasFast||row.fast.charge!=null,hasSlow:acc.hasSlow||row.slow.charge!=null,unknown:acc.unknown+(row.coverage.unclassified||0),knownTotals:acc.knownTotals+(row.coverage.unclassified==null?0:1),excess:acc.excess+row.coverage.excess}),{fastGuns:0,slowGuns:0,fastPower:0,slowPower:0,fast:0,slow:0,hasFast:false,hasSlow:false,unknown:0,knownTotals:0,excess:0});
   const metricSum=(mode:ChargingMode,key:MoneyKey)=>{
     const selected=rows.filter(row=>(mode==="fast"?row.fast:row.slow).charge!=null);
-    if(!selected.length||selected.some(row=>(mode==="fast"?row.fastMetrics:row.slowMetrics)[key]==null))return null;
-    return selected.reduce((sum,row)=>sum+Number((mode==="fast"?row.fastMetrics:row.slowMetrics)[key]),0);
+    return sumAvailableMetrics(selected.map(row=>(mode==="fast"?row.fastMetrics:row.slowMetrics)[key]));
   };
   const selectedMetric=(key:MoneyKey)=>sumAvailableMetrics(rows.map((row)=>key==="profit"?row.selectedProfit:key==="serviceRevenue"?row.selectedService:row.selectedElectricity));
   const scopedCharge=sumAvailableMetrics(rows.map((row)=>row.selectedCharge)).value;
@@ -168,12 +174,11 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
         <div><span>枪数</span><strong>{scopedGuns}</strong><small>设备功率 {scopedPower.toLocaleString("zh-CN")} kW</small></div>
       </div>
       <p className="mode-revenue-note">售电收入 {fmt(electricityRevenue," 元")} · 可核算 {electricityCoverage.available}/{electricityCoverage.total}站{serviceCoverage.available<serviceCoverage.total||profitCoverage.available<profitCoverage.total?" · 收入与毛利为有数据站点小计":""}</p>
-      {(attentionCount>0||totals.excess>0||totals.knownTotals<rows.length)&&<details className="mode-alert"><summary><AlertTriangle size={14}/><b>{attentionCount}个场站需关注</b><span>含分类缺失、金额待核算或分时异常；点击查看说明</span><ChevronDown size={14}/></summary><p>无分类数据统一显示“待导入分类数据”，不会按零值或历史比例估算。分时异常仅保留真实总电量，原始分时数据仍保存在导入批次；金额仅在分时、价格及成本齐备时计算。当前可核对总量 {totals.knownTotals}/{rows.length} 站{totals.excess>0?`，分类超过站点总量 ${fmt(totals.excess," kWh")}`:""}。</p></details>}
-      {missing.length>0&&<details className="mode-alert mode-missing"><summary><AlertTriangle size={14}/><b>{missing.length}站有待补字段</b><span>按站点展开查看</span><ChevronDown size={14}/></summary><div className="mode-missing-list">{missing.map(item=><div key={item.name}><b>{item.name}</b><span>{item.fields.join("、")}</span></div>)}</div></details>}
-      {excludedProfiles.length>0&&<details className="mode-alert mode-missing"><summary><b>{excludedProfiles.length}站未纳入本期经营统计</b><span>档案枪数 {excludedGuns} · 功率 {excludedPower} kW；上线状态待核</span><ChevronDown size={14}/></summary><div className="mode-missing-list">{excludedProfiles.map(item=><div key={item.name}><b>{item.name}</b><span>本期缺少真实周报记录，不按零值计入经营汇总</span></div>)}</div></details>}
+      {(attentionCount>0||missing.length>0||excludedProfiles.length>0)&&<details className="mode-alert mode-missing"><summary><AlertTriangle size={14}/><b>{missing.length}站待核 · {excludedProfiles.length}站未纳入</b><span>分类、金额和异常明细</span><ChevronDown size={14}/></summary><p>单一设备类型站按档案归类真实周电量；混合站仅按实测分类电量统计。未分类电量不按枪数拆分。分时差异和缺失金额保留待核。</p>{missing.length>0&&<div className="mode-missing-list">{missing.map(item=><div key={item.name}><b>{item.name}</b><span>{item.fields.join("、")}</span></div>)}</div>}{excludedProfiles.length>0&&<div className="mode-missing-list">{excludedProfiles.map(item=><div key={item.name}><b>{item.name}</b><span>本期无周报记录；档案枪数 {item.guns} · 功率 {item.power} kW，暂不参与经营统计</span></div>)}</div>}<p>未纳入档案合计 {excludedGuns} 枪 · {excludedPower} kW；分类异常超量 {fmt(totals.excess," kWh")}。</p></details>}
       {selectedMode==="all"&&<section className="mode-compare-panel"><header><div><h3>快慢充经营对比</h3><p>同一场站只汇总一次，按真实分类电量拆分。</p></div></header><div className="mode-compare-grid">{(["fast","slow"] as const).map(mode=>{
         const charge=mode==="fast"?totals.fast:totals.slow,available=mode==="fast"?totals.hasFast:totals.hasSlow,ratio=totals.fast+totals.slow>0?charge/(totals.fast+totals.slow)*100:null;
-        return <div className={`mode-compare-row ${mode}`} key={mode}><div><b>{modeName(mode)}</b><span>{mode==="fast"?totals.fastGuns:totals.slowGuns}枪 · {mode==="fast"?totals.fastPower:totals.slowPower} kW</span></div><strong>{fmt(available?charge:null," kWh")}</strong><div className="mode-share"><i style={{width:`${ratio||0}%`}}/></div><em>{ratio==null?"待导入":`${ratio.toFixed(1)}%`}</em><small>服务费 {fmt(metricSum(mode,"serviceRevenue")," 元")} · 毛利 {fmt(metricSum(mode,"profit")," 元")}</small></div>;
+        const service=metricSum(mode,"serviceRevenue"),profit=metricSum(mode,"profit");
+        return <div className={`mode-compare-row ${mode}`} key={mode}><div><b>{modeName(mode)}</b><span>{mode==="fast"?totals.fastGuns:totals.slowGuns}枪 · {mode==="fast"?totals.fastPower:totals.slowPower} kW</span></div><strong>{fmt(available?charge:null," kWh")}</strong><div className="mode-share"><i style={{width:`${ratio||0}%`}}/></div><em>{ratio==null?"待导入":`${ratio.toFixed(1)}%`}</em><small>服务费 {fmt(service.value," 元")}（{service.available}/{service.total}站） · 毛利 {fmt(profit.value," 元")}（{profit.available}/{profit.total}站）</small></div>;
       })}</div></section>}
       <details className="mode-detail-panel data-disclosure"><summary>场站经营明细 <span>展开查看 {visibleRows.length} 站</span></summary><div className="mode-table-head"><p>当前为{selectedMode==="all"?"全部模式":modeName(selectedMode)}口径</p><div className="mode-table-tools"><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="搜索场站"/><label><input type="checkbox" checked={onlyAttention} onChange={event=>setOnlyAttention(event.target.checked)}/>仅看待核</label><select value={sort} onChange={event=>setSort(event.target.value as typeof sort)}><option value="charge">按充电量</option><option value="profit">按毛利</option>{selectedMode!=="all"&&<option value="utilization">按利用率</option>}<option value="station">按站名</option></select></div></div>
         <div className="mode-table-wrap"><table><thead><tr><th>场站</th>{selectedMode==="all"?<><th>快/慢枪数</th><th>快充电量</th><th>慢充电量</th></>:<><th>{modeName(selectedMode)}枪数</th><th>充电量</th></>}<th>服务费收入</th><th>经营毛利</th><th>{selectedMode==="all"?"状态":"利用率"}</th><th></th></tr></thead><tbody>
