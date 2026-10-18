@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { upsertModeFacts, summarizeMode, reconcileModes, calendarMonthRange, sundaySaturdayRange, classifyDayOperatingMetrics } from "../lib/charging-mode.ts";
+import { upsertModeFacts, summarizeMode, modeFactsInRange, reconcileModes, calendarMonthRange, sundaySaturdayRange, classifyDayOperatingMetrics } from "../lib/charging-mode.ts";
+
+test("本周分类金额只能使用本周日期，不能沿用上周快充记录", () => {
+  const facts = [sample("2026-10-10", "fast", 100), sample("2026-10-12", "slow", 20)];
+  assert.deepEqual(modeFactsInRange(facts, "fast", "2026-10-11", "2026-10-17"), []);
+  assert.equal(modeFactsInRange(facts, "slow", "2026-10-11", "2026-10-17").length, 1);
+});
 
 const sample = (date, mode, charge, extra = {}) => ({
   stationName: "测试站", date, mode, deviceId: null,

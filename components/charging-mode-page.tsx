@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, Info } from "lucide-react";
-import { calendarMonthRange, reconcileModes, summarizeMode, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
+import { calendarMonthRange, modeFactsInRange, reconcileModes, summarizeMode, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
 import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 import { calculateCalendarDay } from "@/lib/calendar-metrics";
 import { missingMetricConfigs } from "@/lib/operating-metrics";
@@ -49,7 +49,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     const actualTotal=daily.length?daily.reduce((sum,item)=>sum+Number(item.total_kwh),0):periodType==="month"&&month?Number(month.total_kwh):periodType==="week"?stationTotals[profile.station_name]??null:null;
     const coverage=reconcileModes(actualTotal,fast,slow);
     const metrics=(mode:ChargingMode)=>{
-      const matching=facts.filter(fact=>fact.mode===mode);
+      const matching=modeFactsInRange(facts,mode,range.start,range.end);
       if(!matching.length)return {electricityRevenue:null,serviceRevenue:null,profit:null};
       const calculated=matching.map(fact=>modeOperatingMetrics(fact,data,profile));
       const sum=(key:MoneyKey)=>calculated.every(item=>item[key]!=null)?calculated.reduce((total,item)=>total+Number(item[key]),0):null;

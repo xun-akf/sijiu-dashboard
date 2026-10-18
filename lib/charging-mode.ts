@@ -29,6 +29,10 @@ export type Coverage = {
   excess: number;
 };
 
+export function modeFactsInRange(facts: ModeEnergyFact[], mode: ChargingMode, start: string, end: string) {
+  return facts.filter((fact) => fact.mode === mode && fact.date >= start && fact.date <= end);
+}
+
 const validDate = (date: string) => /^\d{4}-\d{2}-\d{2}$/.test(date)
   && new Date(date + "T00:00:00Z").toISOString().slice(0, 10) === date;
 
