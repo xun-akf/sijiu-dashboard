@@ -50,7 +50,8 @@ def extract(path):
                     continue
                 distance_match = re.search(r"[（(](\d+(?:\.\d+)?)\s*m[）)]", title, re.I)
                 records.append({"name": title.strip(), "distance": distance_match.group(1) + "m" if distance_match else "",
-                                "guns": str(rows[start + 2][col]) if isinstance(rows[start + 2][col], (int, float)) else "",
+                                "guns": "",  # The worksheet counts DC devices, not charging guns.
+                                "dcDevices": str(rows[start + 2][col]) if isinstance(rows[start + 2][col], (int, float)) else "",
                                 "electricity": electricity, "service": service, "total": total})
             if name in result:
                 # Sheet1 is the newer source for its 11 stations; sheet2 can
