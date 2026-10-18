@@ -850,7 +850,7 @@ export default function Home() {
               <button
                 key={x.id}
                 className={view === x.id ? "active" : ""}
-                onClick={() => setView(x.id)}
+                onClick={() => { setView(x.id); if (x.id === "station" || x.id === "business") setPeriodType("week"); }}
               >
                 <I />
                 {x.label}
@@ -917,21 +917,21 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view === "trend" ? "week" : periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view !== "config" && <div className="mode-switchbar">
-          <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
-          <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>
+        {view !== "config" && view !== "trend" && <div className="mode-switchbar">
+          <div className="metric-switch">{(view === "station" || view === "business" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+          {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
-        {view === "overview" && periodType === "week" && chargingMode === "all" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "station" && periodType === "week" && chargingMode === "all" && !noWeeklyHistory && (
+        {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "station" && periodType === "week" && !noWeeklyHistory && (
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
-        {view === "business" && periodType === "week" && chargingMode === "all" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "trend" && periodType === "week" && chargingMode === "all" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
+        {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "trend" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
-        {view !== "mode" && view !== "config" && (periodType === "month" || chargingMode !== "all") && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view !== "mode" && view !== "config" && view !== "trend" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
