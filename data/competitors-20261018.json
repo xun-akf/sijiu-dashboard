@@ -3,7 +3,8 @@
     {
       "name": "九寨沟璞禾酒店交流桩",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "0.88",
@@ -26,7 +27,8 @@
     {
       "name": "66物联充电站(云境Horizon度假民宿)充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -49,7 +51,8 @@
     {
       "name": "66物联.格桑小院充电桩",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -72,7 +75,8 @@
     {
       "name": "九寨沟云境水韵精品民宿充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -95,7 +99,8 @@
     {
       "name": "九寨沟沐赫酒店充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -120,7 +125,8 @@
     {
       "name": "九寨沟璞禾酒店交流桩",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "0.88",
@@ -143,7 +149,8 @@
     {
       "name": "66物联充电站(云境Horizon度假民宿)充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -166,7 +173,8 @@
     {
       "name": "66物联.格桑小院充电桩",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -189,7 +197,8 @@
     {
       "name": "九寨沟云境水韵精品民宿充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -212,7 +221,8 @@
     {
       "name": "九寨沟沐赫酒店充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -237,7 +247,8 @@
     {
       "name": "九寨沟璞禾酒店交流桩",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "0.88",
@@ -260,7 +271,8 @@
     {
       "name": "66物联充电站(云境Horizon度假民宿)充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -283,7 +295,8 @@
     {
       "name": "66物联.格桑小院充电桩",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -306,7 +319,8 @@
     {
       "name": "九寨沟云境水韵精品民宿充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -329,7 +343,8 @@
     {
       "name": "九寨沟沐赫酒店充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.62",
@@ -354,7 +369,8 @@
     {
       "name": "云快充充电站(泊云间酒店）",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "0.5",
@@ -377,7 +393,8 @@
     {
       "name": "茂县云隐江庭民宿充电站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.4",
@@ -400,7 +417,8 @@
     {
       "name": "茂县明宇雅舍酒店（茂县古羌城店）充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.87",
@@ -423,7 +441,8 @@
     {
       "name": "茂县易三酒店充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.44",
@@ -448,7 +467,8 @@
     {
       "name": "爱的森(万山区)网形地站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.9",
@@ -471,7 +491,8 @@
     {
       "name": "碧江供电局城南供电所充电站",
       "distance": "",
-      "guns": "1",
+      "guns": "",
+      "dcDevices": "1",
       "electricity": {
         "peak": "",
         "high": "0.6868",
@@ -494,7 +515,8 @@
     {
       "name": "爱的森(碧江区)磨刀湾站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.75",
@@ -517,7 +539,8 @@
     {
       "name": "润泽科技目的地充电站(纸厂A区集资房车充)",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.73",
@@ -542,7 +565,8 @@
     {
       "name": "欢致酒店火车站店",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.18",
@@ -565,7 +589,8 @@
     {
       "name": "堡益物联(伊敏小区友电物联充电桩2充电站)",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.5",
@@ -588,7 +613,8 @@
     {
       "name": "呼伦贝尔市嘉世豪酒店充电站)",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.68",
@@ -611,7 +637,8 @@
     {
       "name": "龙凤新天地购物广场充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "",
         "high": "0.8",
@@ -636,7 +663,8 @@
     {
       "name": "供销社充电站",
       "distance": "",
-      "guns": "1",
+      "guns": "",
+      "dcDevices": "1",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -659,7 +687,8 @@
     {
       "name": "住建局停车场充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -682,7 +711,8 @@
     {
       "name": "汉源县金鑫大酒店充电站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "1.08",
@@ -705,7 +735,8 @@
     {
       "name": "汉源县富林镇桃坪停车场充电站二期",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.7317",
@@ -728,7 +759,8 @@
     {
       "name": "文体路充电站",
       "distance": "",
-      "guns": "10",
+      "guns": "",
+      "dcDevices": "10",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -751,7 +783,8 @@
     {
       "name": "汉沫集团充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -776,7 +809,8 @@
     {
       "name": "峨边黑竹沟景区停车场充电站",
       "distance": "",
-      "guns": "5",
+      "guns": "",
+      "dcDevices": "5",
       "electricity": {
         "peak": "",
         "high": "0.572",
@@ -799,7 +833,8 @@
     {
       "name": "峨边大堡天赐宴福停车场充电站",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "0.572",
@@ -823,6 +858,7 @@
       "name": "大峡谷旅游景区充电站",
       "distance": "",
       "guns": "",
+      "dcDevices": "",
       "electricity": {
         "peak": "",
         "high": "0.85",
@@ -846,6 +882,7 @@
       "name": "骏怡连锁酒店充电站",
       "distance": "",
       "guns": "",
+      "dcDevices": "",
       "electricity": {
         "peak": "",
         "high": "0.8",
@@ -870,7 +907,8 @@
     {
       "name": "渝快充川主寺一念之间",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.87",
@@ -893,7 +931,8 @@
     {
       "name": "松潘金凿子文化酒店充电站(红星路南)(新))",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.04",
@@ -916,7 +955,8 @@
     {
       "name": "泰三能源充电站(松潘黄龙宾馆)",
       "distance": "",
-      "guns": "3",
+      "guns": "",
+      "dcDevices": "3",
       "electricity": {
         "peak": "",
         "high": "1.38",
@@ -939,7 +979,8 @@
     {
       "name": "川主寺龙沁云顶大酒店",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "1.0185",
@@ -964,7 +1005,8 @@
     {
       "name": "乐山城市更新集团顺江充电站",
       "distance": "",
-      "guns": "7",
+      "guns": "",
+      "dcDevices": "7",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -987,7 +1029,8 @@
     {
       "name": "乐山万华国际小区充电站",
       "distance": "",
-      "guns": "20",
+      "guns": "",
+      "dcDevices": "20",
       "electricity": {
         "peak": "",
         "high": "1",
@@ -1010,7 +1053,8 @@
     {
       "name": "乐山市经信局停车场充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.6",
@@ -1033,7 +1077,8 @@
     {
       "name": "桔子酒店(乐山嘉兴路美食街店)充电站",
       "distance": "",
-      "guns": "1",
+      "guns": "",
+      "dcDevices": "1",
       "electricity": {
         "peak": "",
         "high": "1.16",
@@ -1058,7 +1103,8 @@
     {
       "name": "彩虹大道民主慢充站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "1.3",
@@ -1081,7 +1127,8 @@
     {
       "name": "巨能宝都江堰充电站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "1.0106",
@@ -1104,7 +1151,8 @@
     {
       "name": "岷江公司",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.5",
@@ -1127,7 +1175,8 @@
     {
       "name": "上善熙地下车库充电站",
       "distance": "",
-      "guns": "12",
+      "guns": "",
+      "dcDevices": "12",
       "electricity": {
         "peak": "",
         "high": "0.7",
@@ -1152,7 +1201,8 @@
     {
       "name": "广汽能源广州黄埔茅岗祺能2号充电站",
       "distance": "",
-      "guns": "36",
+      "guns": "",
+      "dcDevices": "36",
       "electricity": {
         "peak": "1.5",
         "high": "1.2",
@@ -1175,7 +1225,8 @@
     {
       "name": "开迈斯充电站(广州市黄埔区鱼珠地铁站直流站)",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "1.18",
@@ -1198,7 +1249,8 @@
     {
       "name": "茅岗充电站",
       "distance": "",
-      "guns": "40",
+      "guns": "",
+      "dcDevices": "40",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -1221,7 +1273,8 @@
     {
       "name": "广州港航中心二期超充站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "0.85",
         "high": "0.85",
@@ -1246,7 +1299,8 @@
     {
       "name": "特来电邮政小区充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "",
         "high": "0.7756",
@@ -1269,7 +1323,8 @@
     {
       "name": "特来电金堂耍都充电站",
       "distance": "",
-      "guns": "39",
+      "guns": "",
+      "dcDevices": "39",
       "electricity": {
         "peak": "",
         "high": "0.7671",
@@ -1292,7 +1347,8 @@
     {
       "name": "金堂石化燃气超级充电站",
       "distance": "",
-      "guns": "10",
+      "guns": "",
+      "dcDevices": "10",
       "electricity": {
         "peak": "",
         "high": "0.73",
@@ -1315,7 +1371,8 @@
     {
       "name": "迎宾大道超充站",
       "distance": "",
-      "guns": "32",
+      "guns": "",
+      "dcDevices": "32",
       "electricity": {
         "peak": "",
         "high": "0.79",
@@ -1340,7 +1397,8 @@
     {
       "name": "长峡快道(永安路站)",
       "distance": "",
-      "guns": "32",
+      "guns": "",
+      "dcDevices": "32",
       "electricity": {
         "peak": "",
         "high": "0.73",
@@ -1363,7 +1421,8 @@
     {
       "name": "保安寺充电站",
       "distance": "",
-      "guns": "40",
+      "guns": "",
+      "dcDevices": "40",
       "electricity": {
         "peak": "",
         "high": "0.78",
@@ -1386,7 +1445,8 @@
     {
       "name": "蚂蚁乐园充电站",
       "distance": "",
-      "guns": "25",
+      "guns": "",
+      "dcDevices": "25",
       "electricity": {
         "peak": "",
         "high": "0.78",
@@ -1409,7 +1469,8 @@
     {
       "name": "云捷电龙泉红岭路超充站2期",
       "distance": "",
-      "guns": "16",
+      "guns": "",
+      "dcDevices": "16",
       "electricity": {
         "peak": "",
         "high": "0.87",
@@ -1434,7 +1495,8 @@
     {
       "name": "巨能宝都江堰鹏全充电站",
       "distance": "",
-      "guns": "46",
+      "guns": "",
+      "dcDevices": "46",
       "electricity": {
         "peak": "",
         "high": "1.0106",
@@ -1457,7 +1519,8 @@
     {
       "name": "巨能宝彩虹市场充电站",
       "distance": "",
-      "guns": "28",
+      "guns": "",
+      "dcDevices": "28",
       "electricity": {
         "peak": "",
         "high": "0.6849",
@@ -1480,7 +1543,8 @@
     {
       "name": "都江堰彩虹大道马踏飞燕站",
       "distance": "",
-      "guns": "7",
+      "guns": "",
+      "dcDevices": "7",
       "electricity": {
         "peak": "",
         "high": "0.9945",
@@ -1503,7 +1567,8 @@
     {
       "name": "中国石油都江堰迎宾充电站",
       "distance": "",
-      "guns": "20",
+      "guns": "",
+      "dcDevices": "20",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -1529,7 +1594,8 @@
     {
       "name": "铠悦重卡超充站",
       "distance": "",
-      "guns": "22",
+      "guns": "",
+      "dcDevices": "22",
       "electricity": {
         "peak": "1.39",
         "high": "1.1",
@@ -1552,7 +1618,8 @@
     {
       "name": "潮汕机场 机场路",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "1.4",
         "high": "1",
@@ -1575,7 +1642,8 @@
     {
       "name": "揭阳榕正充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "1.15",
         "high": "1.04",
@@ -1598,7 +1666,8 @@
     {
       "name": "惠速新能源充电桩",
       "distance": "",
-      "guns": "10",
+      "guns": "",
+      "dcDevices": "10",
       "electricity": {
         "peak": "1.15",
         "high": "1.05",
@@ -1621,7 +1690,8 @@
     {
       "name": "全季酒店揭阳机场店充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "1.15",
         "high": "0.85",
@@ -1646,7 +1716,8 @@
     {
       "name": "理想超充站 成都海伦堡海伦春天",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.73",
@@ -1669,7 +1740,8 @@
     {
       "name": "成都天府环宇坊广场极充站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.61",
@@ -1692,7 +1764,8 @@
     {
       "name": "川港快充天府1号店站",
       "distance": "",
-      "guns": "19",
+      "guns": "",
+      "dcDevices": "19",
       "electricity": {
         "peak": "",
         "high": "0.77",
@@ -1715,7 +1788,8 @@
     {
       "name": "特来电汇源南湖公园充电站",
       "distance": "",
-      "guns": "20",
+      "guns": "",
+      "dcDevices": "20",
       "electricity": {
         "peak": "",
         "high": "0.7317",
@@ -1740,7 +1814,8 @@
     {
       "name": "蓉快充成都东客站充电站",
       "distance": "",
-      "guns": "17",
+      "guns": "",
+      "dcDevices": "17",
       "electricity": {
         "peak": "",
         "high": "0.8536",
@@ -1763,7 +1838,8 @@
     {
       "name": "成都和美公园 蔚来超充站",
       "distance": "",
-      "guns": "10",
+      "guns": "",
+      "dcDevices": "10",
       "electricity": {
         "peak": "",
         "high": "0.73",
@@ -1786,7 +1862,8 @@
     {
       "name": "中装天如鹏瑞利广场二期充电站",
       "distance": "",
-      "guns": "18",
+      "guns": "",
+      "dcDevices": "18",
       "electricity": {
         "peak": "",
         "high": "0.85",
@@ -1809,7 +1886,8 @@
     {
       "name": "中装天如鹏瑞利广场三期充电站",
       "distance": "",
-      "guns": "24",
+      "guns": "",
+      "dcDevices": "24",
       "electricity": {
         "peak": "",
         "high": "0.85",
@@ -1834,7 +1912,8 @@
     {
       "name": "速来充-超级快充柳江站",
       "distance": "",
-      "guns": "32",
+      "guns": "",
+      "dcDevices": "32",
       "electricity": {
         "peak": "",
         "high": "1.0704",
@@ -1857,7 +1936,8 @@
     {
       "name": "速来充-超级快充西洋站",
       "distance": "",
-      "guns": "32",
+      "guns": "",
+      "dcDevices": "32",
       "electricity": {
         "peak": "",
         "high": "1.0704",
@@ -1880,7 +1960,8 @@
     {
       "name": "国桩智充龙港市鸿瑞西三街充电站",
       "distance": "",
-      "guns": "48",
+      "guns": "",
+      "dcDevices": "48",
       "electricity": {
         "peak": "",
         "high": "0.991",
@@ -1903,7 +1984,8 @@
     {
       "name": "中国石化鳌江充电站",
       "distance": "",
-      "guns": "34",
+      "guns": "",
+      "dcDevices": "34",
       "electricity": {
         "peak": "",
         "high": "1.0311",
@@ -1928,7 +2010,8 @@
     {
       "name": "石棉清利物流棉纱坝充电站",
       "distance": "",
-      "guns": "10",
+      "guns": "",
+      "dcDevices": "10",
       "electricity": {
         "peak": "",
         "high": "0.6782",
@@ -1951,7 +2034,8 @@
     {
       "name": "G5京昆高速石棉永利宾馆 蔚来超充站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.96",
@@ -1974,7 +2058,8 @@
     {
       "name": "川矿广场停车场腾龙翼充电站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.4514",
@@ -1999,7 +2084,8 @@
     {
       "name": "中石油九寨沟漳扎充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.7",
@@ -2022,7 +2108,8 @@
     {
       "name": "九寨沟英迪格酒店停车场充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.9368",
@@ -2045,7 +2132,8 @@
     {
       "name": "九寨沟鲁能希尔顿酒店充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "",
         "high": "0.9368",
@@ -2070,7 +2158,8 @@
     {
       "name": "特来电（华润24城）",
       "distance": "",
-      "guns": "41",
+      "guns": "",
+      "dcDevices": "41",
       "electricity": {
         "peak": "",
         "high": "0.7317",
@@ -2093,7 +2182,8 @@
     {
       "name": "逸安启超充站（成都万象城）",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "",
         "high": "0.66",
@@ -2116,7 +2206,8 @@
     {
       "name": "新电途水碾河充电站",
       "distance": "",
-      "guns": "66",
+      "guns": "",
+      "dcDevices": "66",
       "electricity": {
         "peak": "",
         "high": "0.83",
@@ -2141,7 +2232,8 @@
     {
       "name": "中石油阿坝松潘充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -2164,7 +2256,8 @@
     {
       "name": "松潘古城游客中心充电站",
       "distance": "",
-      "guns": "16",
+      "guns": "",
+      "dcDevices": "16",
       "electricity": {
         "peak": "",
         "high": "0.9368",
@@ -2189,7 +2282,8 @@
     {
       "name": "渝快充理县神峰初见温泉酒店充电站",
       "distance": "",
-      "guns": "2",
+      "guns": "",
+      "dcDevices": "2",
       "electricity": {
         "peak": "",
         "high": "0.87",
@@ -2212,7 +2306,8 @@
     {
       "name": "电动汽车充电站（理县服务区站）",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "0.72",
@@ -2235,7 +2330,8 @@
     {
       "name": "古尔沟镇醉佳温泉酒店充电站",
       "distance": "",
-      "guns": "4",
+      "guns": "",
+      "dcDevices": "4",
       "electricity": {
         "peak": "",
         "high": "1.2",
@@ -2260,7 +2356,8 @@
     {
       "name": "中石油阿坝松潘充电站",
       "distance": "",
-      "guns": "6",
+      "guns": "",
+      "dcDevices": "6",
       "electricity": {
         "peak": "",
         "high": "0.7236",
@@ -2283,7 +2380,8 @@
     {
       "name": "松潘古城游客中心充电站",
       "distance": "",
-      "guns": "16",
+      "guns": "",
+      "dcDevices": "16",
       "electricity": {
         "peak": "",
         "high": "0.9368",
@@ -2306,7 +2404,8 @@
     {
       "name": "中石油阿坝新黄龙充电站",
       "distance": "",
-      "guns": "8",
+      "guns": "",
+      "dcDevices": "8",
       "electricity": {
         "peak": "",
         "high": "0.72",
@@ -2331,7 +2430,8 @@
     {
       "name": "特来电普洛斯天府机场充电站",
       "distance": "",
-      "guns": "26",
+      "guns": "",
+      "dcDevices": "26",
       "electricity": {
         "peak": "",
         "high": "0.7317",
@@ -2354,7 +2454,8 @@
     {
       "name": "天府国际机场公共停车场西区充电站",
       "distance": "",
-      "guns": "26",
+      "guns": "",
+      "dcDevices": "26",
       "electricity": {
         "peak": "",
         "high": "0.5",
