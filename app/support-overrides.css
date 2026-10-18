@@ -481,6 +481,9 @@
 }
 .bar-list > div > strong { white-space: nowrap; }
 .ranking-partial-note { display: block; margin: 8px 0 0; color: #9fbbac; line-height: 1.5; }
+.ranking-pending { margin-top: 10px; color: #9fbbac; font-size: 12px; line-height: 1.5; }
+.ranking-pending summary { cursor: pointer; }
+.ranking-pending p { margin: 6px 0; }
 .bar-list div div i {
   margin-top: 4px;
 }
