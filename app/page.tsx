@@ -2386,8 +2386,9 @@ function CompetitorEditor({
   );
 }
 const metricChangeText = (label: string, current: number | null, previous: number | null) => {
+  if (current == null) return `${label}待核算`;
   if (!previous) return `${label}暂无可比上期`;
-  const change = num(current) / previous - 1;
+  const change = current / previous - 1;
   return `${label}${change >= 0 ? "增长" : "下降"}${Math.abs(change * 100).toFixed(1)}%`;
 };
 function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
@@ -2439,7 +2440,7 @@ function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
     action = competitors.length
       ? `${averagePriceDiff == null ? "竞站分时价格待补充" : `本站有效时段均价较周边${averagePriceDiff >= 0 ? "高" : "低"}${Math.abs(averagePriceDiff).toFixed(3)}元/度`}${nearest ? `，最近竞站为${nearest.name}` : "，距离待补充"}；建议优先核查下降时段的客流与设备状态。`
       : "竞站价格暂未完整核验，先核查客流、设备在线情况与分时结构，不对原因作主观判断。";
-  return `${metricChangeText("充电量", current.charge, previous?.charge ?? null)}，${metricChangeText("服务费收入", current.serviceRevenue, previous?.serviceRevenue ?? null)}，经营利润${money(num(current.profit))}；${cause}。${context ? `场景核验：${context}。` : ""}${action}`;
+  return `${metricChangeText("充电量", current.charge, previous?.charge ?? null)}，${metricChangeText("服务费收入", current.serviceRevenue, previous?.serviceRevenue ?? null)}，${current.profit == null ? "经营利润待核算" : `经营利润${money(current.profit)}`}；${cause}。${context ? `场景核验：${context}。` : ""}${action}`;
 }
 // Manual text is stored by station AND week in the published/draft configs JSON.
 // The legacy `analysis` field remains a generated/latest-week compatibility value.
@@ -2477,7 +2478,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
   });
   const recordPair = (station: S) => {
       const currentIndex = station.records.findIndex((record) => record.week === week);
-      return { current: station.records[currentIndex], previous: station.records[currentIndex - 1], beforePrevious: station.records[currentIndex - 2] };
+      return { current: station.records[currentIndex], previous: currentIndex < 0 ? station.records.at(-1) : station.records[currentIndex - 1], beforePrevious: currentIndex < 0 ? station.records.at(-2) : station.records[currentIndex - 2] };
     },
     totalCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.charge), 0),
     totalPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.charge), 0),
@@ -2485,7 +2486,8 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
     servicePrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.serviceRevenue), 0),
     profitCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.profit), 0),
     profitPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.profit), 0),
-    stationMoves = source.map((station) => {
+    moneyCoverage = source.filter((station) => recordPair(station).current?.profit != null).length,
+    stationMoves = source.filter((station) => recordPair(station).current?.charge != null).map((station) => {
       const { current, previous, beforePrevious } = recordPair(station);
       return {
         name: station.name.replace("充电站", ""),
@@ -2514,7 +2516,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
   next.__summary__ = {
     ...emptyConfig,
     ...configs.__summary__,
-    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${metricChangeText("经营利润", profitCurrent, profitPrevious)}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
+    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${moneyCoverage < source.length ? `服务费收入可核算小计${money(serviceCurrent)}、经营利润可核算小计${money(profitCurrent)}，覆盖${moneyCoverage}/${source.length}站` : `${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${metricChangeText("经营利润", profitCurrent, profitPrevious)}`}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
   };
   return next;
 }
