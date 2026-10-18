@@ -1453,6 +1453,11 @@
 }
 
 /* Weekly report readability: keep the existing layout and color palette. */
+.station-search-control { display:flex; align-items:center; gap:7px; padding-bottom:1px; }
+.station-search-control button { height:36px; width:36px; display:grid; place-items:center; border:1px solid #29483f; border-radius:8px; background:#0d241e; color:#a8d9c7; cursor:pointer; }
+.station-search-control button svg { width:16px; height:16px; }
+.station-search-control input { width:160px; height:36px; padding:0 10px; border:1px solid #36d39988; border-radius:8px; outline:none; background:#0a1e18; color:#e8f7f2; }
+@media(max-width:720px) { .station-search-control input { width:125px; } }
 .dashboard-shell {
   font-size: 14px;
   line-height: 1.5;
