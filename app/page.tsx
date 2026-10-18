@@ -1601,14 +1601,17 @@ function StationAnalysis({
     weatherByWeek = safeJson<Record<string, string>>(c.weatherByWeekJson, {}),
     eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
+    [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
     [totalChargeOnly, setTotalChargeOnly] = useState(false),
     [saved, setSaved] = useState(false);
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
     update(selected.name, field, JSON.stringify({ ...values, [selectedWeek]: value }));
   };
   const doSave = async () => {
-    await save();
+    const latestWeek = selected.records.at(-1)?.week || "";
+    await save({ ...cfg, [selected.name]: { ...c, analysis: stationAnalysis(selected, latestWeek, c) } });
     setEditing(false);
+    setOriginalCompetitors(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
   };
@@ -1646,11 +1649,15 @@ function StationAnalysis({
         </div>
         {!isAll && <div className="config-actions">
           {editing && (
-            <button className="ghost" onClick={() => setEditing(false)}>
+            <button className="ghost" onClick={() => {
+              if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
+              setEditing(false);
+              setOriginalCompetitors(null);
+            }}>
               取消
             </button>
           )}
-          <button onClick={() => (editing ? doSave() : setEditing(true))}>
+          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setEditing(true))}>
             {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
           </button>
         </div>}
@@ -1770,7 +1777,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
-      {!isAll && <StationCompetitorSection station={selected} />}
+      {!isAll && <StationCompetitorSection station={selected} editing={editing} cfg={c} update={update} />}
     </>
   );
 }
@@ -2107,54 +2114,19 @@ function SingleStationTrend({ station }: { station: S }) {
     </>
   );
 }
-function StationCompetitorSection({ station }: { station: S }) {
-  const { cfg, update, save } = useConfigs(),
-    c = { ...emptyConfig, ...cfg[station.name] },
-    [editing, setEditing] = useState(false),
-    [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
-    doSave = async () => {
-      const latestWeek = station.records.at(-1)?.week || "",
-        updated = { ...c, analysis: stationAnalysis(station, latestWeek, c) };
-      await save({ ...cfg, [station.name]: updated });
-      setEditing(false);
-      setOriginalCompetitors(null);
-    };
+function StationCompetitorSection({ station, editing, cfg, update }: {
+  station: S;
+  editing: boolean;
+  cfg: StationConfig;
+  update: (n: string, k: keyof StationConfig, v: string) => void;
+}) {
   return (
-    <>
-      <div className="page-heading trend-head">
-        <div>
-          <span className="eyebrow">历史数据下方</span>
-          <h2>本站竞争分析</h2>
-          <p>外售价格及竞站价格按周维护；保存后锁定。</p>
-        </div>
-        <div className="config-actions">
-          <button className="ghost" onClick={() => {
-            if (editing) {
-              if (originalCompetitors != null)
-                update(station.name, "competitorsJson", originalCompetitors);
-              setEditing(false);
-              setOriginalCompetitors(null);
-            } else {
-              setOriginalCompetitors(c.competitorsJson);
-              setEditing(true);
-            }
-          }}>
-            {editing ? "取消编辑" : "编辑竞站"}
-          </button>
-          {editing && (
-            <button className="save-button" onClick={doSave}>
-              保存并锁定
-            </button>
-          )}
-        </div>
-      </div>
       <CompetitorEditor
         station={station}
         editing={editing}
-        cfg={c}
+        cfg={cfg}
         update={update}
       />
-    </>
   );
 }
 type Competitor = {
@@ -2439,6 +2411,16 @@ function CompetitorEditor({
       title="本站与周边竞站"
       sub="默认展示用户最终支付总价；展开详情查看电费与服务费"
       extra="ranking compact-competitor-panel"
+      actions={<div className="competitor-tools">
+        <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
+          <option value="distance">距离最近</option>
+          <option value="low">价格最低</option>
+          <option value="high">价格最高</option>
+          <option value="diff">与本站差价最大</option>
+        </select>
+        <label><input type="checkbox" checked={threatOnly} onChange={(event) => setThreatOnly(event.target.checked)} />只看比本站便宜的竞站</label>
+        {editing && <button className="add-competitor-button" onClick={addCompetitor}>新增竞站</button>}
+      </div>}
     >
       <div className="own-price-benchmark">
         <div>
@@ -2496,27 +2478,6 @@ function CompetitorEditor({
               ? "✓ 本站价格具备竞争优势"
               : "≈ 本站价格与周边平均水平接近"}
         </p>
-      </div>
-      <div className="competitor-tools">
-        <select
-          value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-          aria-label="竞站排序"
-        >
-          <option value="distance">距离最近</option>
-          <option value="low">价格最低</option>
-          <option value="high">价格最高</option>
-          <option value="diff">与本站差价最大</option>
-        </select>
-        <label>
-          <input
-            type="checkbox"
-            checked={threatOnly}
-            onChange={(event) => setThreatOnly(event.target.checked)}
-          />
-          只看比本站便宜的竞站
-        </label>
-        {editing && <button className="add-competitor-button" onClick={addCompetitor}>新增竞站</button>}
       </div>
       <div className="competitor-table">
         <div className="competitor-table-head">
@@ -4053,11 +4014,13 @@ function Panel({
   sub,
   children,
   extra = "",
+  actions,
 }: {
   title: string;
   sub: string;
   children: React.ReactNode;
   extra?: string;
+  actions?: React.ReactNode;
 }) {
   return (
     <article className={`panel ${extra}`}>
@@ -4066,6 +4029,7 @@ function Panel({
           <h2>{title}</h2>
           <p>{sub}</p>
         </div>
+        {actions}
       </div>
       {children}
     </article>
