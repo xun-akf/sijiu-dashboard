@@ -930,8 +930,8 @@ export default function Home() {
         {view !== "config" && (
           <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view === "trend" ? "week" : periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view !== "config" && view !== "trend" && <div className="mode-switchbar">
-          <div className="metric-switch">{(view === "station" || view === "business" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+        {view !== "config" && view !== "trend" && view !== "station" && <div className="mode-switchbar">
+          <div className="metric-switch">{(view === "business" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
@@ -976,6 +976,8 @@ function Filters({
   setOperatorFilter:(value:string)=>void;
   operatorOptions:string[];
 }) {
+  const [stationSearchOpen, setStationSearchOpen] = useState(false);
+  const [stationQuery, setStationQuery] = useState("");
   const weeks=allWeeks();
   const months=[...new Set(weeks.map((w)=>w.match(/^(\d{4}年\d{1,2}月)/)?.[1]).filter((x):x is string=>Boolean(x)))];
   const selectedMonth=weeks[wi]?.match(/^(\d{4}年\d{1,2}月)/)?.[1] || months.at(-1) || "";
@@ -999,16 +1001,20 @@ function Filters({
         <select value={operatorFilter} onChange={(e)=>setOperatorFilter(e.target.value)}><option>全部运营商</option>{operatorOptions.map((name)=><option key={name}>{name}</option>)}</select>
         <ChevronDown />
       </label>
-      <label>
+      <label className="station-filter-label">
         <span>场站范围</span>
-        <select value={sn} onChange={(e) => setSn(e.target.value)}>
+        <select value={sn} onChange={(e) => setSn(e.target.value)} aria-label="场站范围">
           <option>全部场站</option>
-          {stations.map((s) => (
+          {stations.filter((s) => !stationSearchOpen || !stationQuery || s.name.includes(stationQuery) || s.name === sn).map((s) => (
             <option key={s.name}>{s.name}</option>
           ))}
         </select>
         <ChevronDown />
       </label>
+      <div className="station-search-control">
+        <button type="button" aria-label="搜索场站" aria-expanded={stationSearchOpen} onClick={() => { setStationSearchOpen((open) => !open); setStationQuery(""); }}><Search /></button>
+        {stationSearchOpen && <input aria-label="输入场站名称搜索" value={stationQuery} onChange={(e) => setStationQuery(e.target.value)} placeholder="搜索场站" />}
+      </div>
       <div className="data-note">
         <Sparkles />
         曲线支持鼠标悬停查看数值
@@ -2422,24 +2428,6 @@ function CompetitorEditor({
         {editing && <button className="add-competitor-button" onClick={addCompetitor}>新增竞站</button>}
       </div>}
     >
-      <div className="own-price-benchmark">
-        <div>
-          <b>本站价格基准</b>
-          <small>用户最终支付总价</small>
-        </div>
-        {keys.map((key) => (
-          <label key={key}>
-            <span>{labels[key]}</span>
-            <input
-              aria-label={"本站" + labels[key] + "段价格"}
-              disabled={!editing}
-              value={ownT[key]}
-              onChange={(event) => setOwn(key, event.target.value)}
-              placeholder="—"
-            />
-          </label>
-        ))}
-      </div>
       <div
         className={
           "competitor-summary " + (competition === "较弱" ? "weak" : "")
