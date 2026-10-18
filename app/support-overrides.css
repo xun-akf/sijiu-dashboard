@@ -546,6 +546,41 @@
 .data-center-section[hidden] {
   display: none;
 }
+.matrix-panel .price-matrix {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  overflow: visible;
+}
+.matrix-panel .matrix-row {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(120px, 1.1fr) repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.matrix-panel .matrix-row input {
+  min-width: 0;
+  width: 100%;
+}
+.matrix-panel .matrix-row:not(.header) {
+  padding: 10px;
+  border: 1px solid #25463b;
+  border-radius: 9px;
+  background: #0a211a;
+}
+.cost-check-note {
+  margin: 12px 0 0 !important;
+  color: #f0c66a !important;
+}
+@media (max-width: 720px) {
+  .matrix-panel .matrix-row {
+    grid-template-columns: minmax(70px, 1fr) repeat(4, minmax(65px, 1fr));
+    gap: 5px;
+  }
+  .matrix-panel .matrix-row input { padding: 0 4px; font-size: 9px; }
+  .matrix-panel .price-matrix { overflow-x: auto; }
+  .matrix-panel .matrix-row { min-width: 410px; }
+}
 .cost-panel {
   padding: 13px 15px;
   margin-bottom: 10px;

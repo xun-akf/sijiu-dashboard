@@ -2835,7 +2835,7 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
-    [month, setMonth] = useState("8"),
+    [month, setMonth] = useState("10"),
     [dataStation, setDataStation] = useState(stations[0]?.name || ""),
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
     [stationPickerOpen, setStationPickerOpen] = useState(false),
@@ -3442,6 +3442,7 @@ function Config({
             </div>
           ))}
         </div>
+        {costYear === 2026 && month === "10" && costs[month]?.["大工业电价"]?.flat === "0.723618" && <p className="cost-check-note">10月平段成本请核对：草稿现存 0.723618 元/度，您此前提供的参考值为 0.495329 元/度。此处仅提示，未自动改价。</p>}
         <label className="grid-fee-field">
           售电价电网过路费
           <input
