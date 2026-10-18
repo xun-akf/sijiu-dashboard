@@ -1,13 +1,26 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { Eye, EyeOff, LockKeyhole, Zap } from "lucide-react";
-import { signInDashboard, siteUrl } from "@/lib/dashboard-browser";
+import { dashboardFetch, signInDashboard, siteUrl } from "@/lib/dashboard-browser";
 
 export default function AccessPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void dashboardFetch("/api/access", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((access: { role?: string | null }) => {
+        if (!active) return;
+        if (access.role) window.location.replace(siteUrl("/"));
+        else setCheckingSession(false);
+      })
+      .catch(() => { if (active) setCheckingSession(false); });
+    return () => { active = false; };
+  }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -34,7 +47,7 @@ export default function AccessPage() {
           <div className="mb-2 flex items-center gap-2 text-lg font-medium"><LockKeyhole className="size-5 text-[#35d7a5]" />访问验证</div>
           <p className="text-sm leading-6 text-[#8fb6a8]">数据分级访问，权限自动识别。验证通过后进入对应工作台。</p>
         </div>
-        <form onSubmit={submit} className="space-y-4">
+        {checkingSession ? <p className="py-8 text-center text-sm text-[#8fb6a8]">正在检查登录状态…</p> : <form onSubmit={submit} className="space-y-4">
           <div><label htmlFor="account" className="mb-2 block text-sm text-[#b6d0c6]">请输入账号</label><input id="account" name="account" type="text" autoComplete="username" required placeholder="请输入访问账号" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] px-4 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" /></div>
           <div>
             <label htmlFor="password" className="mb-2 block text-sm text-[#b6d0c6]">请输入密码</label>
@@ -47,7 +60,7 @@ export default function AccessPage() {
             {error ? <p className="mt-2 text-sm text-[#ff9b73]">{error}</p> : null}
           </div>
           <button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#35d7a5] font-semibold text-[#052019] disabled:opacity-60">{loading ? "正在验证…" : "进入周报系统"}</button>
-        </form>
+        </form>}
         <p className="mt-5 text-center text-xs text-[#658c7e]">登录状态将安全保存在当前浏览器</p>
       </section>
     </main>
