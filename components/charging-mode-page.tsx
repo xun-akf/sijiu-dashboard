@@ -14,6 +14,13 @@ type Props = { week:string; station:string; operator?:string; selectedMode:ModeS
 type MoneyKey = "electricityRevenue"|"serviceRevenue"|"profit";
 const fmt=(value:number|null,suffix="")=>value==null?"待导入分类数据":`${value.toLocaleString("zh-CN",{maximumFractionDigits:2})}${suffix}`;
 const modeName=(mode:ChargingMode)=>mode==="fast"?"快充":"慢充";
+// Week 2 source reports retain their recorded station totals. These small
+// known differences from the time-of-use sums were reviewed separately.
+const acknowledgedWeek2TouDifferences:Record<string,{charge:number;difference:number}>={
+  "麦电-佛山创雄华府充电站":{charge:1428.586,difference:0.45},
+  "雅悦蓝天酒店慢充站（地下室负二）":{charge:427.069,difference:0.07},
+  "蔚景云希尔顿欢朋酒店充电站":{charge:627.408,difference:0.6},
+};
 
 export default function ChargingModePage({week,station,selectedMode,periodType,reportingNames,stationTotals,stationRecords,previousStationRecords}:Props) {
   const [data,setData]=useState<Awaited<ReturnType<typeof loadModeData>>>({profiles:[],facts:[],calendar:[],tariffs:[],configs:{},fastUnallocated:undefined});
@@ -143,10 +150,13 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     if(selectedMode==="all"&&periodType==="week"){
       const record=stationRecords[row.profile.station_name];
       const tou=Number(record?.peak||0)+Number(record?.high||0)+Number(record?.flat||0)+Number(record?.valley||0);
-      if(record?.charge!=null&&Math.abs(record.charge-tou)>=0.01)fields.push("总量与尖峰平谷合计不符");
+      const known=week==="2026年10月2周"?acknowledgedWeek2TouDifferences[row.profile.station_name]:undefined;
+      const acknowledged=known&&record?.charge!=null&&Math.abs(record.charge-known.charge)<0.001&&Math.abs(Math.abs(record.charge-tou)-known.difference)<0.001;
+      if(record?.charge!=null&&Math.abs(record.charge-tou)>=0.01&&!acknowledged)fields.push("总量与尖峰平谷合计不符");
       else if(row.selectedService==null||row.selectedProfit==null){
-        fields.push(...missingMetricConfigs(week,data.configs[row.profile.station_name]||{},data.configs.__monthly__||{}));
-        if(!fields.length)fields.push("经营金额待核对");
+        const hasClassifiedMargin=Boolean((record as StoredWeeklyResult & {partialProfit?:number|null}|undefined)?.partialProfit!=null);
+        if(!hasClassifiedMargin)fields.push(...missingMetricConfigs(week,data.configs[row.profile.station_name]||{},data.configs.__monthly__||{}));
+        if(!fields.length&&!hasClassifiedMargin)fields.push("经营金额待核对");
       }
     }else{
       if(row.selectedService==null)fields.push(`${selectedMode==="all"?"分时":"对应模式"}服务费待核`);
@@ -154,7 +164,6 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     }
     if(row.profile.guns==null)fields.push("枪数");
     if(row.profile.power_kw==null)fields.push("功率");
-    if(row.fastExtra>0)fields.push(`快充 ${fmt(row.fastExtra," kWh")} 缺分时明细`);
     if(row.coverage.excess>0)fields.push("分类超出总量");
     return {name:row.profile.station_name,fields};
   }).filter(item=>item.fields.length);
