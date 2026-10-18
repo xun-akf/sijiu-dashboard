@@ -209,7 +209,8 @@ const weekDateRange = (label: string): string => {
   if (month < 1 || month > 12 || ordinal < 1 || ordinal > 5) return "";
   const wednesday = new Date(Date.UTC(year, month - 1, 1 + 7 * (ordinal - 1)));
   wednesday.setUTCDate(wednesday.getUTCDate() + (3 - wednesday.getUTCDay() + 7) % 7);
-  // Legacy labels can have a fifth week when the month has only four Wednesdays.
+  // Legacy labels can contain a fifth week even when the month has only four Wednesdays.
+  // Keep the saved label but do not invent a range that overlaps the next month's week.
   if (wednesday.getUTCMonth() !== month - 1) return "";
   const sunday = new Date(wednesday);
   sunday.setUTCDate(wednesday.getUTCDate() - 3);
@@ -1761,6 +1762,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
+      {!isAll && <StationCompetitorSection station={selected} />}
     </>
   );
 }
@@ -2074,6 +2076,30 @@ function AllStationTrendSummary() {
   );
 }
 function SingleStationTrend({ station }: { station: S }) {
+  return (
+    <>
+      <div className="page-heading trend-head">
+        <div>
+          <span className="eyebrow">本站尖峰平谷趋势</span>
+          <h2>{station.name}</h2>
+        </div>
+      </div>
+      <Panel title="本站尖峰平谷充电量趋势" sub="移动鼠标联动查看各时段电量">
+        <FilteredInteractiveChart
+          lines={[
+            { name: "尖段", color: "#ff6b6b", data: station.records.map((r) => ({ week: r.week, value: num(r.peak) })) },
+            { name: "峰段", color: "#ffb454", data: station.records.map((r) => ({ week: r.week, value: num(r.high) })) },
+            { name: "平段", color: "#36d399", data: station.records.map((r) => ({ week: r.week, value: num(r.flat) })) },
+            { name: "谷段", color: "#6f8cff", data: station.records.map((r) => ({ week: r.week, value: num(r.valley) })) },
+          ]}
+          large
+          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
+        />
+      </Panel>
+    </>
+  );
+}
+function StationCompetitorSection({ station }: { station: S }) {
   const { cfg, update, save } = useConfigs(),
     c = { ...emptyConfig, ...cfg[station.name] },
     [editing, setEditing] = useState(false),
@@ -2089,8 +2115,8 @@ function SingleStationTrend({ station }: { station: S }) {
     <>
       <div className="page-heading trend-head">
         <div>
-          <span className="eyebrow">本站尖峰平谷与竞站洞察</span>
-          <h2>{station.name}</h2>
+          <span className="eyebrow">历史数据下方</span>
+          <h2>本站竞争分析</h2>
           <p>外售价格及竞站价格按周维护；保存后锁定。</p>
         </div>
         <div className="config-actions">
@@ -2114,46 +2140,6 @@ function SingleStationTrend({ station }: { station: S }) {
           )}
         </div>
       </div>
-      <Panel title="本站尖峰平谷充电量趋势" sub="移动鼠标联动查看各时段电量">
-        <FilteredInteractiveChart
-          lines={[
-            {
-              name: "尖段",
-              color: "#ff6b6b",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.peak),
-              })),
-            },
-            {
-              name: "峰段",
-              color: "#ffb454",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.high),
-              })),
-            },
-            {
-              name: "平段",
-              color: "#36d399",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.flat),
-              })),
-            },
-            {
-              name: "谷段",
-              color: "#6f8cff",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.valley),
-              })),
-            },
-          ]}
-          large
-          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
       <CompetitorEditor
         station={station}
         editing={editing}
