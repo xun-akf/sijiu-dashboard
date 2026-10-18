@@ -1886,6 +1886,20 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     const laggard = lowest && lowest.delta < 0 ? `主要下降来自${lowest.name}（${lowest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
     return `本周${analysisMode === "fast" ? "快充" : "慢充"}有${recorded.length}站录入真实分类电量，合计${charge.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度；其中${comparable.length}站有上周同模式记录可比较。${leader}${laggard}${recorded.length < scope(sn).length ? `其余${scope(sn).length - recorded.length}站分类待补充，未按零值处理。` : ""}`;
   };
+  const modeGroups = { fast: [] as typeof rows, slow: [] as typeof rows, mixed: [] as typeof rows, unknown: [] as typeof rows };
+  for (const item of rows) {
+    const profile = stationCatalog.find((station) => station.name === item.station.name);
+    const hasFast = Number(profile?.fastGuns) > 0;
+    const hasSlow = Number(profile?.slowGuns) > 0;
+    modeGroups[hasFast && hasSlow ? "mixed" : hasFast ? "fast" : hasSlow ? "slow" : "unknown"].push(item);
+  }
+  const renderStationDiagnosis = (item: (typeof rows)[number]) => (
+    <div key={item.station.name} className={num(item.record.chargeChange) < 0 ? "negative" : "positive"}>
+      <header><b>{item.station.name}</b><span>{pct(item.record.chargeChange)}</span></header>
+      <p>充电量 {qty(num(item.record.charge))} kWh · 经营利润 {money(num(item.record.profit))}</p>
+      {renderAnalysisBlock(item)}
+    </div>
+  );
   return (
     <>
       <div className="page-heading business-head">
@@ -1913,34 +1927,16 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         </Panel>
       </div>}
       {analysisView === "diagnosis" && <>
-      <div className="business-mode-diagnoses">{(["fast", "slow"] as const).map((mode) => <details key={mode} className="data-disclosure"><summary>{mode === "fast" ? "快充分析" : "慢充分析"}<span>展开查看</span></summary><p className="business-diagnosis-summary">{modeDiagnosis(mode)}</p></details>)}</div>
-      <details className="data-disclosure"><summary>逐站分析与编辑 <span>展开查看 {rows.length} 站</span></summary>
-      <Panel
-        title="全场站数据诊断"
-        sub="默认展示结果；需要时再添加或编辑运营分析"
-        extra="ranking"
-      >
-        <div className="diagnosis-grid">
-          {rows.map((x) => (
-            <div
-              key={x.station.name}
-              className={
-                num(x.record.chargeChange) < 0 ? "negative" : "positive"
-              }
-            >
-              <header>
-                <b>{x.station.name}</b>
-                <span>{pct(x.record.chargeChange)}</span>
-              </header>
-              <p>
-                充电量 {qty(num(x.record.charge))} kWh · 经营利润{" "}
-                {money(num(x.record.profit))}
-              </p>
-              {renderAnalysisBlock(x)}
-            </div>
-          ))}
-        </div>
-      </Panel></details>
+      <div className="business-mode-diagnoses">
+        {(["fast", "slow", "mixed", "unknown"] as const).filter((mode) => mode !== "unknown" || modeGroups.unknown.length > 0).map((mode) => (
+          <details key={mode} className="data-disclosure">
+            <summary>{mode === "fast" ? "快充分析" : mode === "slow" ? "慢充分析" : mode === "mixed" ? "快慢充混合站" : "模式待补充"}<span>展开查看 {modeGroups[mode].length} 站</span></summary>
+            {(mode === "fast" || mode === "slow") && <p className="business-diagnosis-summary">{modeDiagnosis(mode)}</p>}
+            {mode === "mixed" && <p className="business-diagnosis-summary">以下为站点总体经营分析，快慢充分类电量不在此重复累计。</p>}
+            <div className="diagnosis-grid">{modeGroups[mode].map(renderStationDiagnosis)}</div>
+          </details>
+        ))}
+      </div>
       </>}
     </>
   );
