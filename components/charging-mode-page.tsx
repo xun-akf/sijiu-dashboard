@@ -16,7 +16,7 @@ const fmt=(value:number|null,suffix="")=>value==null?"待导入分类数据":`${
 const modeName=(mode:ChargingMode)=>mode==="fast"?"快充":"慢充";
 
 export default function ChargingModePage({week,station,selectedMode,periodType,reportingNames,stationTotals,stationRecords,previousStationRecords}:Props) {
-  const [data,setData]=useState<Awaited<ReturnType<typeof loadModeData>>>({profiles:[],facts:[],calendar:[],tariffs:[],configs:{}});
+  const [data,setData]=useState<Awaited<ReturnType<typeof loadModeData>>>({profiles:[],facts:[],calendar:[],tariffs:[],configs:{},fastUnallocated:undefined});
   const [loading,setLoading]=useState(true),[error,setError]=useState("");
   const [sort,setSort]=useState<"station"|"charge"|"profit"|"utilization">("charge");
   const [query,setQuery]=useState(""),[onlyAttention,setOnlyAttention]=useState(false),[expanded,setExpanded]=useState<string|null>(null);
@@ -52,13 +52,16 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     const conflictingFact=facts.some(fact=>fact.date>=range.start&&fact.date<=range.end&&fact.mode!==soleMode);
     const inferredMode=periodType==="week"&&actualTotal!=null&&soleMode&&!conflictingFact?soleMode:null;
     const weeklySummary={charge:actualTotal,peak:legacy?.peak??null,high:legacy?.high??null,flat:legacy?.flat??null,valley:legacy?.valley??null,orders:null,days:periodDays,rows:1};
-    const fast=inferredMode==="fast"?weeklySummary:summarizeMode(facts,range.start,range.end,"fast");
+    const fastBase=inferredMode==="fast"?weeklySummary:summarizeMode(facts,range.start,range.end,"fast");
+    const adjustment=data.fastUnallocated;
+    const fastExtra=adjustment?.stationName===profile.station_name&&adjustment.weekStart>=range.start&&adjustment.weekEnd<=range.end?adjustment.charge:0;
+    const fast=fastExtra>0&&fastBase.charge!=null?{...fastBase,charge:fastBase.charge+fastExtra}:fastBase;
     const slow=inferredMode==="slow"?weeklySummary:summarizeMode(facts,range.start,range.end,"slow");
     const coverage=reconcileModes(actualTotal,fast,slow);
     const metrics=(mode:ChargingMode)=>{
       const matching=modeFactsInRange(facts,mode,range.start,range.end);
       if(inferredMode===mode)return {electricityRevenue:legacy?.electricityRevenue??null,serviceRevenue:legacy?.serviceRevenue??null,profit:legacy?.profit??null};
-      if(!matching.length)return {electricityRevenue:null,serviceRevenue:null,profit:null};
+      if(!matching.length||mode==="fast"&&fastExtra>0)return {electricityRevenue:null,serviceRevenue:null,profit:null};
       const calculated=matching.map(fact=>modeOperatingMetrics(fact,data,profile));
       const sum=(key:MoneyKey)=>calculated.every(item=>item[key]!=null)?calculated.reduce((total,item)=>total+Number(item[key]),0):null;
       return {electricityRevenue:sum("electricityRevenue"),serviceRevenue:sum("serviceRevenue"),profit:sum("profit")};
@@ -97,7 +100,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
       const summary=mode==="fast"?fast:slow,modeMetrics=mode==="fast"?fastMetrics:slowMetrics;
       return summary.charge==null||modeMetrics.profit==null;
     });
-    return {profile,fast,slow,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,previousCharge,previousService,attention};
+    return {profile,fast,slow,fastExtra,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,previousCharge,previousService,attention};
   });},[data,periodDays,periodType,priorDays,priorRange.end,priorRange.start,range.end,range.start,selectedMode,station,stationTotals,stationRecords,previousStationRecords,reportingNames]);
 
   const totals=rows.reduce((acc,row)=>({fastGuns:acc.fastGuns+Number(row.profile.fast_guns||0),slowGuns:acc.slowGuns+Number(row.profile.slow_guns||0),fastPower:acc.fastPower+Number(row.profile.fast_power_kw||0),slowPower:acc.slowPower+Number(row.profile.slow_power_kw||0),fast:acc.fast+(row.fast.charge||0),slow:acc.slow+(row.slow.charge||0),hasFast:acc.hasFast||row.fast.charge!=null,hasSlow:acc.hasSlow||row.slow.charge!=null,unknown:acc.unknown+(row.coverage.unclassified||0),knownTotals:acc.knownTotals+(row.coverage.unclassified==null?0:1),excess:acc.excess+row.coverage.excess}),{fastGuns:0,slowGuns:0,fastPower:0,slowPower:0,fast:0,slow:0,hasFast:false,hasSlow:false,unknown:0,knownTotals:0,excess:0});
@@ -151,6 +154,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     }
     if(row.profile.guns==null)fields.push("枪数");
     if(row.profile.power_kw==null)fields.push("功率");
+    if(row.fastExtra>0)fields.push(`快充 ${fmt(row.fastExtra," kWh")} 缺分时明细`);
     if(row.coverage.excess>0)fields.push("分类超出总量");
     return {name:row.profile.station_name,fields};
   }).filter(item=>item.fields.length);
@@ -188,7 +192,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
               {detailOpen&&<tr className="mode-expanded"><td colSpan={selectedMode==="all"?9:7}><div><section><b>场站信息</b><span>{row.profile.address||"地址待补充"}</span><span>运营状态：{row.profile.operation_status||"待补充"}</span></section>{keys.map(mode=>{
                 const summary=mode==="fast"?row.fast:row.slow,metrics=mode==="fast"?row.fastMetrics:row.slowMetrics,efficiency=mode==="fast"?row.fastEfficiency:row.slowEfficiency;
                 return <section key={mode}><b>{modeName(mode)}经营详情</b><span>功率 {rowValue(mode,row.profile.fast_power_kw,row.profile.slow_power_kw)||0} kW · 单枪日均 {fmt(efficiency.daily," kWh")}</span><span>尖/峰/平/谷：{fmt(summary.peak)} / {fmt(summary.high)} / {fmt(summary.flat)} / {fmt(summary.valley)}</span><span>售电收入 {fmt(metrics.electricityRevenue," 元")} · 服务费 {fmt(metrics.serviceRevenue," 元")}</span></section>;
-              })}<section><b>核验状态</b><span>{row.coverage.excess?"分类电量大于站点总量":row.coverage.unclassified==null?"站点总量待补充":`未分类 ${fmt(row.coverage.unclassified," kWh")}`}</span><span>{row.attention?"存在分类缺失或金额待核算":"分类与金额数据完整"}</span></section></div></td></tr>}
+              })}<section><b>核验状态</b><span>{row.coverage.excess?"分类电量大于站点总量":row.fastExtra>0?`快充 ${fmt(row.fastExtra," kWh")} 已计总量，分时待核`:row.coverage.unclassified==null?"站点总量待补充":`未分类 ${fmt(row.coverage.unclassified," kWh")}`}</span><span>{row.attention?"存在分类缺失或金额待核算":"分类与金额数据完整"}</span></section></div></td></tr>}
             </Fragment>;
           })}
         </tbody></table>{!visibleRows.length&&<p className="mode-empty">没有符合筛选条件的场站</p>}</div>
