@@ -5,6 +5,7 @@ import { AlertTriangle, ChevronDown, Info } from "lucide-react";
 import { calendarMonthRange, reconcileModes, summarizeMode, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
 import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
 import { calculateCalendarDay } from "@/lib/calendar-metrics";
+import { missingMetricConfigs } from "@/lib/operating-metrics";
 import { modeKeys, scopedModeSummary, selectModeNumber, type ModeScope } from "@/lib/mode-view";
 import { displayedModeMetric, sumAvailableMetrics, type StoredWeeklyResult } from "@/lib/weekly-display";
 import stationCatalog from "@/data/station-catalog-20261018.json";
@@ -130,8 +131,18 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const missing=rows.map(row=>{
     const fields:string[]=[];
     if(row.selectedCharge==null)fields.push("电量/分类");
-    if(row.selectedService==null)fields.push("服务费价格或分时电量");
-    if(row.selectedProfit==null)fields.push("售电价或购电成本");
+    if(selectedMode==="all"&&periodType==="week"){
+      const record=stationRecords[row.profile.station_name];
+      const tou=Number(record?.peak||0)+Number(record?.high||0)+Number(record?.flat||0)+Number(record?.valley||0);
+      if(record?.charge!=null&&Math.abs(record.charge-tou)>=0.01)fields.push("总量与尖峰平谷合计不符");
+      else if(row.selectedService==null||row.selectedProfit==null){
+        fields.push(...missingMetricConfigs(week,data.configs[row.profile.station_name]||{},data.configs.__monthly__||{}));
+        if(!fields.length)fields.push("经营金额待核对");
+      }
+    }else{
+      if(row.selectedService==null)fields.push(`${selectedMode==="all"?"分时":"对应模式"}服务费待核`);
+      if(row.selectedProfit==null)fields.push(`${selectedMode==="all"?"分时":"对应模式"}毛利待核`);
+    }
     if(row.profile.guns==null)fields.push("枪数");
     if(row.profile.power_kw==null)fields.push("功率");
     if(row.coverage.excess>0)fields.push("分类超出总量");

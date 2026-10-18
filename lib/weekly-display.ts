@@ -1,6 +1,10 @@
 export type StoredWeeklyResult = {
   week?: string;
   charge?: number | null;
+  peak?: number | null;
+  high?: number | null;
+  flat?: number | null;
+  valley?: number | null;
   electricityRevenue?: number | null;
   serviceRevenue?: number | null;
   profit?: number | null;
