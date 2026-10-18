@@ -899,8 +899,8 @@ export default function Home() {
               导出周报
             </button>
             {admin ? (
-              <button className="primary" onClick={publishDashboard} disabled={publishing}>
-                {publishing ? "发布中..." : "发布更新"}
+              <button className="primary" disabled title="PR #5 验收草稿与正式版隔离，禁止发布">
+                验收草稿
               </button>
             ) : null}
             <button
@@ -2779,6 +2779,22 @@ function Config({
           });
           return;
         }
+        // The source's total and TOU buckets must agree before any money is
+        // derived. Preserve both actual figures for review instead of silently
+        // pricing only the incomplete buckets.
+        const touTotal = num(record.peak) + num(record.high) + num(record.flat) + num(record.valley);
+        if (record.charge != null && Math.abs(record.charge - touTotal) >= 0.01) {
+          record.peakServiceRevenue = null;
+          record.highServiceRevenue = null;
+          record.flatServiceRevenue = null;
+          record.valleyServiceRevenue = null;
+          record.electricityRevenue = null;
+          record.serviceRevenue = null;
+          record.profit = null;
+          record.servicePerKwh = null;
+          record.electricityProfitPerKwh = null;
+          return;
+        }
         const metrics = calculateOperatingMetrics(record, stationConfig, monthly);
         record.guns = Number(stationConfig.guns) > 0 ? Number(stationConfig.guns) : null;
         record.peakServiceRevenue = metrics.periodService.peak;
@@ -2807,6 +2823,7 @@ function Config({
         const savedAliases = Object.fromEntries(stations.flatMap((station) =>
           safeJson<string[]>(({ ...emptyConfig, ...cfg[station.name] }).stationAliasesJson, []).map((alias) => [alias, station.name])));
         const builtInAliases: Record<string, string> = {
+          "蔚景云麦子酒店快充站": "蔚景云麦子酒店充电站",
           "蔚景云黄埔鱼珠智谷充电站": "黄埔鱼珠智谷充电站",
           "佛山创雄华府充电站": "麦电-佛山创雄华府充电站",
           "阳充天鹏酒店充电站": "阳充-天鹏酒店充电站",
