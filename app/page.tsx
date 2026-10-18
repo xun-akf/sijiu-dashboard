@@ -1305,16 +1305,25 @@ function OverviewTrends({
       if (!record) return total;
       const stationConfig = { ...emptyConfig, ...configs[station.name] };
       const monthlyConfig = { ...emptyConfig, ...configs.__monthly__ };
-      return total + num(calculateOperatingMetrics(record, stationConfig, monthlyConfig).periodProfit[key]);
+      const metrics = calculateOperatingMetrics(record, stationConfig, monthlyConfig);
+      if (record.profit == null || metrics.profit == null ||
+          [record.peak, record.high, record.flat, record.valley].some((value) => value == null) ||
+          Math.abs(metrics.profit - record.profit) > 0.02) return total;
+      return total + num(metrics.periodProfit[key]);
     }, 0),
-    periodProfitMatches = (index: number) => {
+    periodProfitCoverage = (index: number) => {
       const records = scope(sn).map((station) => ({ station, record: recordAt(station, index) }))
-        .filter((item): item is { station: S; record: R } => Boolean(item.record));
-      return records.length > 0 && records.every(({ station, record }) => {
+        .filter((item): item is { station: S; record: R } => Boolean(item.record && num(item.record.charge) > 0));
+      const matched = records.filter(({ station, record }) => {
         if (record.profit == null || [record.peak, record.high, record.flat, record.valley].some((v) => v == null)) return false;
         const metrics = calculateOperatingMetrics(record, { ...emptyConfig, ...configs[station.name] }, { ...emptyConfig, ...configs.__monthly__ });
         return metrics.profit != null && Math.abs(metrics.profit - record.profit) <= 0.02;
-      });
+      }).length;
+      return { matched, total: records.length };
+    },
+    periodProfitMatches = (index: number) => {
+      const coverage = periodProfitCoverage(index);
+      return coverage.total > 0 && coverage.matched === coverage.total;
     },
     profitParts = periods.map(([key, label, color]) => ({
       name: label,
@@ -1451,9 +1460,12 @@ function OverviewTrends({
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
-          {isHistoricalActualWeek(allWeeks()[wi] || "") || !periodProfitMatches(wi)
-            ? <p className="empty-note">毛利总额按已保存的经营记录统计；该周分时重算与记录未对齐或缺少分时数据，暂不展示分时毛利，待核对历史计费口径。</p>
-            : <MoneyMixComparison current={profitMix} previous={prevProfitMix} />}
+          {isHistoricalActualWeek(allWeeks()[wi] || "") || periodProfitCoverage(wi).matched === 0
+            ? <p className="empty-note">该周尚无可核对的分时毛利；毛利总额仍按已保存的经营记录统计。</p>
+            : <>
+                <p className="compact-config-summary">分时图覆盖 {periodProfitCoverage(wi).matched}/{periodProfitCoverage(wi).total} 个有电量站；其余站的分时数据或计费结果待核对。</p>
+                <MoneyMixComparison current={profitMix} previous={prevProfitMix} />
+              </>}
         </Panel>
       </div>
       <div className="trend-pair">
