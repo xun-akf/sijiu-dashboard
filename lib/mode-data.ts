@@ -13,28 +13,28 @@ export type StationProfile = {
 export type CalendarEnergyRow={station_name:string;period_start:string;granularity:"day"|"month";peak_kwh:number|null;high_kwh:number|null;flat_kwh:number|null;valley_kwh:number|null;total_kwh:number};
 async function loadCalendarEnergy(start:string,end:string) {
   const rows:CalendarEnergyRow[]=[];
-  for(let offset=0;;offset+=500){
+  for(let offset=0;;offset+=1000){
     const page=await dashboardClient.from("dashboard_station_energy_calendar")
       .select("station_name,period_start,granularity,peak_kwh,high_kwh,flat_kwh,valley_kwh,total_kwh")
       .gte("period_start",start).lte("period_start",end)
-      .order("period_start").order("station_name").range(offset,offset+499);
+      .order("period_start").order("station_name").range(offset,offset+999);
     if(page.error) throw page.error;
     rows.push(...(page.data||[]) as CalendarEnergyRow[]);
-    if((page.data||[]).length<500) return rows;
+    if((page.data||[]).length<1000) return rows;
   }
 }
 async function loadAllModeFacts(start:string,end:string) {
   type RawFact={station_name:string;charge_date:string;charging_mode:string;device_key:string;peak_kwh:number|null;high_kwh:number|null;flat_kwh:number|null;valley_kwh:number|null;total_kwh:number;orders:number|null};
   const rows:RawFact[]=[];
-  for(let offset=0;;offset+=500){
+  for(let offset=0;;offset+=1000){
     const page=await dashboardClient.from("dashboard_mode_energy")
       .select("station_name,charge_date,charging_mode,device_key,peak_kwh,high_kwh,flat_kwh,valley_kwh,total_kwh,orders")
       .gte("charge_date",start).lte("charge_date",end)
       .order("charge_date").order("station_name").order("charging_mode").order("device_key")
-      .range(offset,offset+499);
+      .range(offset,offset+999);
     if(page.error) throw page.error;
     rows.push(...(page.data || []) as RawFact[]);
-    if((page.data || []).length<500) return rows;
+    if((page.data || []).length<1000) return rows;
   }
 }
 export async function loadModeData(start: string, end: string) {

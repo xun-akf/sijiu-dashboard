@@ -89,9 +89,11 @@ export default function PeriodViews({view,week,station,selectedMode,periodType,r
   useEffect(()=>{
     let live=true;
     setData(null);setError("");
-    void loadModeData(trendRanges[0].start,current.end).then((result)=>{if(live)setData(result);}).catch((reason)=>{if(live)setError(reason instanceof Error?reason.message:"数据读取失败");});
+    // Only the trend chart needs six periods; other views use this and the previous period.
+    const firstDate=view==="trend"?trendRanges[0].start:prior.start;
+    void loadModeData(firstDate,current.end).then((result)=>{if(live)setData(result);}).catch((reason)=>{if(live)setError(reason instanceof Error?reason.message:"数据读取失败");});
     return ()=>{live=false;};
-  },[trendRanges,current.end]);
+  },[view,trendRanges,prior.start,current.end]);
   // The dashboard state's station list is already server-scoped to the signed-in account.
   const names=useMemo(()=>new Set(reportingNames.filter((name)=>station==="全部场站" || station===name)),[reportingNames,station]);
   const rows=useMemo(()=>data?buildRows(data,current,names,selectedMode,stationTotals,periodType==="week",stationRecords):[],[data,current,names,selectedMode,stationTotals,periodType,stationRecords]);
