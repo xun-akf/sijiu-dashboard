@@ -62,6 +62,8 @@ type R = {
   servicePerKwh: number | null;
   electricityProfitPerKwh: number | null;
   profit: number | null;
+  partialProfit?: number | null;
+  partialCharge?: number | null;
   peak: number | null;
   high: number | null;
   flat: number | null;
@@ -4213,7 +4215,12 @@ function BarList({
               />
             </i>
           </div>
-          <strong>{x.record.profit == null ? "待核算" : money(x.record.profit)}</strong>
+          <strong title={x.record.profit == null && x.record.partialProfit != null
+            ? `已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh；剩余电量未分类，整站毛利待核对`
+            : undefined}>
+            {x.record.profit != null ? money(x.record.profit)
+              : x.record.partialProfit != null ? `${money(x.record.partialProfit)}（部分）` : "待核算"}
+          </strong>
           <small className={num(x.record.chargeChange) >= 0 ? "up" : "down"}>
             {pct(x.record.chargeChange)}
           </small>
