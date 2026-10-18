@@ -1065,6 +1065,16 @@
 .compact-competitor-panel {
   padding: 14px 16px;
 }
+.compact-competitor-panel .panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.compact-competitor-panel .competitor-tools {
+  margin: 0;
+  gap: 10px;
+}
 .own-price-benchmark {
   display: grid;
   grid-template-columns: minmax(170px, 1.4fr) repeat(4, minmax(90px, 0.65fr));
@@ -1315,6 +1325,9 @@
 @media (max-width: 720px) {
   .compact-competitor-panel {
     padding: 12px;
+  }
+  .compact-competitor-panel .panel-title {
+    flex-wrap: wrap;
   }
   .own-price-benchmark {
     grid-template-columns: repeat(4, 1fr);
