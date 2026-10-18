@@ -479,6 +479,8 @@
   text-align: right;
   font-size: 8px;
 }
+.bar-list > div > strong { white-space: nowrap; }
+.ranking-partial-note { display: block; margin: 8px 0 0; color: #9fbbac; line-height: 1.5; }
 .bar-list div div i {
   margin-top: 4px;
 }
