@@ -45,6 +45,7 @@ import { sundaySaturdayRange } from "@/lib/charging-mode";
 import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
 import { dashboardClient } from "@/lib/dashboard-browser";
+import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -227,19 +228,25 @@ function useConfigs() {
   const [cfg, setCfg] = useState<Record<string, StationConfig>>({});
   const [loaded, setLoaded] = useState(false);
   const lastLoadedConfig = useRef<string | null>(null);
+  const operatorDraft = useRef(false);
   useEffect(() => {
     let live = true;
-    const refresh = () => dashboardFetch("/api/dashboard-state", { cache: "no-store" })
-      .then(async (response) => {
+    const refresh = () => Promise.all([
+      dashboardFetch("/api/access", { cache: "no-store" }),
+      dashboardFetch("/api/dashboard-state", { cache: "no-store" }),
+    ])
+      .then(async ([access, response]) => {
         if (!response.ok) throw new Error("共享配置读取失败");
+        operatorDraft.current = access.ok && (await access.json()).role === "operator";
         return response.json() as Promise<{ configs?: Record<string, StationConfig> }>;
       })
       .then((shared) => {
         if (live && shared.configs && Object.keys(shared.configs).length) {
-          const serialized = JSON.stringify(shared.configs);
+          const configs = operatorDraft.current ? withCompetitorWorkbook(shared.configs) : shared.configs;
+          const serialized = JSON.stringify(configs);
           if (serialized !== lastLoadedConfig.current) {
             lastLoadedConfig.current = serialized;
-            setCfg(shared.configs);
+            setCfg(configs);
           }
         }
         if (live) setLoaded(true);
@@ -253,10 +260,11 @@ function useConfigs() {
     const handleRemoteState = (event: Event) => {
       const configs = (event as CustomEvent<Record<string, StationConfig>>).detail;
       if (!configs) return;
-      const serialized = JSON.stringify(configs);
+      const next = operatorDraft.current ? withCompetitorWorkbook(configs) : configs;
+      const serialized = JSON.stringify(next);
       if (serialized !== lastLoadedConfig.current) {
         lastLoadedConfig.current = serialized;
-        setCfg(configs);
+        setCfg(next);
       }
     };
     window.addEventListener("dashboard-state-changed", handleRealtimeChange);

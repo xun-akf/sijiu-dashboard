@@ -1,0 +1,2379 @@
+{
+  "蔚景云三色林度假民宿充电站": [
+    {
+      "name": "九寨沟璞禾酒店交流桩",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.47",
+        "flat": "0.47",
+        "valley": "0.47"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.35",
+        "flat": "1.35",
+        "valley": "1.35"
+      }
+    },
+    {
+      "name": "66物联充电站(云境Horizon度假民宿)充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "66物联.格桑小院充电桩",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "九寨沟云境水韵精品民宿充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "九寨沟沐赫酒店充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    }
+  ],
+  "蔚景云山水奇境民宿充电站": [
+    {
+      "name": "九寨沟璞禾酒店交流桩",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.47",
+        "flat": "0.47",
+        "valley": "0.47"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.35",
+        "flat": "1.35",
+        "valley": "1.35"
+      }
+    },
+    {
+      "name": "66物联充电站(云境Horizon度假民宿)充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "66物联.格桑小院充电桩",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "九寨沟云境水韵精品民宿充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "九寨沟沐赫酒店充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    }
+  ],
+  "蔚景云观月雪民宿充电站": [
+    {
+      "name": "九寨沟璞禾酒店交流桩",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.47",
+        "flat": "0.47",
+        "valley": "0.47"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.35",
+        "flat": "1.35",
+        "valley": "1.35"
+      }
+    },
+    {
+      "name": "66物联充电站(云境Horizon度假民宿)充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "66物联.格桑小院充电桩",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.8",
+        "flat": "1.8",
+        "valley": "1.8"
+      }
+    },
+    {
+      "name": "九寨沟云境水韵精品民宿充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "九寨沟沐赫酒店充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.62",
+        "flat": "0.62",
+        "valley": "0.62"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.88",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    }
+  ],
+  "蔚景云丽呈望山栖酒店充电站": [
+    {
+      "name": "云快充充电站(泊云间酒店）",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.45",
+        "flat": "0.45",
+        "valley": "0.45"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.95",
+        "flat": "0.95",
+        "valley": "0.95"
+      }
+    },
+    {
+      "name": "茂县云隐江庭民宿充电站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.4",
+        "flat": "0.4",
+        "valley": "0.4"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.8",
+        "flat": "0.8",
+        "valley": "0.8"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      }
+    },
+    {
+      "name": "茂县明宇雅舍酒店（茂县古羌城店）充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.87",
+        "flat": "0.59",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.33",
+        "flat": "0.61",
+        "valley": "0.9"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      }
+    },
+    {
+      "name": "茂县易三酒店充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.44",
+        "flat": "1.44",
+        "valley": "1.44"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.05",
+        "flat": "0.05",
+        "valley": "0.05"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.49",
+        "flat": "1.49",
+        "valley": "1.49"
+      }
+    }
+  ],
+  "蔚景云上品雅园小区充电站": [
+    {
+      "name": "爱的森(万山区)网形地站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.9",
+        "flat": "0.7",
+        "valley": "0.35"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.18",
+        "flat": "0.1",
+        "valley": "0.35"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.08",
+        "flat": "0.8",
+        "valley": "0.7"
+      }
+    },
+    {
+      "name": "碧江供电局城南供电所充电站",
+      "distance": "",
+      "guns": "1",
+      "electricity": {
+        "peak": "",
+        "high": "0.6868",
+        "flat": "0.6868",
+        "valley": "0.6868"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.12",
+        "flat": "0.12",
+        "valley": "0.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.8068",
+        "flat": "0.8068",
+        "valley": "0.9868"
+      }
+    },
+    {
+      "name": "爱的森(碧江区)磨刀湾站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.75",
+        "flat": "0.54",
+        "valley": "0.28"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.4",
+        "flat": "0.31",
+        "valley": "0.37"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.15",
+        "flat": "0.85",
+        "valley": "0.65"
+      }
+    },
+    {
+      "name": "润泽科技目的地充电站(纸厂A区集资房车充)",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.73",
+        "flat": "0.73",
+        "valley": "0.73"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2",
+        "flat": "0.2",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.93",
+        "flat": "0.93",
+        "valley": "0.93"
+      }
+    }
+  ],
+  "蔚景云汉庭酒店充电站": [
+    {
+      "name": "欢致酒店火车站店",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.18",
+        "flat": "1.18",
+        "valley": "1.05"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2",
+        "flat": "0.2",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.38",
+        "flat": "1.38",
+        "valley": "1.25"
+      }
+    },
+    {
+      "name": "堡益物联(伊敏小区友电物联充电桩2充电站)",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1",
+        "flat": "1",
+        "valley": "1"
+      }
+    },
+    {
+      "name": "呼伦贝尔市嘉世豪酒店充电站)",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.68",
+        "flat": "0.68",
+        "valley": "0.68"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.82",
+        "flat": "0.82",
+        "valley": "0.82"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "龙凤新天地购物广场充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "",
+        "high": "0.8",
+        "flat": "0.8",
+        "valley": "0.8"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.4",
+        "flat": "1.4",
+        "valley": "1.4"
+      }
+    }
+  ],
+  "蔚景云汉诚酒店充电站": [
+    {
+      "name": "供销社充电站",
+      "distance": "",
+      "guns": "1",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2236",
+        "flat": "0.9953",
+        "valley": "0.767"
+      }
+    },
+    {
+      "name": "住建局停车场充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2236",
+        "flat": "0.9953",
+        "valley": "0.767"
+      }
+    },
+    {
+      "name": "汉源县金鑫大酒店充电站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "1.08",
+        "flat": "0.85",
+        "valley": "0.45"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.3",
+        "valley": "0.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.38",
+        "flat": "1.15",
+        "valley": "0.75"
+      }
+    },
+    {
+      "name": "汉源县富林镇桃坪停车场充电站二期",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.7317",
+        "flat": "0.5034",
+        "valley": "0.2751"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.45",
+        "flat": "0.45",
+        "valley": "0.45"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.1817",
+        "flat": "0.9534",
+        "valley": "0.7251"
+      }
+    },
+    {
+      "name": "文体路充电站",
+      "distance": "",
+      "guns": "10",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2236",
+        "flat": "0.9953",
+        "valley": "0.767"
+      }
+    },
+    {
+      "name": "汉沫集团充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2236",
+        "flat": "0.9953",
+        "valley": "0.767"
+      }
+    }
+  ],
+  "蔚景云禅驿黑竹沟度假酒店充电站": [
+    {
+      "name": "峨边黑竹沟景区停车场充电站",
+      "distance": "",
+      "guns": "5",
+      "electricity": {
+        "peak": "",
+        "high": "0.572",
+        "flat": "0.572",
+        "valley": "0.572"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.378",
+        "flat": "0.378",
+        "valley": "0.258"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.95",
+        "flat": "0.95",
+        "valley": "0.83"
+      }
+    },
+    {
+      "name": "峨边大堡天赐宴福停车场充电站",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "0.572",
+        "flat": "0.572",
+        "valley": "0.572"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.378",
+        "flat": "0.378",
+        "valley": "0.258"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.95",
+        "flat": "0.95",
+        "valley": "0.83"
+      }
+    },
+    {
+      "name": "大峡谷旅游景区充电站",
+      "distance": "",
+      "guns": "",
+      "electricity": {
+        "peak": "",
+        "high": "0.85",
+        "flat": "0.85",
+        "valley": "0.85"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.45",
+        "flat": "1.45",
+        "valley": "1.45"
+      }
+    },
+    {
+      "name": "骏怡连锁酒店充电站",
+      "distance": "",
+      "guns": "",
+      "electricity": {
+        "peak": "",
+        "high": "0.8",
+        "flat": "0.8",
+        "valley": "0.8"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2",
+        "flat": "0.2",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "1",
+        "flat": "1",
+        "valley": "1"
+      }
+    }
+  ],
+  "蔚景云东格尔度假酒店充电站": [
+    {
+      "name": "渝快充川主寺一念之间",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.87",
+        "flat": "0.59",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.92",
+        "flat": "1.01",
+        "valley": "1.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.79",
+        "flat": "1.6",
+        "valley": "1.6"
+      }
+    },
+    {
+      "name": "松潘金凿子文化酒店充电站(红星路南)(新))",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.04",
+        "flat": "1.04",
+        "valley": "1.04"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.05",
+        "flat": "0.05",
+        "valley": "0.05"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.09",
+        "flat": "1.09",
+        "valley": "1.09"
+      }
+    },
+    {
+      "name": "泰三能源充电站(松潘黄龙宾馆)",
+      "distance": "",
+      "guns": "3",
+      "electricity": {
+        "peak": "",
+        "high": "1.38",
+        "flat": "1.38",
+        "valley": "1.38"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.48",
+        "flat": "1.48",
+        "valley": "1.48"
+      }
+    },
+    {
+      "name": "川主寺龙沁云顶大酒店",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "1.0185",
+        "flat": "1.0185",
+        "valley": "1.0185"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.57",
+        "flat": "0.57",
+        "valley": "0.57"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5885",
+        "flat": "1.5885",
+        "valley": "1.5885"
+      }
+    }
+  ],
+  "蔚景云希尔顿欢朋酒店充电站": [
+    {
+      "name": "乐山城市更新集团顺江充电站",
+      "distance": "",
+      "guns": "7",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2236",
+        "flat": "0.9953",
+        "valley": "0.767"
+      }
+    },
+    {
+      "name": "乐山万华国际小区充电站",
+      "distance": "",
+      "guns": "20",
+      "electricity": {
+        "peak": "",
+        "high": "1",
+        "flat": "1",
+        "valley": "1"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "乐山市经信局停车场充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2",
+        "flat": "0.2",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.8",
+        "flat": "0.8",
+        "valley": "0.8"
+      }
+    },
+    {
+      "name": "桔子酒店(乐山嘉兴路美食街店)充电站",
+      "distance": "",
+      "guns": "1",
+      "electricity": {
+        "peak": "",
+        "high": "1.16",
+        "flat": "0.68",
+        "valley": "0.41"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.45",
+        "flat": "0.45",
+        "valley": "0.45"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.61",
+        "flat": "1.13",
+        "valley": "0.86"
+      }
+    }
+  ],
+  "彩虹市场慢充站(充电免停15小时)": [
+    {
+      "name": "彩虹大道民主慢充站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "1.3",
+        "flat": "1",
+        "valley": "0.72"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.4",
+        "flat": "1.1",
+        "valley": "0.82"
+      }
+    },
+    {
+      "name": "巨能宝都江堰充电站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "1.0106",
+        "flat": "0.7671",
+        "valley": "0.5979"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1389",
+        "flat": "0.1389",
+        "valley": "0.0965"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.1495",
+        "flat": "0.906",
+        "valley": "0.6944"
+      }
+    },
+    {
+      "name": "岷江公司",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      }
+    },
+    {
+      "name": "上善熙地下车库充电站",
+      "distance": "",
+      "guns": "12",
+      "electricity": {
+        "peak": "",
+        "high": "0.7",
+        "flat": "0.7",
+        "valley": "0.7"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      }
+    }
+  ],
+  "黄埔鱼珠智谷充电站": [
+    {
+      "name": "广汽能源广州黄埔茅岗祺能2号充电站",
+      "distance": "",
+      "guns": "36",
+      "electricity": {
+        "peak": "1.5",
+        "high": "1.2",
+        "flat": "0.75",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "0.1645",
+        "high": "0.1645",
+        "flat": "0.2345",
+        "valley": "0.3625"
+      },
+      "total": {
+        "peak": "1.6645",
+        "high": "1.3645",
+        "flat": "0.9845",
+        "valley": "0.6625"
+      }
+    },
+    {
+      "name": "开迈斯充电站(广州市黄埔区鱼珠地铁站直流站)",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "1.18",
+        "flat": "0.71",
+        "valley": "0.29"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.3",
+        "valley": "0.4"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.48",
+        "flat": "1.01",
+        "valley": "0.69"
+      }
+    },
+    {
+      "name": "茅岗充电站",
+      "distance": "",
+      "guns": "40",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "0.7",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.19",
+        "flat": "0.26",
+        "valley": "0.48"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.39",
+        "flat": "0.96",
+        "valley": "0.78"
+      }
+    },
+    {
+      "name": "广州港航中心二期超充站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "0.85",
+        "high": "0.85",
+        "flat": "0.85",
+        "valley": "0.85"
+      },
+      "service": {
+        "peak": "0.54",
+        "high": "0.54",
+        "flat": "0.44",
+        "valley": "0.24"
+      },
+      "total": {
+        "peak": "1.39",
+        "high": "1.39",
+        "flat": "1.29",
+        "valley": "1.09"
+      }
+    }
+  ],
+  "飞凡金堂万达充电站": [
+    {
+      "name": "特来电邮政小区充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "",
+        "high": "0.7756",
+        "flat": "0.5336",
+        "valley": "0.2916"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.313",
+        "flat": "0.313",
+        "valley": "0.313"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0886",
+        "flat": "0.8466",
+        "valley": "0.6046"
+      }
+    },
+    {
+      "name": "特来电金堂耍都充电站",
+      "distance": "",
+      "guns": "39",
+      "electricity": {
+        "peak": "",
+        "high": "0.7671",
+        "flat": "0.5251",
+        "valley": "0.2831"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.253",
+        "flat": "0.253",
+        "valley": "0.253"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0201",
+        "flat": "0.7781",
+        "valley": "0.5361"
+      }
+    },
+    {
+      "name": "金堂石化燃气超级充电站",
+      "distance": "",
+      "guns": "10",
+      "electricity": {
+        "peak": "",
+        "high": "0.73",
+        "flat": "0.55",
+        "valley": "0.35"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.15",
+        "flat": "0.15",
+        "valley": "0.15"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.88",
+        "flat": "0.7",
+        "valley": "0.5"
+      }
+    },
+    {
+      "name": "迎宾大道超充站",
+      "distance": "",
+      "guns": "32",
+      "electricity": {
+        "peak": "",
+        "high": "0.79",
+        "flat": "0.59",
+        "valley": "0.4"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.89",
+        "flat": "0.69",
+        "valley": "0.5"
+      }
+    }
+  ],
+  "飞凡龙泉万达充电站": [
+    {
+      "name": "长峡快道(永安路站)",
+      "distance": "",
+      "guns": "32",
+      "electricity": {
+        "peak": "",
+        "high": "0.73",
+        "flat": "0.5",
+        "valley": "0.27"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.33",
+        "flat": "0.3",
+        "valley": "0.26"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.06",
+        "flat": "0.8",
+        "valley": "0.53"
+      }
+    },
+    {
+      "name": "保安寺充电站",
+      "distance": "",
+      "guns": "40",
+      "electricity": {
+        "peak": "",
+        "high": "0.78",
+        "flat": "0.55",
+        "valley": "0.32"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.24",
+        "flat": "0.24",
+        "valley": "0.24"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.02",
+        "flat": "0.79",
+        "valley": "0.56"
+      }
+    },
+    {
+      "name": "蚂蚁乐园充电站",
+      "distance": "",
+      "guns": "25",
+      "electricity": {
+        "peak": "",
+        "high": "0.78",
+        "flat": "0.53",
+        "valley": "0.28"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.22",
+        "valley": "0.22"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.08",
+        "flat": "0.75",
+        "valley": "0.5"
+      }
+    },
+    {
+      "name": "云捷电龙泉红岭路超充站2期",
+      "distance": "",
+      "guns": "16",
+      "electricity": {
+        "peak": "",
+        "high": "0.87",
+        "flat": "0.61",
+        "valley": "0.38"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.15",
+        "flat": "0.15",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.02",
+        "flat": "0.76",
+        "valley": "0.58"
+      }
+    }
+  ],
+  "飞凡都江堰充电站": [
+    {
+      "name": "巨能宝都江堰鹏全充电站",
+      "distance": "",
+      "guns": "46",
+      "electricity": {
+        "peak": "",
+        "high": "1.0106",
+        "flat": "0.7671",
+        "valley": "0.5979"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1389",
+        "flat": "0.1389",
+        "valley": "0.0965"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.1495",
+        "flat": "0.906",
+        "valley": "0.6944"
+      }
+    },
+    {
+      "name": "巨能宝彩虹市场充电站",
+      "distance": "",
+      "guns": "28",
+      "electricity": {
+        "peak": "",
+        "high": "0.6849",
+        "flat": "0.5193",
+        "valley": "0.3048"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3556",
+        "flat": "0.3523",
+        "valley": "0.3556"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0405",
+        "flat": "0.8716",
+        "valley": "0.6604"
+      }
+    },
+    {
+      "name": "都江堰彩虹大道马踏飞燕站",
+      "distance": "",
+      "guns": "7",
+      "electricity": {
+        "peak": "",
+        "high": "0.9945",
+        "flat": "0.6634",
+        "valley": "0.3324"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2431",
+        "flat": "0.3485",
+        "valley": "0.411"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2376",
+        "flat": "1.0119",
+        "valley": "0.7434"
+      }
+    },
+    {
+      "name": "中国石油都江堰迎宾充电站",
+      "distance": "",
+      "guns": "20",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.22",
+        "flat": "0.22",
+        "valley": "0.22"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.9436",
+        "flat": "0.7153",
+        "valley": "0.487"
+      }
+    }
+  ],
+  "麦电-佛山创雄华府充电站": [],
+  "阳充-天鹏酒店充电站": [
+    {
+      "name": "铠悦重卡超充站",
+      "distance": "",
+      "guns": "22",
+      "electricity": {
+        "peak": "1.39",
+        "high": "1.1",
+        "flat": "0.7",
+        "valley": "0.37"
+      },
+      "service": {
+        "peak": "0.1",
+        "high": "0.1",
+        "flat": "0.16",
+        "valley": "0.14"
+      },
+      "total": {
+        "peak": "1.49",
+        "high": "1.2",
+        "flat": "0.86",
+        "valley": "0.51"
+      }
+    },
+    {
+      "name": "潮汕机场 机场路",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "1.4",
+        "high": "1",
+        "flat": "0.65",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "0.1",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "1.5",
+        "high": "1.1",
+        "flat": "0.75",
+        "valley": "0.4"
+      }
+    },
+    {
+      "name": "揭阳榕正充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "1.15",
+        "high": "1.04",
+        "flat": "0.69",
+        "valley": "0.376"
+      },
+      "service": {
+        "peak": "0.1",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.09"
+      },
+      "total": {
+        "peak": "1.25",
+        "high": "1.14",
+        "flat": "0.79",
+        "valley": "0.466"
+      }
+    },
+    {
+      "name": "惠速新能源充电桩",
+      "distance": "",
+      "guns": "10",
+      "electricity": {
+        "peak": "1.15",
+        "high": "1.05",
+        "flat": "0.7",
+        "valley": "0.376"
+      },
+      "service": {
+        "peak": "0.1",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "1.25",
+        "high": "1.15",
+        "flat": "0.8",
+        "valley": "0.476"
+      }
+    },
+    {
+      "name": "全季酒店揭阳机场店充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "1.15",
+        "high": "0.85",
+        "flat": "0.58",
+        "valley": "0.29"
+      },
+      "service": {
+        "peak": "0.2",
+        "high": "0.3",
+        "flat": "0.25",
+        "valley": "0.2"
+      },
+      "total": {
+        "peak": "1.35",
+        "high": "1.15",
+        "flat": "0.83",
+        "valley": "0.49"
+      }
+    }
+  ],
+  "大电锤一心社区充电站": [
+    {
+      "name": "理想超充站 成都海伦堡海伦春天",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.73",
+        "flat": "0.5",
+        "valley": "0.27"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.52",
+        "flat": "0.45",
+        "valley": "0.43"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.25",
+        "flat": "0.95",
+        "valley": "0.7"
+      }
+    },
+    {
+      "name": "成都天府环宇坊广场极充站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.61",
+        "flat": "0.61",
+        "valley": "0.61"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.21",
+        "flat": "1.21",
+        "valley": "1.21"
+      }
+    },
+    {
+      "name": "川港快充天府1号店站",
+      "distance": "",
+      "guns": "19",
+      "electricity": {
+        "peak": "",
+        "high": "0.77",
+        "flat": "0.527",
+        "valley": "0.284"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.3",
+        "valley": "0.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.07",
+        "flat": "0.827",
+        "valley": "0.584"
+      }
+    },
+    {
+      "name": "特来电汇源南湖公园充电站",
+      "distance": "",
+      "guns": "20",
+      "electricity": {
+        "peak": "",
+        "high": "0.7317",
+        "flat": "0.5034",
+        "valley": "0.2751"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.363",
+        "flat": "0.363",
+        "valley": "0.363"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0947",
+        "flat": "0.8664",
+        "valley": "0.6381"
+      }
+    }
+  ],
+  "雅悦蓝天酒店超充站": [
+    {
+      "name": "蓉快充成都东客站充电站",
+      "distance": "",
+      "guns": "17",
+      "electricity": {
+        "peak": "",
+        "high": "0.8536",
+        "flat": "0.6253",
+        "valley": "0.397"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.12",
+        "flat": "0.16",
+        "valley": "0.17"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.9736",
+        "flat": "0.7853",
+        "valley": "0.567"
+      }
+    },
+    {
+      "name": "成都和美公园 蔚来超充站",
+      "distance": "",
+      "guns": "10",
+      "electricity": {
+        "peak": "",
+        "high": "0.73",
+        "flat": "0.5",
+        "valley": "0.27"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.2",
+        "valley": "0.33"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.03",
+        "flat": "0.7",
+        "valley": "0.6"
+      }
+    },
+    {
+      "name": "中装天如鹏瑞利广场二期充电站",
+      "distance": "",
+      "guns": "18",
+      "electricity": {
+        "peak": "",
+        "high": "0.85",
+        "flat": "0.59",
+        "valley": "0.37"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.95",
+        "flat": "0.69",
+        "valley": "0.47"
+      }
+    },
+    {
+      "name": "中装天如鹏瑞利广场三期充电站",
+      "distance": "",
+      "guns": "24",
+      "electricity": {
+        "peak": "",
+        "high": "0.85",
+        "flat": "0.59",
+        "valley": "0.37"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.1",
+        "flat": "0.1",
+        "valley": "0.1"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.95",
+        "flat": "0.69",
+        "valley": "0.47"
+      }
+    }
+  ],
+  "蔚景云桔子酒店充电站": [
+    {
+      "name": "速来充-超级快充柳江站",
+      "distance": "",
+      "guns": "32",
+      "electricity": {
+        "peak": "",
+        "high": "1.0704",
+        "flat": "0.6551",
+        "valley": "0.362"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2696",
+        "flat": "0.2649",
+        "valley": "0.268"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.34",
+        "flat": "0.92",
+        "valley": "0.63"
+      }
+    },
+    {
+      "name": "速来充-超级快充西洋站",
+      "distance": "",
+      "guns": "32",
+      "electricity": {
+        "peak": "",
+        "high": "1.0704",
+        "flat": "0.6551",
+        "valley": "0.362"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.2696",
+        "flat": "0.2649",
+        "valley": "0.268"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.34",
+        "flat": "0.92",
+        "valley": "0.63"
+      }
+    },
+    {
+      "name": "国桩智充龙港市鸿瑞西三街充电站",
+      "distance": "",
+      "guns": "48",
+      "electricity": {
+        "peak": "",
+        "high": "0.991",
+        "flat": "0.607",
+        "valley": "0.335"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.209",
+        "flat": "0.273",
+        "valley": "0.305"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "0.88",
+        "valley": "0.64"
+      }
+    },
+    {
+      "name": "中国石化鳌江充电站",
+      "distance": "",
+      "guns": "34",
+      "electricity": {
+        "peak": "",
+        "high": "1.0311",
+        "flat": "0.6466",
+        "valley": "0.3752"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.4227",
+        "flat": "0.368",
+        "valley": "0.16"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.4538",
+        "flat": "1.0146",
+        "valley": "0.5352"
+      }
+    }
+  ],
+  "蔚景云108社温泉度假酒店充电站": [
+    {
+      "name": "石棉清利物流棉纱坝充电站",
+      "distance": "",
+      "guns": "10",
+      "electricity": {
+        "peak": "",
+        "high": "0.6782",
+        "flat": "0.4614",
+        "valley": "0.2446"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.4",
+        "flat": "0.4",
+        "valley": "0.4"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0782",
+        "flat": "0.8614",
+        "valley": "0.6446"
+      }
+    },
+    {
+      "name": "G5京昆高速石棉永利宾馆 蔚来超充站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.96",
+        "flat": "0.65",
+        "valley": "0.33"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.351",
+        "flat": "0.36",
+        "valley": "0.36"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.311",
+        "flat": "1.01",
+        "valley": "0.69"
+      }
+    },
+    {
+      "name": "川矿广场停车场腾龙翼充电站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.4514",
+        "flat": "0.4514",
+        "valley": "0.3139"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.55",
+        "flat": "0.55",
+        "valley": "0.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0014",
+        "flat": "1.0014",
+        "valley": "0.6139"
+      }
+    }
+  ],
+  "蔚景云朵兰达S酒店超充站": [
+    {
+      "name": "中石油九寨沟漳扎充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.7",
+        "flat": "0.7",
+        "valley": "0.7"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      }
+    },
+    {
+      "name": "九寨沟英迪格酒店停车场充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.9368",
+        "flat": "0.6312",
+        "valley": "0.3256"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5368",
+        "flat": "1.2312",
+        "valley": "0.9256"
+      }
+    },
+    {
+      "name": "九寨沟鲁能希尔顿酒店充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "",
+        "high": "0.9368",
+        "flat": "0.6312",
+        "valley": "0.3256"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5368",
+        "flat": "1.2312",
+        "valley": "0.9256"
+      }
+    }
+  ],
+  "蔚景云亚朵酒店充电站": [
+    {
+      "name": "特来电（华润24城）",
+      "distance": "",
+      "guns": "41",
+      "electricity": {
+        "peak": "",
+        "high": "0.7317",
+        "flat": "0.5034",
+        "valley": "0.2751"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.113",
+        "flat": "0.153",
+        "valley": "0.163"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.8447",
+        "flat": "0.6564",
+        "valley": "0.4381"
+      }
+    },
+    {
+      "name": "逸安启超充站（成都万象城）",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "",
+        "high": "0.66",
+        "flat": "0.66",
+        "valley": "0.66"
+      },
+      "service": {
+        "peak": "",
+        "high": "1.1",
+        "flat": "1.1",
+        "valley": "0.88"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.76",
+        "flat": "1.76",
+        "valley": "1.54"
+      }
+    },
+    {
+      "name": "新电途水碾河充电站",
+      "distance": "",
+      "guns": "66",
+      "electricity": {
+        "peak": "",
+        "high": "0.83",
+        "flat": "0.6",
+        "valley": "0.37"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.15",
+        "flat": "0.15",
+        "valley": "0.15"
+      },
+      "total": {
+        "peak": "",
+        "high": "0.98",
+        "flat": "0.75",
+        "valley": "0.52"
+      }
+    }
+  ],
+  "蔚景云松潘火车站超充站": [
+    {
+      "name": "中石油阿坝松潘充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.7",
+        "flat": "0.7",
+        "valley": "0.7"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.4236",
+        "flat": "1.1953",
+        "valley": "0.967"
+      }
+    },
+    {
+      "name": "松潘古城游客中心充电站",
+      "distance": "",
+      "guns": "16",
+      "electricity": {
+        "peak": "",
+        "high": "0.9368",
+        "flat": "0.6312",
+        "valley": "0.3256"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5368",
+        "flat": "1.2312",
+        "valley": "0.9256"
+      }
+    }
+  ],
+  "蔚景云古尔沟卓邸康钦酒店充电站": [
+    {
+      "name": "渝快充理县神峰初见温泉酒店充电站",
+      "distance": "",
+      "guns": "2",
+      "electricity": {
+        "peak": "",
+        "high": "0.87",
+        "flat": "0.59",
+        "valley": "0.3"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.63",
+        "flat": "0.91",
+        "valley": "1.2"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    },
+    {
+      "name": "电动汽车充电站（理县服务区站）",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "0.72",
+        "flat": "0.5",
+        "valley": "0.27"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.8",
+        "flat": "0.8",
+        "valley": "0.8"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.52",
+        "flat": "1.3",
+        "valley": "1.07"
+      }
+    },
+    {
+      "name": "古尔沟镇醉佳温泉酒店充电站",
+      "distance": "",
+      "guns": "4",
+      "electricity": {
+        "peak": "",
+        "high": "1.2",
+        "flat": "1.2",
+        "valley": "1.2"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.3",
+        "flat": "0.3",
+        "valley": "0.3"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5",
+        "flat": "1.5",
+        "valley": "1.5"
+      }
+    }
+  ],
+  "蔚景云麦子酒店充电站": [
+    {
+      "name": "中石油阿坝松潘充电站",
+      "distance": "",
+      "guns": "6",
+      "electricity": {
+        "peak": "",
+        "high": "0.7236",
+        "flat": "0.4953",
+        "valley": "0.267"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.7",
+        "flat": "0.7",
+        "valley": "0.7"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.4236",
+        "flat": "1.1953",
+        "valley": "0.967"
+      }
+    },
+    {
+      "name": "松潘古城游客中心充电站",
+      "distance": "",
+      "guns": "16",
+      "electricity": {
+        "peak": "",
+        "high": "0.9368",
+        "flat": "0.6312",
+        "valley": "0.3256"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.6",
+        "flat": "0.6",
+        "valley": "0.6"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.5368",
+        "flat": "1.2312",
+        "valley": "0.9256"
+      }
+    },
+    {
+      "name": "中石油阿坝新黄龙充电站",
+      "distance": "",
+      "guns": "8",
+      "electricity": {
+        "peak": "",
+        "high": "0.72",
+        "flat": "0.5",
+        "valley": "0.27"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.71",
+        "flat": "0.69",
+        "valley": "0.67"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.43",
+        "flat": "1.19",
+        "valley": "0.94"
+      }
+    }
+  ],
+  "蔚景云海螺镇重卡站": [
+    {
+      "name": "特来电普洛斯天府机场充电站",
+      "distance": "",
+      "guns": "26",
+      "electricity": {
+        "peak": "",
+        "high": "0.7317",
+        "flat": "0.5034",
+        "valley": "0.2751"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.363",
+        "flat": "0.393",
+        "valley": "0.433"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.0947",
+        "flat": "0.8964",
+        "valley": "0.7081"
+      }
+    },
+    {
+      "name": "天府国际机场公共停车场西区充电站",
+      "distance": "",
+      "guns": "26",
+      "electricity": {
+        "peak": "",
+        "high": "0.5",
+        "flat": "0.5",
+        "valley": "0.5"
+      },
+      "service": {
+        "peak": "",
+        "high": "0.64",
+        "flat": "0.64",
+        "valley": "0.64"
+      },
+      "total": {
+        "peak": "",
+        "high": "1.14",
+        "flat": "1.14",
+        "valley": "1.14"
+      }
+    }
+  ],
+  "蔚景云求吉乡快充站": []
+}
