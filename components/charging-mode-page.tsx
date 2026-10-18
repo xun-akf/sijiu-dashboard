@@ -116,7 +116,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const serviceRevenue=serviceCoverage.value,electricityRevenue=electricityCoverage.value,profit=profitCoverage.value;
   const revenue=electricityRevenue!=null&&serviceRevenue!=null?electricityRevenue+serviceRevenue:null;
   const margin=profit!=null&&revenue!=null&&revenue>0?profit/revenue*100:null;
-  const daily=scopedCharge!=null&&scopedGuns>0?scopedCharge/scopedGuns/periodDays:null;
+  const daily=!incompleteMonth&&scopedCharge!=null&&scopedGuns>0?scopedCharge/scopedGuns/periodDays:null;
   const utilization=qualifiedPower>0?qualifiedCharge/qualifiedPower/24/periodDays*100:null;
   const comparison=(current:"selectedCharge"|"selectedService",previous:"previousCharge"|"previousService")=>{
     const comparable=rows.filter(row=>row[current]!=null&&row[previous]!=null&&Number(row[previous])>0);
@@ -153,7 +153,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
         <div><span>充电量 <Info size={12}/></span><strong>{fmt(scopedCharge," kWh")}</strong><small>{changeText(chargeChange)}</small></div>
         <div><span>服务费收入 <Info size={12}/></span><strong>{fmt(serviceRevenue," 元")}</strong><small>{changeText(serviceChange)} · 可核算 {serviceCoverage.available}/{serviceCoverage.total}站</small></div>
         <div className="highlight"><span>经营毛利 <Info size={12}/></span><strong>{fmt(profit," 元")}</strong><small>毛利率 {margin==null?"待核算":`${margin.toFixed(1)}%`} · 可核算 {profitCoverage.available}/{profitCoverage.total}站</small></div>
-        <div><span>单枪日均</span><strong>{fmt(daily," kWh")}</strong><small>枪利用率 {utilization==null?"待完整运营数据":`${utilization.toFixed(1)}%`} · {qualified.length}组完整运营设备</small></div>
+        <div><span>单枪日均</span><strong>{incompleteMonth?"待完整月数据":fmt(daily," kWh")}</strong><small>枪利用率 {utilization==null?"待完整运营数据":`${utilization.toFixed(1)}%`} · {qualified.length}组完整运营设备</small></div>
         <div><span>枪数</span><strong>{scopedGuns}</strong><small>设备功率 {scopedPower.toLocaleString("zh-CN")} kW</small></div>
       </div>
       <p className="mode-revenue-note">售电收入 {fmt(electricityRevenue," 元")} · 可核算 {electricityCoverage.available}/{electricityCoverage.total}站{serviceCoverage.available<serviceCoverage.total||profitCoverage.available<profitCoverage.total?" · 收入与毛利为有数据站点小计":""}</p>
