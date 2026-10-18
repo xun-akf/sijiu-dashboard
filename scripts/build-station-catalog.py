@@ -19,6 +19,13 @@ aliases = {
     "阳充天鹏酒店充电站": "阳充-天鹏酒店充电站",
     "蔚景云雅悦蓝天酒店超充站": "雅悦蓝天酒店超充站",
 }
+excluded_stations = {
+    "蔚景云中和执法大队充电站",
+    "蔚景云浮生半日闲清居充电站",
+    "蔚景云迎宾路慢充站",
+    "蔚景云阿嘎山居民宿充电站",
+    "宜宾市生态环境局充电站",
+}
 
 def parts(value):
     result = []
@@ -43,6 +50,8 @@ for row in list(sheet.values)[2:]:
     if not row[0]:
         continue
     source_id,name,region,operator,operation,address,power,fast_power,slow_power,guns,fast_guns,slow_guns,_,status,_,electricity,service,opened,_ = row
+    if name in excluded_stations:
+        continue
     profile = {
         "sourceStationId": str(source_id), "name": aliases.get(name,name),
         "sourceName": name, "matchRequiresReview": name in aliases,
@@ -64,11 +73,9 @@ for row in list(sheet.values)[2:]:
     if name == "雅悦蓝天酒店慢充站（地下室负二）":
         profile["matchRequiresReview"] = False
         profile.update(powerKw=469,fastPowerKw=0,slowPowerKw=469,guns=67,fastGuns=0,slowGuns=67)
-    if name == "蔚景云中和执法大队充电站":
-        profile["status"] = "正常运行"
     profile["matchRequiresReview"] = False
     result.append(profile)
 
-assert len(result)==40
+assert len(result)==35
 target.parent.mkdir(parents=True, exist_ok=True)
 target.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
