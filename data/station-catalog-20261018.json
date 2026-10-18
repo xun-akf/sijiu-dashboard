@@ -10,9 +10,9 @@
     "address": "四川省成都市都江堰市奎光塔街道玖度·阳光",
     "openedAt": "2025-04-03 18:18:02",
     "status": "正常运行",
-    "powerKw": 2400.0,
-    "fastPowerKw": 2400.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 2400,
+    "fastPowerKw": 2400,
+    "slowPowerKw": 0,
     "guns": 20,
     "fastGuns": 20,
     "slowGuns": 0,
@@ -93,9 +93,9 @@
     "address": "四川省成都市金堂县赵镇街道万泰北街万达广场(成都金堂店)",
     "openedAt": "2025-04-07 18:20:48",
     "status": "正常运行",
-    "powerKw": 1440.0,
-    "fastPowerKw": 1440.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 1440,
+    "fastPowerKw": 1440,
+    "slowPowerKw": 0,
     "guns": 14,
     "fastGuns": 14,
     "slowGuns": 0,
@@ -176,9 +176,9 @@
     "address": "四川省成都市龙泉驿区龙泉街道永安路万达广场停车场",
     "openedAt": "2025-04-07 18:37:40",
     "status": "正常运行",
-    "powerKw": 1200.0,
-    "fastPowerKw": 1200.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 1200,
+    "fastPowerKw": 1200,
+    "slowPowerKw": 0,
     "guns": 20,
     "fastGuns": 20,
     "slowGuns": 0,
@@ -259,9 +259,9 @@
     "address": "广东省佛山市三水区西南街道创雄华府",
     "openedAt": "2025-07-07 15:29:18",
     "status": "正常运行",
-    "powerKw": 171.0,
-    "fastPowerKw": 80.0,
-    "slowPowerKw": 91.0,
+    "powerKw": 171,
+    "fastPowerKw": 80,
+    "slowPowerKw": 91,
     "guns": 10,
     "fastGuns": 1,
     "slowGuns": 9,
@@ -342,9 +342,9 @@
     "address": "广东省广州市黄埔区鱼珠街道茅岗南路9号鱼珠智谷E-PARK",
     "openedAt": "2025-08-01 15:47:19",
     "status": "正常运行",
-    "powerKw": 720.0,
-    "fastPowerKw": 720.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 720,
+    "fastPowerKw": 720,
+    "slowPowerKw": 0,
     "guns": 12,
     "fastGuns": 12,
     "slowGuns": 0,
@@ -504,9 +504,9 @@
     "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇544国道",
     "openedAt": "2025-07-26 17:00:43",
     "status": "正常运行",
-    "powerKw": 28.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 28.0,
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
     "guns": 3,
     "fastGuns": 0,
     "slowGuns": 3,
@@ -553,9 +553,9 @@
     "address": "四川省成都市锦江区牛市口街道顺江苑天府国际",
     "openedAt": "2025-07-26 18:59:40",
     "status": "正常运行",
-    "powerKw": 35.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 35.0,
+    "powerKw": 35,
+    "fastPowerKw": 0,
+    "slowPowerKw": 35,
     "guns": 5,
     "fastGuns": 0,
     "slowGuns": 5,
@@ -602,9 +602,9 @@
     "address": "浙江省温州市龙港市龙港市汉庭酒店(泰安路店)置信名都",
     "openedAt": "2025-07-26 19:01:58",
     "status": "正常运行",
-    "powerKw": 176.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 56.0,
+    "powerKw": 176,
+    "fastPowerKw": 120,
+    "slowPowerKw": 56,
     "guns": 10,
     "fastGuns": 2,
     "slowGuns": 8,
@@ -672,7 +672,7 @@
             },
             {
               "period": "平",
-              "rate": 1.0,
+              "rate": 1,
               "times": [
                 "8:00-10:00",
                 "12:00-17:00"
@@ -722,9 +722,9 @@
     "address": "四川省雅安市石棉县新棉街道石棉桐去108社私汤度假酒店",
     "openedAt": "2025-07-26 19:07:06",
     "status": "正常运行",
-    "powerKw": 120.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
     "guns": 2,
     "fastGuns": 2,
     "slowGuns": 0,
@@ -771,9 +771,9 @@
     "address": "四川省成都市锦江区锦官驿街道欧来嘉宾馆欧来嘉酒店(成都太古里店)",
     "openedAt": "2025-07-26 19:55:24",
     "status": "正常运行",
-    "powerKw": 42.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 42.0,
+    "powerKw": 42,
+    "fastPowerKw": 0,
+    "slowPowerKw": 42,
     "guns": 6,
     "fastGuns": 0,
     "slowGuns": 6,
@@ -820,9 +820,9 @@
     "address": "四川省乐山市市中区绿心街道瑞祥路1019号锦绣星城",
     "openedAt": "2025-07-26 19:57:21",
     "status": "正常运行",
-    "powerKw": 112.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 112.0,
+    "powerKw": 112,
+    "fastPowerKw": 0,
+    "slowPowerKw": 112,
     "guns": 10,
     "fastGuns": 0,
     "slowGuns": 10,
@@ -881,104 +881,6 @@
     "effectiveFrom": "2026-10-18"
   },
   {
-    "sourceStationId": "122170",
-    "name": "蔚景云阿嘎山居民宿充电站",
-    "sourceName": "蔚景云阿嘎山居民宿充电站",
-    "matchRequiresReview": false,
-    "region": "九寨沟县",
-    "operator": "蔚铭充",
-    "operationType": "加盟",
-    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇九园春精品民宿九寨沟悦途酒店",
-    "openedAt": "2025-07-28 12:21:15",
-    "status": "正常运行",
-    "powerKw": 14.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 14.0,
-    "guns": 2,
-    "fastGuns": 0,
-    "slowGuns": 2,
-    "tariffs": {
-      "electricity": [
-        {
-          "name": "九寨沟阿嘎山居民宿",
-          "windows": [
-            {
-              "period": "标准电费",
-              "rate": 1.4,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ],
-      "service": [
-        {
-          "name": "九寨沟阿嘎山居民宿",
-          "windows": [
-            {
-              "period": "服务费",
-              "rate": 0.1,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "effectiveFrom": "2026-10-18"
-  },
-  {
-    "sourceStationId": "122171",
-    "name": "蔚景云浮生半日闲清居充电站",
-    "sourceName": "蔚景云浮生半日闲清居充电站",
-    "matchRequiresReview": false,
-    "region": "九寨沟县",
-    "operator": "蔚铭充",
-    "operationType": "加盟",
-    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇浮生半日闲清居(九寨沟景区游客中心店)",
-    "openedAt": "2025-07-28 12:24:17",
-    "status": "正常运行",
-    "powerKw": 14.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 14.0,
-    "guns": 2,
-    "fastGuns": 0,
-    "slowGuns": 2,
-    "tariffs": {
-      "electricity": [
-        {
-          "name": "九寨沟浮生半日闲清居酒店",
-          "windows": [
-            {
-              "period": "标准电费",
-              "rate": 1.4,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ],
-      "service": [
-        {
-          "name": "九寨沟浮生半日闲清居酒店",
-          "windows": [
-            {
-              "period": "服务费",
-              "rate": 0.1,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "effectiveFrom": "2026-10-18"
-  },
-  {
     "sourceStationId": "123045",
     "name": "蔚景云上品雅园小区充电站",
     "sourceName": "蔚景云上品雅园小区充电站",
@@ -989,9 +891,9 @@
     "address": "贵州省铜仁市碧江区河西街道上品雅园",
     "openedAt": "2025-08-06 10:16:11",
     "status": "正常运行",
-    "powerKw": 42.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 42.0,
+    "powerKw": 42,
+    "fastPowerKw": 0,
+    "slowPowerKw": 42,
     "guns": 6,
     "fastGuns": 0,
     "slowGuns": 6,
@@ -1028,79 +930,6 @@
     "effectiveFrom": "2026-10-18"
   },
   {
-    "sourceStationId": "124486",
-    "name": "蔚景云迎宾路慢充站",
-    "sourceName": "蔚景云迎宾路慢充站",
-    "matchRequiresReview": false,
-    "region": "都江堰市",
-    "operator": "蔚铭充",
-    "operationType": "加盟",
-    "address": "四川省成都市都江堰市幸福街道彩虹一苑集能燃气CNG加气站",
-    "openedAt": "2025-08-24 18:06:24",
-    "status": "正常运行",
-    "powerKw": 42.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 42.0,
-    "guns": 6,
-    "fastGuns": 0,
-    "slowGuns": 6,
-    "tariffs": {
-      "electricity": [
-        {
-          "name": "都江堰德星瑞充电站",
-          "windows": [
-            {
-              "period": "峰",
-              "rate": 1.1,
-              "times": [
-                "11:00-18:00",
-                "20:00-23:00"
-              ]
-            },
-            {
-              "period": "平",
-              "rate": 0.9,
-              "times": [
-                "0:00-1:00",
-                "7:00-11:00",
-                "18:00-20:00",
-                "23:00-24:00"
-              ]
-            },
-            {
-              "period": "谷",
-              "rate": 0.598,
-              "times": [
-                "1:00-7:00"
-              ]
-            }
-          ]
-        }
-      ],
-      "service": [
-        {
-          "name": "都江堰德星瑞充电站",
-          "windows": [
-            {
-              "period": "服务费",
-              "rate": 0.1,
-              "times": [
-                "0:00-1:00",
-                "1:00-7:00",
-                "7:00-11:00",
-                "11:00-18:00",
-                "18:00-20:00",
-                "20:00-23:00",
-                "23:00-24:00"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "effectiveFrom": "2026-10-18"
-  },
-  {
     "sourceStationId": "124487",
     "name": "蔚景云江上名都酒店充电站",
     "sourceName": "蔚景云江上名都酒店充电站",
@@ -1111,9 +940,9 @@
     "address": "四川省成都市都江堰市灌口街道江东街37号都江堰江上名都酒店",
     "openedAt": "2025-08-24 18:13:20",
     "status": "正常运行",
-    "powerKw": 91.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 91.0,
+    "powerKw": 91,
+    "fastPowerKw": 0,
+    "slowPowerKw": 91,
     "guns": 9,
     "fastGuns": 0,
     "slowGuns": 9,
@@ -1160,9 +989,9 @@
     "address": "四川省成都市都江堰市幸福街道安澜骏景彩虹综合市场",
     "openedAt": "2025-09-09 19:51:31",
     "status": "正常运行",
-    "powerKw": 77.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 77.0,
+    "powerKw": 77,
+    "fastPowerKw": 0,
+    "slowPowerKw": 77,
     "guns": 11,
     "fastGuns": 0,
     "slowGuns": 11,
@@ -1231,9 +1060,9 @@
     "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇九寨沟山水奇境民宿",
     "openedAt": "2025-09-14 17:04:47",
     "status": "正常运行",
-    "powerKw": 21.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
     "guns": 3,
     "fastGuns": 0,
     "slowGuns": 3,
@@ -1270,55 +1099,6 @@
     "effectiveFrom": "2026-10-18"
   },
   {
-    "sourceStationId": "128261",
-    "name": "宜宾市生态环境局充电站",
-    "sourceName": "宜宾市生态环境局充电站",
-    "matchRequiresReview": false,
-    "region": "叙州区",
-    "operator": "蔚铭充",
-    "operationType": "加盟",
-    "address": "四川省宜宾市叙州区赵场街道金沙江南路东段109号宜宾市人民检察院",
-    "openedAt": "2025-09-17 17:57:43",
-    "status": "正常运行",
-    "powerKw": 229.0,
-    "fastPowerKw": 180.0,
-    "slowPowerKw": 49.0,
-    "guns": 13,
-    "fastGuns": 6,
-    "slowGuns": 7,
-    "tariffs": {
-      "electricity": [
-        {
-          "name": "宜宾生态环境局",
-          "windows": [
-            {
-              "period": "标准电费",
-              "rate": 0.77,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ],
-      "service": [
-        {
-          "name": "宜宾生态环境局",
-          "windows": [
-            {
-              "period": "服务费",
-              "rate": 0.03,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "effectiveFrom": "2026-10-18"
-  },
-  {
     "sourceStationId": "128649",
     "name": "蔚景云朵兰达S酒店超充站",
     "sourceName": "蔚景云朵兰达S酒店超充站",
@@ -1329,9 +1109,9 @@
     "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇漳扎社区居委会见九寨",
     "openedAt": "2025-09-20 14:44:12",
     "status": "正常运行",
-    "powerKw": 369.0,
-    "fastPowerKw": 320.0,
-    "slowPowerKw": 49.0,
+    "powerKw": 369,
+    "fastPowerKw": 320,
+    "slowPowerKw": 49,
     "guns": 10,
     "fastGuns": 4,
     "slowGuns": 6,
@@ -1446,9 +1226,9 @@
     "address": "四川省成都市郫都区合作街道星程酒店(犀浦百草路店)金辉悦府优跃",
     "openedAt": "2025-09-21 20:05:58",
     "status": "正常运行",
-    "powerKw": 28.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 28.0,
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
     "guns": 4,
     "fastGuns": 0,
     "slowGuns": 4,
@@ -1495,9 +1275,9 @@
     "address": "四川省成都市郫都区合作街道百草路成都高新技术产业开发区(西区)",
     "openedAt": "2025-09-21 20:07:46",
     "status": "正常运行",
-    "powerKw": 21.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
     "guns": 3,
     "fastGuns": 0,
     "slowGuns": 3,
@@ -1544,9 +1324,9 @@
     "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇沙坝",
     "openedAt": "2025-11-19 11:02:11",
     "status": "正常运行",
-    "powerKw": 14.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 14.0,
+    "powerKw": 14,
+    "fastPowerKw": 0,
+    "slowPowerKw": 14,
     "guns": 2,
     "fastGuns": 0,
     "slowGuns": 2,
@@ -1593,9 +1373,9 @@
     "address": "四川省成都市成华区保和街道雅悦蓝天酒店弘创名座",
     "openedAt": "2025-12-14 09:56:43",
     "status": "正常运行",
-    "powerKw": 1080.0,
-    "fastPowerKw": 1080.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 1080,
+    "fastPowerKw": 1080,
+    "slowPowerKw": 0,
     "guns": 18,
     "fastGuns": 18,
     "slowGuns": 0,
@@ -1664,9 +1444,9 @@
     "address": "四川省成都市成华区双桥子街道双桥社区",
     "openedAt": "2025-12-14 10:14:12",
     "status": "正常运行",
-    "powerKw": 176.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 56.0,
+    "powerKw": 176,
+    "fastPowerKw": 120,
+    "slowPowerKw": 56,
     "guns": 10,
     "fastGuns": 2,
     "slowGuns": 8,
@@ -1781,9 +1561,9 @@
     "address": "四川省雅安市汉源县富林镇汉源县汉诚酒店清洁明珠酒店",
     "openedAt": "2025-12-14 10:18:49",
     "status": "正常运行",
-    "powerKw": 141.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 141,
+    "fastPowerKw": 120,
+    "slowPowerKw": 21,
     "guns": 5,
     "fastGuns": 2,
     "slowGuns": 3,
@@ -1809,55 +1589,6 @@
             {
               "period": "服务费",
               "rate": 0.1,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    "effectiveFrom": "2026-10-18"
-  },
-  {
-    "sourceStationId": "145238",
-    "name": "蔚景云中和执法大队充电站",
-    "sourceName": "蔚景云中和执法大队充电站",
-    "matchRequiresReview": false,
-    "region": "双流区",
-    "operator": "蔚铭充",
-    "operationType": "加盟",
-    "address": "四川省成都市双流区中和街道国瑞家园成都高新技术产业开发区(南区)",
-    "openedAt": "2026-01-22 11:54:03",
-    "status": "正常运行",
-    "powerKw": 1560.0,
-    "fastPowerKw": 1560.0,
-    "slowPowerKw": 0.0,
-    "guns": 18,
-    "fastGuns": 18,
-    "slowGuns": 0,
-    "tariffs": {
-      "electricity": [
-        {
-          "name": "中和执法大队",
-          "windows": [
-            {
-              "period": "标准电费",
-              "rate": 1.0,
-              "times": [
-                "0:00-24:00"
-              ]
-            }
-          ]
-        }
-      ],
-      "service": [
-        {
-          "name": "中和执法大队",
-          "windows": [
-            {
-              "period": "服务费",
-              "rate": 0.2,
               "times": [
                 "0:00-24:00"
               ]
@@ -1950,9 +1681,9 @@
     "address": "四川省阿坝藏族羌族自治州理县古尔沟镇317国道",
     "openedAt": "2026-04-22 11:18:48",
     "status": "正常运行",
-    "powerKw": 120.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
     "guns": 2,
     "fastGuns": 2,
     "slowGuns": 0,
@@ -2021,9 +1752,9 @@
     "address": "四川省成都市邛崃市桑园镇谢家坝大桥",
     "openedAt": "2026-04-22 12:09:57",
     "status": "正常运行",
-    "powerKw": 56.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 56.0,
+    "powerKw": 56,
+    "fastPowerKw": 0,
+    "slowPowerKw": 56,
     "guns": 8,
     "fastGuns": 0,
     "slowGuns": 8,
@@ -2070,9 +1801,9 @@
     "address": "四川省甘孜藏族自治州稻城县金珠镇德西路二段稻城旺吉大酒店",
     "openedAt": "2026-05-21 17:26:19",
     "status": "正常运行",
-    "powerKw": 254.0,
-    "fastPowerKw": 240.0,
-    "slowPowerKw": 14.0,
+    "powerKw": 254,
+    "fastPowerKw": 240,
+    "slowPowerKw": 14,
     "guns": 6,
     "fastGuns": 4,
     "slowGuns": 2,
@@ -2187,9 +1918,9 @@
     "address": "四川省成都市简阳市海螺镇168乡道",
     "openedAt": "2026-06-05 10:46:35",
     "status": "正常运行",
-    "powerKw": 240.0,
-    "fastPowerKw": 240.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 240,
+    "fastPowerKw": 240,
+    "slowPowerKw": 0,
     "guns": 2,
     "fastGuns": 2,
     "slowGuns": 0,
@@ -2258,9 +1989,9 @@
     "address": "四川省阿坝藏族羌族自治州松潘县进安镇顺兴汽修厂",
     "openedAt": "2026-06-05 10:49:48",
     "status": "正常运行",
-    "powerKw": 148.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 28.0,
+    "powerKw": 148,
+    "fastPowerKw": 120,
+    "slowPowerKw": 28,
     "guns": 4,
     "fastGuns": 2,
     "slowGuns": 2,
@@ -2279,7 +2010,7 @@
             },
             {
               "period": "平",
-              "rate": 1.0,
+              "rate": 1,
               "times": [
                 "8:00-10:00",
                 "12:00-17:00"
@@ -2329,9 +2060,9 @@
     "address": "四川省阿坝藏族羌族自治州松潘县川主寺镇544国道松潘东格尔国际度假酒店",
     "openedAt": "2026-06-18 21:22:47",
     "status": "正常运行",
-    "powerKw": 28.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 28.0,
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
     "guns": 4,
     "fastGuns": 0,
     "slowGuns": 4,
@@ -2400,9 +2131,9 @@
     "address": "四川省阿坝藏族羌族自治州茂县凤仪镇菲雪尔蛋糕屋",
     "openedAt": "2026-06-18 21:26:19",
     "status": "正常运行",
-    "powerKw": 21.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
     "guns": 3,
     "fastGuns": 0,
     "slowGuns": 3,
@@ -2449,9 +2180,9 @@
     "address": "四川省阿坝藏族羌族自治州若尔盖县求吉乡九若路水吧仓民宿",
     "openedAt": "2026-07-25 11:10:08",
     "status": "正常运行",
-    "powerKw": 120.0,
-    "fastPowerKw": 120.0,
-    "slowPowerKw": 0.0,
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
     "guns": 2,
     "fastGuns": 2,
     "slowGuns": 0,
@@ -2498,9 +2229,9 @@
     "address": "四川省乐山市峨边彝族自治县黑竹沟镇峨边禅驿·黑竹沟度假酒店",
     "openedAt": "2026-09-17 11:19:20",
     "status": "正常运行",
-    "powerKw": 21.0,
-    "fastPowerKw": 0.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
     "guns": 3,
     "fastGuns": 0,
     "slowGuns": 3,
@@ -2547,9 +2278,9 @@
     "address": "广东省揭阳市榕城区登岗镇天鹏酒店(东南门)揭阳天鹏酒店",
     "openedAt": "2025-12-31 17:26:35",
     "status": "正常运行",
-    "powerKw": 501.0,
-    "fastPowerKw": 480.0,
-    "slowPowerKw": 21.0,
+    "powerKw": 501,
+    "fastPowerKw": 480,
+    "slowPowerKw": 21,
     "guns": 13,
     "fastGuns": 10,
     "slowGuns": 3,
