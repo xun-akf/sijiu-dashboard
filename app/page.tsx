@@ -978,6 +978,9 @@ function Filters({
 }) {
   const [stationSearchOpen, setStationSearchOpen] = useState(false);
   const [stationQuery, setStationQuery] = useState("");
+  useEffect(() => { setStationQuery(sn === "全部场站" ? "" : sn); }, [sn]);
+  const matchingStations = stations.filter((station) => station.name.includes(stationQuery.trim()));
+  const chooseStation = (name: string) => { setSn(name); setStationQuery(name === "全部场站" ? "" : name); setStationSearchOpen(false); };
   const weeks=allWeeks();
   const months=[...new Set(weeks.map((w)=>w.match(/^(\d{4}年\d{1,2}月)/)?.[1]).filter((x):x is string=>Boolean(x)))];
   const selectedMonth=weeks[wi]?.match(/^(\d{4}年\d{1,2}月)/)?.[1] || months.at(-1) || "";
@@ -1001,19 +1004,18 @@ function Filters({
         <select value={operatorFilter} onChange={(e)=>setOperatorFilter(e.target.value)}><option>全部运营商</option>{operatorOptions.map((name)=><option key={name}>{name}</option>)}</select>
         <ChevronDown />
       </label>
-      <label className="station-filter-label">
+      <div className="station-filter-label">
         <span>场站范围</span>
-        <select value={sn} onChange={(e) => setSn(e.target.value)} aria-label="场站范围">
-          <option>全部场站</option>
-          {stations.filter((s) => !stationSearchOpen || !stationQuery || s.name.includes(stationQuery) || s.name === sn).map((s) => (
-            <option key={s.name}>{s.name}</option>
-          ))}
-        </select>
-        <ChevronDown />
-      </label>
-      <div className="station-search-control">
-        <button type="button" aria-label="搜索场站" aria-expanded={stationSearchOpen} onClick={() => { setStationSearchOpen((open) => !open); setStationQuery(""); }}><Search /></button>
-        {stationSearchOpen && <input aria-label="输入场站名称搜索" value={stationQuery} onChange={(e) => setStationQuery(e.target.value)} placeholder="搜索场站" />}
+        <div className="station-search-control" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setStationSearchOpen(false); }}>
+          <Search aria-hidden="true" />
+          <input aria-label="搜索或选择场站" role="combobox" aria-expanded={stationSearchOpen} aria-controls="station-search-options" value={stationQuery} onFocus={() => setStationSearchOpen(true)} onChange={(e) => { setStationQuery(e.target.value); setStationSearchOpen(true); }} onKeyDown={(e) => { if (e.key === "Enter" && matchingStations.length) chooseStation(matchingStations[0].name); if (e.key === "Escape") setStationSearchOpen(false); }} placeholder="全部场站 · 输入站名搜索" />
+          {sn !== "全部场站" && <button type="button" aria-label="清除场站选择" onClick={() => chooseStation("全部场站")}>×</button>}
+          {stationSearchOpen && <div className="station-search-options" id="station-search-options" role="listbox">
+            <button type="button" role="option" aria-selected={sn === "全部场站"} onClick={() => chooseStation("全部场站")}>全部场站</button>
+            {matchingStations.map((station) => <button type="button" role="option" aria-selected={sn === station.name} key={station.name} onClick={() => chooseStation(station.name)}>{station.name}</button>)}
+            {!matchingStations.length && <small>没有匹配的场站</small>}
+          </div>}
+        </div>
       </div>
       <div className="data-note">
         <Sparkles />
@@ -1810,8 +1812,10 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     changes = rows.flatMap((item) => {
       const previous = recordAt(item.station, wi - 1);
       if (!previous || wi <= 0 || item.record.charge == null || previous.charge == null) return [];
-      return [{ ...item, delta: num(item.record.charge) - num(previous.charge) }];
-    }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 5),
+      const priorCharge = num(previous.charge);
+      if (priorCharge <= 0) return [];
+      return [{ ...item, delta: num(item.record.charge) - priorCharge, rate: num(item.record.charge) / priorCharge - 1 }];
+    }).sort((a, b) => Math.abs(b.rate) - Math.abs(a.rate)).slice(0, 5),
     range = week ? sundaySaturdayRange(week) : null,
     priorStart = range ? new Date(Date.parse(range.start + "T00:00:00Z") - 7 * 86400000).toISOString().slice(0, 10) : "",
     classifiedRows = analysisMode === "all" || !classified || !range ? [] : scope(sn).map((station) => {
@@ -1902,9 +1906,9 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       </div>
       {analysisView === "contribution" && <div className="business-ranking-grid">
         <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable /></Panel>
-        <Panel title="变化较大的5站" sub="本周与上周充电量变化，按绝对值排序" extra="business-rank-panel">
+        <Panel title="充电量环比变化最大的5站" sub="本周对比上周，按环比变化幅度排序" extra="business-rank-panel">
           <div className="business-change-list">{changes.length ? changes.map((x) => <div key={x.station.name}>
-            <b>{x.station.name}</b><strong className={x.delta >= 0 ? "up" : "down"}>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</strong>
+            <b>{x.station.name}</b><strong className={x.rate >= 0 ? "up" : "down"}>{x.rate >= 0 ? "↑" : "↓"} {Math.abs(x.rate * 100).toFixed(1)}%</strong><small>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</small>
           </div>) : <p className="empty-note">暂无可比较的上周电量</p>}</div>
         </Panel>
         <Panel title="下降最严重的3站" sub="充电量环比下降超过12%，按降幅排序" extra="business-rank-panel">
@@ -3839,9 +3843,9 @@ function StationHistoryTable({
       title={aggregate ? "全部场站完整历史数据" : "单站完整历史数据"}
       sub="2025年至今；默认只展示尖峰平谷与总充电量，收入利润等完整明细可展开"
       extra="ranking station-history-panel"
+      actions={<button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>}
     >
       {status && <div className="history-edit-status">{status}</div>}
-      <button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
         <table className="history-matrix">
           <thead>
