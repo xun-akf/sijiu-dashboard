@@ -661,6 +661,7 @@ export default function Home() {
   stations = visibleStationData.filter((item) => scopedNames.has(item.name));
   const reportingNames=reportingStationNames(stations,allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周",periodType);
   const noWeeklyHistory=sn!=="全部场站" && visibleStationData.some((item)=>item.name===sn && item.records.length===0);
+  const openStationAnalysis=(name:string)=>{setSn(name);setPeriodType("week");setView("station");window.scrollTo({top:0,behavior:"smooth"});};
   useEffect(()=>{
     if(!accessRole)return;
     let live=true;
@@ -945,7 +946,7 @@ export default function Home() {
         {view === "station" && periodType === "week" && !noWeeklyHistory && (
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
-        {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} onStationSelect={openStationAnalysis} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} previousStationRecords={Object.fromEntries(stations.map((item)=>[item.name,wi>0?recordAt(item,wi-1) as StoredWeeklyResult|undefined:undefined]))} />}
         {view !== "mode" && view !== "config" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
@@ -1806,7 +1807,7 @@ function StationAnalysis({
     </>
   );
 }
-function Business({ wi, sn }: { wi: number; sn: string }) {
+function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStationSelect:(name:string)=>void }) {
   const week = allWeeks()[wi],
     [analysisView, setAnalysisView] = useState<"contribution" | "diagnosis">("contribution"),
     [diagnosisMode, setDiagnosisMode] = useState<"fast" | "slow" | "mixed" | "unknown" | null>(null),
@@ -1943,16 +1944,16 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         </div>}
       </div>
       {analysisView === "contribution" && <div className="business-ranking-grid">
-        <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable /></Panel>
+        <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable onStationSelect={onStationSelect} /></Panel>
         <Panel title="充电量环比变化最大的5站" sub="本周对比上周，按环比变化幅度排序" extra="business-rank-panel">
-          <div className="business-change-list">{changes.length ? changes.map((x) => <div key={x.station.name}>
+          <div className="business-change-list">{changes.length ? changes.map((x) => <button type="button" onClick={()=>onStationSelect(x.station.name)} aria-label={`查看${x.station.name}场站分析`} key={x.station.name}>
             <b>{x.station.name}</b><strong className={x.rate >= 0 ? "up" : "down"}>{x.rate >= 0 ? "↑" : "↓"} {Math.abs(x.rate * 100).toFixed(1)}%</strong><small>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</small>
-          </div>) : <p className="empty-note">暂无可比较的上周电量</p>}</div>
+          </button>) : <p className="empty-note">暂无可比较的上周电量</p>}</div>
         </Panel>
         <Panel title="下降最严重的3站" sub="充电量环比下降超过12%，按降幅排序" extra="business-rank-panel">
-          <div className="business-change-list">{attention.length ? attention.slice(0, 3).map((x) => <div key={x.station.name}>
+          <div className="business-change-list">{attention.length ? attention.slice(0, 3).map((x) => <button type="button" onClick={()=>onStationSelect(x.station.name)} aria-label={`查看${x.station.name}场站分析`} key={x.station.name}>
             <b>{x.station.name}</b><strong className="down">{pct(x.record.chargeChange)}</strong>
-          </div>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
+          </button>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
         </Panel>
       </div>}
       {analysisView === "diagnosis" && diagnosisMode && <section className="business-mode-diagnoses">
@@ -4192,10 +4193,12 @@ function BarList({
   rows,
   danger = false,
   scrollable = false,
+  onStationSelect,
 }: {
   rows: { station: S; record: R }[];
   danger?: boolean;
   scrollable?: boolean;
+  onStationSelect?: (name:string)=>void;
 }) {
   const [showAll, setShowAll] = useState(false);
   const rankedRows = rows.filter((x) => x.record.profit != null);
@@ -4208,7 +4211,7 @@ function BarList({
         <div key={x.station.name} className={i < 3 ? "top-three" : ""}>
           <span>{i + 1}</span>
           <div>
-            <b>{x.station.name}</b>
+            {onStationSelect?<button type="button" className="ranking-station-link" onClick={()=>onStationSelect(x.station.name)} title={`查看${x.station.name}场站分析`}>{x.station.name}</button>:<b>{x.station.name}</b>}
             <i>
               <em
                 style={{
@@ -4225,7 +4228,7 @@ function BarList({
         </div>
       ))}
     </div>
-    {pendingRows.length > 0 && <details className="ranking-pending"><summary>{pendingRows.length} 站整站毛利待核算（不参与排名）</summary>{pendingRows.map((x) => <p key={x.station.name}><b>{x.station.name}</b>：{x.record.partialProfit != null ? `${money(x.record.partialProfit)} 为已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh 的部分毛利；其余快充电量缺分时明细` : "毛利待核算"}</p>)}</details>}
+    {pendingRows.length > 0 && <details className="ranking-pending"><summary>{pendingRows.length} 站整站毛利待核算（不参与排名）</summary>{pendingRows.map((x) => <p key={x.station.name}>{onStationSelect?<button type="button" className="ranking-station-link" onClick={()=>onStationSelect(x.station.name)}>{x.station.name}</button>:<b>{x.station.name}</b>}：{x.record.partialProfit != null ? `${money(x.record.partialProfit)} 为已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh 的部分毛利；其余快充电量缺分时明细` : "毛利待核算"}</p>)}</details>}
     {!scrollable && rankedRows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rankedRows.length} 站`}</button>}
     </>
   );
