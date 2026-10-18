@@ -209,6 +209,8 @@ const weekDateRange = (label: string): string => {
   if (month < 1 || month > 12 || ordinal < 1 || ordinal > 5) return "";
   const wednesday = new Date(Date.UTC(year, month - 1, 1 + 7 * (ordinal - 1)));
   wednesday.setUTCDate(wednesday.getUTCDate() + (3 - wednesday.getUTCDay() + 7) % 7);
+  // Legacy labels can have a fifth week when the month has only four Wednesdays.
+  if (wednesday.getUTCMonth() !== month - 1) return "";
   const sunday = new Date(wednesday);
   sunday.setUTCDate(wednesday.getUTCDate() - 3);
   const saturday = new Date(sunday);
@@ -1096,9 +1098,9 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         {sn === "全部场站" ? (
           <Kpi
             icon={<Building2 />}
-            label="有数据场站"
-            value={`${t.active} / ${scope(sn).length}`}
-            sub="本周产生充电量"
+            label="有电量场站"
+            value={`${t.chargeCoverage} / ${t.stationCount}`}
+            sub={`其中 ${t.active} 站电量大于 0；毛利可核算 ${t.profitCoverage} 站`}
           />
         ) : (
           <GunCard station={sn} />
@@ -1293,6 +1295,15 @@ function OverviewTrends({
       const monthlyConfig = { ...emptyConfig, ...configs.__monthly__ };
       return total + num(calculateOperatingMetrics(record, stationConfig, monthlyConfig).periodProfit[key]);
     }, 0),
+    periodProfitMatches = (index: number) => {
+      const records = scope(sn).map((station) => ({ station, record: recordAt(station, index) }))
+        .filter((item): item is { station: S; record: R } => Boolean(item.record));
+      return records.length > 0 && records.every(({ station, record }) => {
+        if (record.profit == null || [record.peak, record.high, record.flat, record.valley].some((v) => v == null)) return false;
+        const metrics = calculateOperatingMetrics(record, { ...emptyConfig, ...configs[station.name] }, { ...emptyConfig, ...configs.__monthly__ });
+        return metrics.profit != null && Math.abs(metrics.profit - record.profit) <= 0.02;
+      });
+    },
     profitParts = periods.map(([key, label, color]) => ({
       name: label,
       color,
@@ -1334,7 +1345,11 @@ function OverviewTrends({
     ],
     profitLines = [
       { name: "毛利总额", color: "#e8fff7", data: slice(profitTotal) },
-      ...(slice(profitTotal).some((point) => isHistoricalActualWeek(point.week))
+      ...(slice(profitTotal).some((point) => {
+        const indexes = allWeeks().map((week, index) => ({ week, index })).filter(({ week }) =>
+          mode === "week" ? week === point.week : `${weekParts(week).year}年${weekParts(week).month}月` === point.week);
+        return !indexes.length || indexes.some(({ week, index }) => isHistoricalActualWeek(week) || !periodProfitMatches(index));
+      })
         ? [] : profitParts.map((x) => ({ ...x, data: slice(x.data) }))),
     ];
   return (
@@ -1424,8 +1439,8 @@ function OverviewTrends({
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
-          {isHistoricalActualWeek(allWeeks()[wi] || "")
-            ? <p className="empty-note">该历史周按原表显示毛利总额，未保存分时毛利，不按现价推算。</p>
+          {isHistoricalActualWeek(allWeeks()[wi] || "") || !periodProfitMatches(wi)
+            ? <p className="empty-note">毛利总额按已保存的经营记录统计；该周分时重算与记录未对齐或缺少分时数据，暂不展示分时毛利，待核对历史计费口径。</p>
             : <MoneyMixComparison current={profitMix} previous={prevProfitMix} />}
         </Panel>
       </div>
