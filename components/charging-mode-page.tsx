@@ -23,6 +23,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const range=periodType==="month"&&match?calendarMonthRange(Number(match[1]),Number(match[2])):sundaySaturdayRange(week);
   const priorEnd=new Date(Date.parse(range.start+"T00:00:00Z")-86400000);
   const priorRange=periodType==="month"?calendarMonthRange(priorEnd.getUTCFullYear(),priorEnd.getUTCMonth()+1):{start:new Date(priorEnd.getTime()-6*86400000).toISOString().slice(0,10),end:priorEnd.toISOString().slice(0,10)};
+  const priorDays=Math.round((Date.parse(priorRange.end+"T00:00:00Z")-Date.parse(priorRange.start+"T00:00:00Z"))/86400000)+1;
   const periodDays=Math.round((Date.parse(range.end+"T00:00:00Z")-Date.parse(range.start+"T00:00:00Z"))/86400000)+1;
   useEffect(()=>{let active=true;setLoading(true);void loadModeData(priorRange.start,range.end).then(result=>{if(active){setData(result);setError("");setLoading(false);}}).catch(reason=>{if(active){setError(reason instanceof Error?reason.message:"分类数据读取失败");setLoading(false);}});return()=>{active=false;};},[priorRange.start,range.end]);
 
@@ -69,12 +70,12 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     const legacy=stationRecords[profile.station_name];
     const classifiedCharge=scopedModeSummary(selectedMode,{value:fast.charge||0,available:fast.charge!=null},{value:slow.charge||0,available:slow.charge!=null}).value;
     const selectedCharge=selectedMode==="all"?actualTotal:classifiedCharge;
-    const priorTotal=priorDaily.length?priorDaily.reduce((sum,item)=>sum+Number(item.total_kwh),0):periodType==="month"&&priorMonth?Number(priorMonth.total_kwh):periodType==="week"?previousStationRecords[profile.station_name]?.charge??null:null;
+    const priorTotal=periodType==="week"?previousStationRecords[profile.station_name]?.charge??null:priorDaily.length===priorDays?priorDaily.reduce((sum,item)=>sum+Number(item.total_kwh),0):priorMonth?Number(priorMonth.total_kwh):null;
     const priorClassified=scopedModeSummary(selectedMode,{value:priorFast.charge||0,available:priorFast.charge!=null},{value:priorSlow.charge||0,available:priorSlow.charge!=null}).value;
     const previousCharge=selectedMode==="all"?priorTotal:priorClassified;
     const priorServiceClassified=scopedModeSummary(selectedMode,{value:priorMetric("fast","serviceRevenue")||0,available:priorMetric("fast","serviceRevenue")!=null},{value:priorMetric("slow","serviceRevenue")||0,available:priorMetric("slow","serviceRevenue")!=null}).value;
     const priorCalendar=selectedMode==="all"&&periodType==="month"&&priorDaily.length?priorDaily.map(item=>calculateCalendarDay(item,data.configs[profile.station_name]||{},data.configs.__monthly__||{})):[];
-    const previousService=selectedMode!=="all"?priorServiceClassified:priorCalendar.length&&priorCalendar.every(item=>item.serviceRevenue!=null)?priorCalendar.reduce((sum,item)=>sum+Number(item.serviceRevenue),0):periodType==="week"?previousStationRecords[profile.station_name]?.serviceRevenue??null:null;
+    const previousService=selectedMode!=="all"?priorServiceClassified:periodType==="week"?previousStationRecords[profile.station_name]?.serviceRevenue??null:priorCalendar.length===priorDays&&priorCalendar.every(item=>item.serviceRevenue!=null)?priorCalendar.reduce((sum,item)=>sum+Number(item.serviceRevenue),0):null;
     const classifiedMetric=(key:MoneyKey)=>scopedModeSummary(selectedMode,{value:fastMetrics[key]||0,available:fastMetrics[key]!=null},{value:slowMetrics[key]||0,available:slowMetrics[key]!=null}).value;
     const calendarResults=selectedMode==="all"&&periodType==="month"&&daily.length?daily.map(item=>calculateCalendarDay(item,data.configs[profile.station_name]||{},data.configs.__monthly__||{})):[];
     const calendarValue=(key:MoneyKey)=>calendarResults.length&&calendarResults.every(item=>item[key]!=null)?calendarResults.reduce((sum,item)=>sum+Number(item[key]),0):null;
@@ -89,7 +90,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
       return summary.charge==null||modeMetrics.profit==null;
     });
     return {profile,fast,slow,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,previousCharge,previousService,attention};
-  });},[data,periodDays,periodType,priorRange.end,priorRange.start,range.end,range.start,selectedMode,station,stationTotals,stationRecords,previousStationRecords,reportingNames]);
+  });},[data,periodDays,periodType,priorDays,priorRange.end,priorRange.start,range.end,range.start,selectedMode,station,stationTotals,stationRecords,previousStationRecords,reportingNames]);
 
   const totals=rows.reduce((acc,row)=>({fastGuns:acc.fastGuns+Number(row.profile.fast_guns||0),slowGuns:acc.slowGuns+Number(row.profile.slow_guns||0),fastPower:acc.fastPower+Number(row.profile.fast_power_kw||0),slowPower:acc.slowPower+Number(row.profile.slow_power_kw||0),fast:acc.fast+(row.fast.charge||0),slow:acc.slow+(row.slow.charge||0),hasFast:acc.hasFast||row.fast.charge!=null,hasSlow:acc.hasSlow||row.slow.charge!=null,unknown:acc.unknown+(row.coverage.unclassified||0),knownTotals:acc.knownTotals+(row.coverage.unclassified==null?0:1),excess:acc.excess+row.coverage.excess}),{fastGuns:0,slowGuns:0,fastPower:0,slowPower:0,fast:0,slow:0,hasFast:false,hasSlow:false,unknown:0,knownTotals:0,excess:0});
   const metricSum=(mode:ChargingMode,key:MoneyKey)=>{
