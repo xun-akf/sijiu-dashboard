@@ -2688,6 +2688,9 @@ function Config({
       stationCfg.servicePricesJson,
       {},
     ),
+    displayElectricityPrices = electricityPrices[priceWeek] || resolveWeeklyPrice(stationCfg.electricityPricesJson, priceWeek),
+    displayServicePrices = servicePrices[priceWeek] || resolveWeeklyPrice(stationCfg.servicePricesJson, priceWeek),
+    displayExternalPrices = external[priceWeek] || resolveWeeklyPrice(stationCfg.externalPricesJson, priceWeek),
     periods: [keyof PeriodPrice, string][] = [
       ["peak", "尖段"],
       ["high", "峰段"],
@@ -2725,16 +2728,15 @@ function Config({
       value: string,
     ) => {
       const own = group === "electricity" ? electricityPrices : servicePrices,
-        other = group === "electricity" ? servicePrices : electricityPrices,
         nextOwn = {
           ...blankPrice(),
-          ...own[priceWeek],
+          ...(group === "electricity" ? displayElectricityPrices : displayServicePrices),
           [key]: value,
         },
-        totalValue = String(Number(value || 0) + Number(other[priceWeek]?.[key] || 0)),
+        totalValue = String(Number(value || 0) + Number((group === "electricity" ? displayServicePrices : displayElectricityPrices)[key] || 0)),
         nextTotal = {
           ...blankPrice(),
-          ...external[priceWeek],
+          ...displayExternalPrices,
           [key]: totalValue,
         };
       update(
@@ -2910,11 +2912,11 @@ function Config({
             valley: stationCfg.unifiedPrice,
           }
         : costs[monthKey]?.[purchaseCostType] || blankPrice(),
-    salePrice = external[priceWeek] || {
-      peak: String(Number(electricityPrices[priceWeek]?.peak || 0) + Number(servicePrices[priceWeek]?.peak || 0)),
-      high: String(Number(electricityPrices[priceWeek]?.high || 0) + Number(servicePrices[priceWeek]?.high || 0)),
-      flat: String(Number(electricityPrices[priceWeek]?.flat || 0) + Number(servicePrices[priceWeek]?.flat || 0)),
-      valley: String(Number(electricityPrices[priceWeek]?.valley || 0) + Number(servicePrices[priceWeek]?.valley || 0)),
+    salePrice = Object.values(displayExternalPrices).some(Boolean) ? displayExternalPrices : {
+      peak: String(Number(displayElectricityPrices.peak || 0) + Number(displayServicePrices.peak || 0)),
+      high: String(Number(displayElectricityPrices.high || 0) + Number(displayServicePrices.high || 0)),
+      flat: String(Number(displayElectricityPrices.flat || 0) + Number(displayServicePrices.flat || 0)),
+      valley: String(Number(displayElectricityPrices.valley || 0) + Number(displayServicePrices.valley || 0)),
     },
     complete = periods.every(
       ([k]) => Number(costPrice[k]) > 0 && Number(salePrice[k]) > 0,
@@ -3292,6 +3294,7 @@ function Config({
             <p>
               电费和服务费按场站、周次分别保存；最终总价自动相加并同步至竞站对比。
             </p>
+            {(!electricityPrices[priceWeek]||!servicePrices[priceWeek])&&<small>本周未单独配置的价格显示最近已生效周次；编辑后才保存为本周价格。</small>}
           </div>
           <button className="panel-toggle" onClick={() => toggleEditablePanel("weeklyPrice")}>{openPanels.weeklyPrice ? "收起" : "详情/编辑"}</button>
         </div>
@@ -3305,7 +3308,7 @@ function Config({
                     {label}
                     <input
                       disabled={!editing}
-                      value={(group === "electricity" ? electricityPrices : servicePrices)[priceWeek]?.[key] || ""}
+                      value={(group === "electricity" ? displayElectricityPrices : displayServicePrices)[key] || ""}
                       onChange={(event) => setWeeklyPrice(group, key, event.target.value)}
                       placeholder="元/kWh"
                     />
