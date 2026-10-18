@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, Info } from "lucide-react";
 import { calendarMonthRange, reconcileModes, summarizeMode, sundaySaturdayRange, type ChargingMode } from "@/lib/charging-mode";
 import { loadModeData, modeOperatingMetrics, type StationProfile } from "@/lib/mode-data";
+import { calculateCalendarDay } from "@/lib/calendar-metrics";
 import { modeKeys, scopedModeSummary, selectModeNumber, type ModeScope } from "@/lib/mode-view";
 import { displayedModeMetric, sumAvailableMetrics, type StoredWeeklyResult } from "@/lib/weekly-display";
 import stationCatalog from "@/data/station-catalog-20261018.json";
@@ -13,7 +14,7 @@ type MoneyKey = "electricityRevenue"|"serviceRevenue"|"profit";
 const fmt=(value:number|null,suffix="")=>value==null?"待导入分类数据":`${value.toLocaleString("zh-CN",{maximumFractionDigits:2})}${suffix}`;
 const modeName=(mode:ChargingMode)=>mode==="fast"?"快充":"慢充";
 
-export default function ChargingModePage({week,station,operator,selectedMode,periodType,reportingNames,stationTotals,stationRecords}:Props) {
+export default function ChargingModePage({week,station,selectedMode,periodType,reportingNames,stationTotals,stationRecords}:Props) {
   const [data,setData]=useState<Awaited<ReturnType<typeof loadModeData>>>({profiles:[],facts:[],calendar:[],tariffs:[],configs:{}});
   const [loading,setLoading]=useState(true),[error,setError]=useState("");
   const [sort,setSort]=useState<"station"|"charge"|"profit"|"utilization">("charge");
@@ -21,7 +22,6 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
   const match=week.match(/^(\d{4})年(\d{1,2})月/);
   const range=periodType==="month"&&match?calendarMonthRange(Number(match[1]),Number(match[2])):sundaySaturdayRange(week);
   const periodDays=Math.round((Date.parse(range.end+"T00:00:00Z")-Date.parse(range.start+"T00:00:00Z"))/86400000)+1;
-  const lastRecordedDay=[...data.facts.map((item)=>item.date),...data.calendar.filter((item)=>item.granularity==="day").map((item)=>item.period_start)].filter((day)=>day>=range.start&&day<=range.end).sort().at(-1);
   useEffect(()=>{let active=true;setLoading(true);void loadModeData(range.start,range.end).then(result=>{if(active){setData(result);setError("");setLoading(false);}}).catch(reason=>{if(active){setError(reason instanceof Error?reason.message:"分类数据读取失败");setLoading(false);}});return()=>{active=false;};},[range.start,range.end]);
 
   const rows=useMemo(()=>{
@@ -34,7 +34,7 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
         power_kw:item?.powerKw??null,fast_power_kw:item?.fastPowerKw??null,slow_power_kw:item?.slowPowerKw??null,
         operation_status:item?.status||null};
     });
-    return profiles.filter(profile=>reportingNames.includes(profile.station_name)&&(station==="全部场站"||profile.station_name===station)&&(!operator||operator==="全部运营商"||profile.operator_name===operator)).map(profile=>{
+    return profiles.filter(profile=>reportingNames.includes(profile.station_name)&&(station==="全部场站"||profile.station_name===station)).map(profile=>{
     const facts=data.facts.filter(fact=>fact.stationName===profile.station_name);
     const fast=summarizeMode(facts,range.start,range.end,"fast"),slow=summarizeMode(facts,range.start,range.end,"slow");
     const daily=data.calendar.filter(item=>item.station_name===profile.station_name&&item.granularity==="day"&&item.period_start>=range.start&&item.period_start<=range.end);
@@ -56,18 +56,22 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
     const fastMetrics=metrics("fast"),slowMetrics=metrics("slow"),fastEfficiency=efficiency("fast"),slowEfficiency=efficiency("slow");
     const legacy=stationRecords[profile.station_name];
     const classifiedCharge=scopedModeSummary(selectedMode,{value:fast.charge||0,available:fast.charge!=null},{value:slow.charge||0,available:slow.charge!=null}).value;
-    const selectedCharge=selectedMode==="all"&&periodType==="week"&&legacy?.charge!=null?Number(legacy.charge):classifiedCharge;
+    const selectedCharge=selectedMode==="all"?actualTotal:classifiedCharge;
     const classifiedMetric=(key:MoneyKey)=>scopedModeSummary(selectedMode,{value:fastMetrics[key]||0,available:fastMetrics[key]!=null},{value:slowMetrics[key]||0,available:slowMetrics[key]!=null}).value;
-    const selectedProfit=displayedModeMetric(selectedMode,periodType,legacy,classifiedMetric("profit"),"profit");
-    const selectedService=displayedModeMetric(selectedMode,periodType,legacy,classifiedMetric("serviceRevenue"),"serviceRevenue");
-    const selectedElectricity=displayedModeMetric(selectedMode,periodType,legacy,classifiedMetric("electricityRevenue"),"electricityRevenue");
+    const calendarResults=selectedMode==="all"&&periodType==="month"&&daily.length?daily.map(item=>calculateCalendarDay(item,data.configs[profile.station_name]||{},data.configs.__monthly__||{})):[];
+    const calendarValue=(key:MoneyKey)=>calendarResults.length&&calendarResults.every(item=>item[key]!=null)?calendarResults.reduce((sum,item)=>sum+Number(item[key]),0):null;
+    const completeClassification=actualTotal!=null&&classifiedCharge!=null&&Math.abs(actualTotal-classifiedCharge)<=0.02;
+    const amount=(key:MoneyKey)=>calendarResults.length?calendarValue(key):selectedMode!=="all"||completeClassification?classifiedMetric(key):null;
+    const selectedProfit=displayedModeMetric(selectedMode,periodType,legacy,amount("profit"),"profit");
+    const selectedService=displayedModeMetric(selectedMode,periodType,legacy,amount("serviceRevenue"),"serviceRevenue");
+    const selectedElectricity=displayedModeMetric(selectedMode,periodType,legacy,amount("electricityRevenue"),"electricityRevenue");
     const selectedUtilization=selectedMode==="fast"?fastEfficiency.utilization:selectedMode==="slow"?slowEfficiency.utilization:null;
     const attention=coverage.excess>0||coverage.unclassified==null||modeKeys(selectedMode).some(mode=>{
       const summary=mode==="fast"?fast:slow,modeMetrics=mode==="fast"?fastMetrics:slowMetrics;
       return summary.charge==null||modeMetrics.profit==null;
     });
     return {profile,fast,slow,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,attention};
-  });},[data,operator,periodDays,periodType,range.end,range.start,selectedMode,station,stationTotals,stationRecords,reportingNames]);
+  });},[data,periodDays,periodType,range.end,range.start,selectedMode,station,stationTotals,stationRecords,reportingNames]);
 
   const totals=rows.reduce((acc,row)=>({fastGuns:acc.fastGuns+Number(row.profile.fast_guns||0),slowGuns:acc.slowGuns+Number(row.profile.slow_guns||0),fastPower:acc.fastPower+Number(row.profile.fast_power_kw||0),slowPower:acc.slowPower+Number(row.profile.slow_power_kw||0),fast:acc.fast+(row.fast.charge||0),slow:acc.slow+(row.slow.charge||0),hasFast:acc.hasFast||row.fast.charge!=null,hasSlow:acc.hasSlow||row.slow.charge!=null,unknown:acc.unknown+(row.coverage.unclassified||0),knownTotals:acc.knownTotals+(row.coverage.unclassified==null?0:1),excess:acc.excess+row.coverage.excess}),{fastGuns:0,slowGuns:0,fastPower:0,slowPower:0,fast:0,slow:0,hasFast:false,hasSlow:false,unknown:0,knownTotals:0,excess:0});
   const metricSum=(mode:ChargingMode,key:MoneyKey)=>{
@@ -78,12 +82,33 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
   const selectedMetric=(key:MoneyKey)=>sumAvailableMetrics(rows.map((row)=>key==="profit"?row.selectedProfit:key==="serviceRevenue"?row.selectedService:row.selectedElectricity));
   const scopedCharge=sumAvailableMetrics(rows.map((row)=>row.selectedCharge)).value;
   const scopedGuns=selectModeNumber(selectedMode,totals.fastGuns,totals.slowGuns),scopedPower=selectModeNumber(selectedMode,totals.fastPower,totals.slowPower);
+  const qualified=rows.flatMap(row=>modeKeys(selectedMode).map(mode=>({row,mode,summary:mode==="fast"?row.fast:row.slow,power:Number(mode==="fast"?row.profile.fast_power_kw:row.profile.slow_power_kw)}))).filter(item=>item.row.profile.operation_status==="正常运行"&&item.summary.charge!=null&&item.summary.days===periodDays&&item.power>0);
+  const qualifiedPower=qualified.reduce((sum,item)=>sum+item.power,0),qualifiedCharge=qualified.reduce((sum,item)=>sum+Number(item.summary.charge),0);
+  const excludedProfiles=Object.keys(stationRecords).filter(name=>!reportingNames.includes(name)&&(station==="全部场站"||station===name)).map(name=>{
+    const profile=data.profiles.find(item=>item.station_name===name),catalog=stationCatalog.find(item=>item.name===name);
+    return {name,guns:Number(profile?.guns??catalog?.guns??0),power:Number(profile?.power_kw??catalog?.powerKw??0)};
+  });
+  const excludedGuns=excludedProfiles.reduce((sum,item)=>sum+item.guns,0);
+  const excludedPower=excludedProfiles.reduce((sum,item)=>sum+item.power,0);
+  const lastRecordedDay=[...data.facts.filter(item=>rows.some(row=>row.profile.station_name===item.stationName)).map(item=>item.date),...data.calendar.filter(item=>item.granularity==="day"&&rows.some(row=>row.profile.station_name===item.station_name)).map(item=>item.period_start)].filter(day=>day>=range.start&&day<=range.end).sort().at(-1);
+  const fullMonthOnly=periodType==="month"&&!lastRecordedDay&&data.calendar.some(item=>item.granularity==="month"&&item.period_start===range.start&&rows.some(row=>row.profile.station_name===item.station_name));
+  const incompleteMonth=periodType==="month"&&!fullMonthOnly&&(!lastRecordedDay||lastRecordedDay<range.end);
   const serviceCoverage=selectedMetric("serviceRevenue"),electricityCoverage=selectedMetric("electricityRevenue"),profitCoverage=selectedMetric("profit");
   const serviceRevenue=serviceCoverage.value,electricityRevenue=electricityCoverage.value,profit=profitCoverage.value;
   const revenue=electricityRevenue!=null&&serviceRevenue!=null?electricityRevenue+serviceRevenue:null;
   const margin=profit!=null&&revenue!=null&&revenue>0?profit/revenue*100:null;
   const daily=scopedCharge!=null&&scopedGuns>0?scopedCharge/scopedGuns/periodDays:null;
-  const utilization=scopedCharge!=null&&scopedPower>0?scopedCharge/scopedPower/24/periodDays*100:null;
+  const utilization=qualifiedPower>0?qualifiedCharge/qualifiedPower/24/periodDays*100:null;
+  const missing=rows.map(row=>{
+    const fields:string[]=[];
+    if(row.selectedCharge==null)fields.push("电量/分类");
+    if(row.selectedService==null)fields.push("服务费价格或分时电量");
+    if(row.selectedProfit==null)fields.push("售电价或购电成本");
+    if(row.profile.guns==null)fields.push("枪数");
+    if(row.profile.power_kw==null)fields.push("功率");
+    if(row.coverage.excess>0)fields.push("分类超出总量");
+    return {name:row.profile.station_name,fields};
+  }).filter(item=>item.fields.length);
   const attentionCount=rows.filter(row=>row.attention).length;
   const visibleRows=rows.filter(row=>row.profile.station_name.toLowerCase().includes(query.trim().toLowerCase())&&(!onlyAttention||row.attention)).sort((a,b)=>{
     if(sort==="station")return a.profile.station_name.localeCompare(b.profile.station_name,"zh-CN");
@@ -94,18 +119,20 @@ export default function ChargingModePage({week,station,operator,selectedMode,per
   const rowValue=<T,>(mode:ChargingMode,fast:T,slow:T)=>mode==="fast"?fast:slow;
 
   return <div className="mode-page">
-    <div className="mode-page-heading"><div><span className="eyebrow">实际充电类型</span><h2>充电模式经营</h2><p>{range.start}—{range.end} · {periodType==="month"?"自然月":"周日～周六"} · {rows.length}个有记录场站{periodType==="month"&&lastRecordedDay&&lastRecordedDay<range.end?` · 数据截至${lastRecordedDay}（非整月）`:""}</p></div><span className={`mode-scope-chip ${selectedMode}`}>{selectedMode==="all"?"全部模式":`${modeName(selectedMode)}口径`}</span></div>
+    <div className="mode-page-heading"><div><span className="eyebrow">实际充电类型</span><h2>充电模式经营</h2><p>{range.start}—{range.end} · {periodType==="month"?"自然月":"周日～周六"} · {rows.length}个有记录场站{incompleteMonth?` · 数据截至${lastRecordedDay||"待导入"}（非整月）`:fullMonthOnly?" · 来源：整月汇总":""}</p></div><span className={`mode-scope-chip ${selectedMode}`}>{selectedMode==="all"?"全部模式":`${modeName(selectedMode)}口径`}</span></div>
     {loading?<p className="empty-note">正在读取分类数据…</p>:error?<p className="empty-note">{error}</p>:<>
       <div className="mode-primary-kpis">
         <div><span>充电量 <Info size={12}/></span><strong>{fmt(scopedCharge," kWh")}</strong><small>{selectedMode==="all"?"快慢充分类合计":`${modeName(selectedMode)}实际分类数据`}</small></div>
-        <div><span>枪数</span><strong>{scopedGuns}</strong><small>{selectedMode==="all"?`快充 ${totals.fastGuns} · 慢充 ${totals.slowGuns}`:`${modeName(selectedMode)}枪数`}</small></div>
+        <div><span>枪数</span><strong>{scopedGuns}</strong><small>有经营记录站点 · {selectedMode==="all"?`快充 ${totals.fastGuns} · 慢充 ${totals.slowGuns}`:`${modeName(selectedMode)}枪数`}</small></div>
         <div><span>服务费收入 <Info size={12}/></span><strong>{fmt(serviceRevenue," 元")}</strong><small>可核算 {serviceCoverage.available}/{serviceCoverage.total} 站{serviceCoverage.available<serviceCoverage.total?" · 部分小计":""}</small></div>
         <div className="highlight"><span>经营毛利 <Info size={12}/></span><strong>{fmt(profit," 元")}</strong><small>可核算 {profitCoverage.available}/{profitCoverage.total} 站{profitCoverage.available<profitCoverage.total?" · 部分小计":""}</small></div>
       </div>
       <section className="mode-efficiency-strip">
-        <div><span>设备功率</span><b>{scopedPower.toLocaleString("zh-CN")} kW</b></div><div><span>售电收入</span><b>{fmt(electricityRevenue," 元")}</b></div><div><span>毛利率</span><b>{margin==null?"待导入分类数据":`${margin.toFixed(1)}%`}</b></div><div><span>单枪日均</span><b>{fmt(daily," kWh")}</b></div><div><span>枪利用率</span><b>{utilization==null?"待导入分类数据":`${utilization.toFixed(1)}%`}</b></div>
+        <div><span>设备功率</span><b>{scopedPower.toLocaleString("zh-CN")} kW</b></div><div><span>售电收入 · {electricityCoverage.available}/{electricityCoverage.total}站</span><b>{fmt(electricityRevenue," 元")}</b></div><div><span>毛利率</span><b>{margin==null?"待核算":`${margin.toFixed(1)}%`}</b></div><div><span>单枪日均</span><b>{fmt(daily," kWh")}</b></div><div><span>枪利用率 · {qualified.length}组完整运营设备</span><b>{utilization==null?"待完整运营数据":`${utilization.toFixed(1)}%`}</b></div>
       </section>
       {(attentionCount>0||totals.excess>0||totals.knownTotals<rows.length)&&<details className="mode-alert"><summary><AlertTriangle size={14}/><b>{attentionCount}个场站需关注</b><span>含分类缺失、金额待核算或分时异常；点击查看说明</span><ChevronDown size={14}/></summary><p>无分类数据统一显示“待导入分类数据”，不会按零值或历史比例估算。分时异常仅保留真实总电量，原始分时数据仍保存在导入批次；金额仅在分时、价格及成本齐备时计算。当前可核对总量 {totals.knownTotals}/{rows.length} 站{totals.excess>0?`，分类超过站点总量 ${fmt(totals.excess," kWh")}`:""}。</p></details>}
+      {missing.length>0&&<details className="mode-alert mode-missing"><summary><AlertTriangle size={14}/><b>{missing.length}站有待补字段</b><span>按站点展开查看</span><ChevronDown size={14}/></summary><div className="mode-missing-list">{missing.map(item=><div key={item.name}><b>{item.name}</b><span>{item.fields.join("、")}</span></div>)}</div></details>}
+      {excludedProfiles.length>0&&<details className="mode-alert mode-missing"><summary><b>{excludedProfiles.length}站未纳入本期经营统计</b><span>档案枪数 {excludedGuns} · 功率 {excludedPower} kW；上线状态待核</span><ChevronDown size={14}/></summary><div className="mode-missing-list">{excludedProfiles.map(item=><div key={item.name}><b>{item.name}</b><span>本期缺少真实周报记录，不按零值计入经营汇总</span></div>)}</div></details>}
       {selectedMode==="all"&&<section className="mode-compare-panel"><header><div><h3>快慢充经营对比</h3><p>同一场站只汇总一次，按真实分类电量拆分。</p></div></header><div className="mode-compare-grid">{(["fast","slow"] as const).map(mode=>{
         const charge=mode==="fast"?totals.fast:totals.slow,available=mode==="fast"?totals.hasFast:totals.hasSlow,ratio=totals.fast+totals.slow>0?charge/(totals.fast+totals.slow)*100:null;
         return <div className={`mode-compare-row ${mode}`} key={mode}><div><b>{modeName(mode)}</b><span>{mode==="fast"?totals.fastGuns:totals.slowGuns}枪 · {mode==="fast"?totals.fastPower:totals.slowPower} kW</span></div><strong>{fmt(available?charge:null," kWh")}</strong><div className="mode-share"><i style={{width:`${ratio||0}%`}}/></div><em>{ratio==null?"待导入":`${ratio.toFixed(1)}%`}</em><small>服务费 {fmt(metricSum(mode,"serviceRevenue")," 元")} · 毛利 {fmt(metricSum(mode,"profit")," 元")}</small></div>;

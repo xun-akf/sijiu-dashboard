@@ -1,4 +1,5 @@
 export type StoredWeeklyResult = {
+  week?: string;
   charge?: number | null;
   electricityRevenue?: number | null;
   serviceRevenue?: number | null;
@@ -33,6 +34,6 @@ export function reportingStationNames(
 ) {
   const month=week.match(/^\d{4}年\d{1,2}月/)?.[0];
   return stations.filter((station)=>station.records.some((record)=>
-    (period==="week"?record.week===week:Boolean(month&&record.week.startsWith(month))) && record.charge!==null,
+    (period==="week"?record.week===week:Boolean(month&&record.week.startsWith(month))) && record.charge!=null,
   )).map((station)=>station.name);
 }

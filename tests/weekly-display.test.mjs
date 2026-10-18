@@ -28,8 +28,9 @@ test('运营商选项只来自授权站，并保留数据库归属优先于目�
 
 test('未录入经营周次的档案不进入经营汇总，月度按该月所有周查找', () => {
   const stations=[
-    {name:'旧站',records:[{week:'2026年9月1周'},{week:'2026年10月1周'}]},
-    {name:'新增站',records:[{week:'2026年9月2周'}]},
+    {name:'旧站',records:[{week:'2026年9月1周',charge:100},{week:'2026年10月1周',charge:120}]},
+    {name:'新增站',records:[{week:'2026年9月2周',charge:0}]},
+    {name:'缺数站',records:[{week:'2026年9月1周',charge:null}]},
     {name:'待上线',records:[]},
   ];
   assert.deepEqual(reportingStationNames(stations,'2026年9月1周','week'),['旧站']);
