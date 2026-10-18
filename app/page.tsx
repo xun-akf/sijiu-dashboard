@@ -879,7 +879,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <h1>{nav.find((x) => x.id === view)?.label}</h1>
-            <p>{admin ? "四九实业周报 · 运营管理端" : partner ? `${partnerBrand.reportName || "运营周报"} · 只读端` : "四九实业周报 · 只读端"} · 2025年11月至最新一周</p>
+            {view === "overview" && <p>{admin ? "四九实业周报 · 运营管理端" : partner ? `${partnerBrand.reportName || "运营周报"} · 只读端` : "四九实业周报 · 只读端"} · 2025年11月至最新一周</p>}
           </div>
           <div className="actions">
             <button
@@ -930,8 +930,8 @@ export default function Home() {
         {view !== "config" && (
           <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={view === "trend" ? "week" : periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view !== "config" && view !== "trend" && view !== "station" && <div className="mode-switchbar">
-          <div className="metric-switch">{(view === "business" ? ["week"] as const : ["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+        {view !== "config" && view !== "trend" && view !== "station" && view !== "business" && <div className="mode-switchbar">
+          <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
           {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
         </div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
@@ -941,7 +941,7 @@ export default function Home() {
         )}{" "}
         {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} />}{" "}
         {view === "trend" && <TrendInsights key={operatorFilter} sn={sn} />}{" "}
-        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
+        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} previousStationRecords={Object.fromEntries(stations.map((item)=>[item.name,wi>0?recordAt(item,wi-1) as StoredWeeklyResult|undefined:undefined]))} />}
         {view !== "mode" && view !== "config" && view !== "trend" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
@@ -1791,7 +1791,6 @@ function StationAnalysis({
 }
 function Business({ wi, sn }: { wi: number; sn: string }) {
   const week = allWeeks()[wi],
-    [analysisMode, setAnalysisMode] = useState<"all" | "fast" | "slow">("all"),
     [analysisView, setAnalysisView] = useState<"contribution" | "diagnosis">("contribution"),
     [classified, setClassified] = useState<Awaited<ReturnType<typeof loadModeData>> | null>(null),
     [classificationError, setClassificationError] = useState(""),
@@ -1818,13 +1817,6 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     }).sort((a, b) => Math.abs(b.rate) - Math.abs(a.rate)).slice(0, 5),
     range = week ? sundaySaturdayRange(week) : null,
     priorStart = range ? new Date(Date.parse(range.start + "T00:00:00Z") - 7 * 86400000).toISOString().slice(0, 10) : "",
-    classifiedRows = analysisMode === "all" || !classified || !range ? [] : scope(sn).map((station) => {
-      const facts = classified.facts.filter((fact) => fact.stationName === station.name && fact.mode === analysisMode);
-      const current = facts.filter((fact) => fact.date >= range.start && fact.date <= range.end);
-      const previous = facts.filter((fact) => fact.date >= priorStart && fact.date < range.start);
-      return { name: station.name, charge: current.length ? current.reduce((sum, fact) => sum + fact.charge, 0) : null,
-        previous: previous.length ? previous.reduce((sum, fact) => sum + fact.charge, 0) : null };
-    }),
     doSave = async (name: string) => {
       if (!canEdit || saving || !week) return;
       setSaving(true);
@@ -1841,14 +1833,14 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       }
     };
   useEffect(() => {
-    if (analysisMode === "all" || !range) return;
+    if (!range) return;
     let live = true;
     setClassified(null);
     loadModeData(priorStart, range.end).then((result) => {
       if (live) { setClassified(result); setClassificationError(""); }
     }).catch(() => { if (live) setClassificationError("分类数据读取失败，请稍后重试"); });
     return () => { live = false; };
-  }, [analysisMode, priorStart, range?.end]);
+  }, [priorStart, range?.end]);
   const renderAnalysisBlock = (item: (typeof rows)[number]) => {
     const name = item.station.name,
       value = conciseStationDiagnosis(item.station, week, { ...emptyConfig, ...cfg[name] }),
@@ -1877,9 +1869,16 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       </div>
     );
   };
-  const modeDiagnosis = (() => {
+  const modeDiagnosis = (analysisMode: "fast" | "slow") => {
     if (classificationError) return classificationError;
     if (!classified) return "正在读取分类记录…";
+    const classifiedRows = scope(sn).map((station) => {
+      const facts = classified.facts.filter((fact) => fact.stationName === station.name && fact.mode === analysisMode);
+      const current = facts.filter((fact) => range && fact.date >= range.start && fact.date <= range.end);
+      const previous = facts.filter((fact) => range && fact.date >= priorStart && fact.date < range.start);
+      return { name: station.name, charge: current.length ? current.reduce((sum, fact) => sum + fact.charge, 0) : null,
+        previous: previous.length ? previous.reduce((sum, fact) => sum + fact.charge, 0) : null };
+    });
     const recorded = classifiedRows.filter((item) => item.charge != null);
     if (!recorded.length) return `本周${analysisMode === "fast" ? "快充" : "慢充"}待导入分类数据，暂无可核实的经营结论。`;
     const comparable = recorded.filter((item) => item.previous != null);
@@ -1889,7 +1888,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     const leader = highest && highest.delta > 0 ? `主要增长来自${highest.name}（+${highest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
     const laggard = lowest && lowest.delta < 0 ? `主要下降来自${lowest.name}（${lowest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
     return `本周${analysisMode === "fast" ? "快充" : "慢充"}有${recorded.length}站录入真实分类电量，合计${charge.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度；其中${comparable.length}站有上周同模式记录可比较。${leader}${laggard}${recorded.length < scope(sn).length ? `其余${scope(sn).length - recorded.length}站分类待补充，未按零值处理。` : ""}`;
-  })();
+  };
   return (
     <>
       <div className="page-heading business-head">
@@ -1902,7 +1901,6 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       </div>
       <div className="business-analysis-controls">
         <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => setAnalysisView("diagnosis")}>全场站数据诊断分析</button></div>
-        {analysisView === "diagnosis" && <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>}
       </div>
       {analysisView === "contribution" && <div className="business-ranking-grid">
         <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable /></Panel>
@@ -1917,8 +1915,8 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
           </div>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
         </Panel>
       </div>}
-      {analysisView === "diagnosis" && <p className="business-diagnosis-summary">{analysisMode === "all" ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis || "本周运营诊断待补充" : modeDiagnosis}</p>}
-      {analysisView === "diagnosis" && analysisMode === "all" && <>
+      {analysisView === "diagnosis" && <>
+      <div className="business-mode-diagnoses">{(["fast", "slow"] as const).map((mode) => <details key={mode} className="data-disclosure"><summary>{mode === "fast" ? "快充分析" : "慢充分析"}<span>展开查看</span></summary><p className="business-diagnosis-summary">{modeDiagnosis(mode)}</p></details>)}</div>
       <details className="data-disclosure"><summary>逐站分析与编辑 <span>展开查看 {rows.length} 站</span></summary>
       <Panel
         title="全场站数据诊断"
