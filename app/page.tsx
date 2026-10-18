@@ -1601,6 +1601,7 @@ function StationAnalysis({
     weatherByWeek = safeJson<Record<string, string>>(c.weatherByWeekJson, {}),
     eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
+    [totalChargeOnly, setTotalChargeOnly] = useState(false),
     [saved, setSaved] = useState(false);
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
     update(selected.name, field, JSON.stringify({ ...values, [selectedWeek]: value }));
@@ -1723,18 +1724,25 @@ function StationAnalysis({
         </article>
       </div>
       <div className="content-grid equal">
-        <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="按周统计，悬停查看准确电量">
+        <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="尖峰平谷与总充电量；点击总充电量可单独查看">
           <FilteredInteractiveChart
             lines={[
               {
-                name: "充电量",
-                color: "#36d399",
+                name: "总充电量",
+                color: "#e8fff7",
                 data: chosen.records.map((x) => ({
                   week: x.week,
                   value: num(x.charge),
                 })),
               },
+              ...([ ["peak", "尖段", "#ff6b6b"], ["high", "峰段", "#ffb454"], ["flat", "平段", "#36d399"], ["valley", "谷段", "#6f8cff"] ] as const).map(([key, name, color]) => ({
+                name, color,
+                data: chosen.records.map((x) => ({ week: x.week, value: num(x[key]) })),
+              })),
             ]}
+            focusedLine={totalChargeOnly ? "总充电量" : null}
+            onFocusLine={(name) => setTotalChargeOnly(name === "总充电量")}
+            isolateFocusedLine
             showPrimaryLabels
             tooltipRequiresPin
             valueFormatter={(value) => `${value.toFixed(2)} kWh`}
@@ -4068,6 +4076,7 @@ function FilteredInteractiveChart({
   large = false,
   focusedLine = null,
   onFocusLine,
+  isolateFocusedLine = false,
   rankedTooltip = false,
   valueFormatter = chartWan,
   showPrimaryLabels = true,
@@ -4078,6 +4087,7 @@ function FilteredInteractiveChart({
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
+  isolateFocusedLine?: boolean;
   rankedTooltip?: boolean;
   valueFormatter?: (value: number) => string;
   showPrimaryLabels?: boolean;
@@ -4123,6 +4133,7 @@ function FilteredInteractiveChart({
         large={large}
         focusedLine={focusedLine}
         onFocusLine={onFocusLine}
+        isolateFocusedLine={isolateFocusedLine}
         rankedTooltip={rankedTooltip}
         valueFormatter={valueFormatter}
         showPrimaryLabels={showPrimaryLabels}
@@ -4137,6 +4148,7 @@ function InteractiveChart({
   large = false,
   focusedLine = null,
   onFocusLine,
+  isolateFocusedLine = false,
   rankedTooltip = false,
   valueFormatter = chartWan,
   showPrimaryLabels = false,
@@ -4152,6 +4164,7 @@ function InteractiveChart({
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
+  isolateFocusedLine?: boolean;
   rankedTooltip?: boolean;
   valueFormatter?: (value: number) => string;
   showPrimaryLabels?: boolean;
@@ -4162,7 +4175,7 @@ function InteractiveChart({
   const [hover, setHover] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
-  const visibleLines = lines.filter((line) => !hidden.includes(line.name));
+  const visibleLines = lines.filter((line) => !hidden.includes(line.name) && (!isolateFocusedLine || !focusedLine || line.name === focusedLine));
   const tooltipLines = rankedTooltip && visibleLines.length > 6
     ? focusedLine
       ? visibleLines.filter((line) => line.name === focusedLine)
