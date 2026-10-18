@@ -6,6 +6,7 @@ type AuthenticatedClient = SupabaseClient;
 export type SharedDashboardState = {
   stationData?: unknown;
   configs?: unknown;
+  modeData?: unknown;
   operator?: string;
   operatorName?: string;
   reportName?: string;
@@ -21,6 +22,7 @@ const draftKeys = { stationData: "station_data_draft", configs: "configs_draft" 
 // PR #5 has its own draft snapshot. The existing draft is read only as its
 // initial baseline; no acceptance import can change main's draft or published data.
 const acceptanceKeys = { stationData: "station_data_pr5_acceptance", configs: "configs_pr5_acceptance" } as const;
+const acceptanceModeKey = "mode_data_pr5_acceptance";
 const publishedKeys = { stationData: "station_data_published", configs: "configs_published" } as const;
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -56,12 +58,13 @@ export async function readSharedState(client: AuthenticatedClient, role: AccessR
   const { data: rows, error } = await client
     .from("dashboard_state")
     .select("key,value,updated_at")
-    .in("key", [...Object.values(preferred), ...recoveryKeys, ...Object.values(legacyKeys)]);
+    .in("key", [...Object.values(preferred), ...(role === "operator" ? [acceptanceModeKey] : []), ...recoveryKeys, ...Object.values(legacyKeys)]);
   if (error) throw error;
   const result: SharedDashboardState = {};
   const get = (key: string) => (rows ?? []).find((row) => row.key === key)?.value;
   result.stationData = get(preferred.stationData) ?? (role === "operator" ? get(draftKeys.stationData) : undefined) ?? get(legacyKeys.stationData);
   result.configs = get(preferred.configs) ?? (role === "operator" ? get(draftKeys.configs) : undefined) ?? get(legacyKeys.configs);
+  if (role === "operator") result.modeData = get(acceptanceModeKey);
   if (role === "operator") {
     const publishedConfigs = (rows ?? []).find((row) => row.key === publishedKeys.configs)?.value;
     const legacyConfigs = (rows ?? []).find((row) => row.key === legacyKeys.configs)?.value;
