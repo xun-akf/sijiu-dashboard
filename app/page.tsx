@@ -78,6 +78,11 @@ const removedStations = new Set([
   "蔚景云创新中心充电站",
   "蔚景云华阳物流园一期",
   "蔚景云华阳物流园二期",
+  "蔚景云中和执法大队充电站",
+  "蔚景云浮生半日闲清居充电站",
+  "蔚景云迎宾路慢充站",
+  "蔚景云阿嘎山居民宿充电站",
+  "宜宾市生态环境局充电站",
 ]);
 const baseStations = (data.stations as S[]).filter(
   (s) => !removedStations.has(s.name),
@@ -649,10 +654,11 @@ export default function Home() {
   // Legacy dashboard helpers synchronously read this snapshot during render.
   // eslint-disable-next-line react-hooks/globals
   const catalogOperators = Object.fromEntries(stationCatalog.map((item) => [item.name,item.operator]));
-  const scopedNames = new Set(scopedStationNames(stationData.map((item) => item.name),operatorFilter,catalogOperators,stationOperators));
-  stations = stationData.filter((item) => scopedNames.has(item.name));
+  const visibleStationData = stationData.filter((item) => !removedStations.has(item.name));
+  const scopedNames = new Set(scopedStationNames(visibleStationData.map((item) => item.name),operatorFilter,catalogOperators,stationOperators));
+  stations = visibleStationData.filter((item) => scopedNames.has(item.name));
   const reportingNames=reportingStationNames(stations,allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周",periodType);
-  const noWeeklyHistory=sn!=="全部场站" && stationData.some((item)=>item.name===sn && item.records.length===0);
+  const noWeeklyHistory=sn!=="全部场站" && visibleStationData.some((item)=>item.name===sn && item.records.length===0);
   useEffect(()=>{
     if(!accessRole)return;
     let live=true;
@@ -926,7 +932,7 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(stationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(stationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(stationData.map((item)=>item.name),catalogOperators,stationOperators)} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(visibleStationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(visibleStationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(visibleStationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
         {view !== "config" && view !== "station" && view !== "business" && <div className="mode-switchbar">
           <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
