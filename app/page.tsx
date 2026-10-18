@@ -868,7 +868,7 @@ export default function Home() {
               <button
                 key={x.id}
                 className={view === x.id ? "active" : ""}
-                onClick={() => { setView(x.id); if (x.id === "station" || x.id === "business") setPeriodType("week"); }}
+                onClick={() => { setView(x.id); if (x.id === "station" || x.id === "business") setPeriodType("week"); if (x.id === "business") setSn("全部场站"); }}
               >
                 <I />
                 {x.label}
