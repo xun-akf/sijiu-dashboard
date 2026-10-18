@@ -1789,6 +1789,7 @@ function StationAnalysis({
 function Business({ wi, sn }: { wi: number; sn: string }) {
   const week = allWeeks()[wi],
     [analysisView, setAnalysisView] = useState<"contribution" | "diagnosis">("contribution"),
+    [diagnosisMode, setDiagnosisMode] = useState<"fast" | "slow" | "mixed" | "unknown" | null>(null),
     [classified, setClassified] = useState<Awaited<ReturnType<typeof loadModeData>> | null>(null),
     [classificationError, setClassificationError] = useState(""),
     canEdit = useContext(OperatorContext),
@@ -1911,7 +1912,15 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         <span className="attention-count">重点关注 {attention.length} 个</span>
       </div>
       <div className="business-analysis-controls">
-        <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => setAnalysisView("diagnosis")}>全场站数据诊断分析</button></div>
+        <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => { setAnalysisView("diagnosis"); setDiagnosisMode(null); }}>全场站数据诊断分析</button></div>
+        {analysisView === "diagnosis" && <div className="business-mode-tabs" aria-label="选择逐站分析类型">
+          {(["fast", "slow", "mixed", "unknown"] as const).filter((mode) => mode !== "unknown" || modeGroups.unknown.length > 0).map((mode) => (
+            <button key={mode} className={diagnosisMode === mode ? "active" : ""} onClick={() => setDiagnosisMode(mode)}>
+              {mode === "fast" ? "快充" : mode === "slow" ? "慢充" : mode === "mixed" ? "混合站" : "模式待补充"}
+              <small>{modeGroups[mode].length}站</small>
+            </button>
+          ))}
+        </div>}
       </div>
       {analysisView === "contribution" && <div className="business-ranking-grid">
         <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable /></Panel>
@@ -1926,18 +1935,11 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
           </div>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
         </Panel>
       </div>}
-      {analysisView === "diagnosis" && <>
-      <div className="business-mode-diagnoses">
-        {(["fast", "slow", "mixed", "unknown"] as const).filter((mode) => mode !== "unknown" || modeGroups.unknown.length > 0).map((mode) => (
-          <details key={mode} className="data-disclosure">
-            <summary>{mode === "fast" ? "快充分析" : mode === "slow" ? "慢充分析" : mode === "mixed" ? "快慢充混合站" : "模式待补充"}<span>展开查看 {modeGroups[mode].length} 站</span></summary>
-            {(mode === "fast" || mode === "slow") && <p className="business-diagnosis-summary">{modeDiagnosis(mode)}</p>}
-            {mode === "mixed" && <p className="business-diagnosis-summary">以下为站点总体经营分析，快慢充分类电量不在此重复累计。</p>}
-            <div className="diagnosis-grid">{modeGroups[mode].map(renderStationDiagnosis)}</div>
-          </details>
-        ))}
-      </div>
-      </>}
+      {analysisView === "diagnosis" && diagnosisMode && <section className="business-mode-diagnoses">
+        {(diagnosisMode === "fast" || diagnosisMode === "slow") && <p className="business-diagnosis-summary">{modeDiagnosis(diagnosisMode)}</p>}
+        {diagnosisMode === "mixed" && <p className="business-diagnosis-summary">以下为站点总体经营分析，快慢充分类电量不在此重复累计。</p>}
+        <div className="diagnosis-grid">{modeGroups[diagnosisMode].map(renderStationDiagnosis)}</div>
+      </section>}
     </>
   );
 }
