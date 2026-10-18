@@ -82,10 +82,24 @@
   margin-top: 10px;
 }
 .interactive-chart {
-  height: 226px;
+  height: auto;
+  min-height: 226px;
 }
 .interactive-chart.large {
-  height: 310px;
+  height: auto;
+  min-height: 310px;
+}
+.interactive-chart .xlabels {
+  display: grid;
+  align-items: start;
+  gap: 2px;
+  padding-top: 4px;
+  line-height: 1.35;
+}
+.interactive-chart .xlabels > span {
+  min-width: 0;
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 .interactive-chart svg {
   height: 184px;
