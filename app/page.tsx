@@ -1033,6 +1033,10 @@ function totals(sn: string, wi: number) {
     charge,
     revenue,
     profit,
+    chargeCoverage:cur.filter(r=>r.charge!=null).length,
+    serviceCoverage:cur.filter(r=>r.serviceRevenue!=null).length,
+    profitCoverage:cur.filter(r=>r.profit!=null).length,
+    stationCount:ss.length,
     active: cur.filter((r) => num(r.charge) > 0).length,
     cc: pc ? charge / pc - 1 : null,
     rc: pr ? revenue / pr - 1 : null,
@@ -1063,20 +1067,23 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         <Kpi
           icon={<BatteryCharging />}
           label="总充电量"
-          value={`${qty(t.charge)} kWh`}
+          value={t.chargeCoverage?`${qty(t.charge)} kWh`:"暂无经营记录"}
           change={t.cc}
+          sub={`有记录 ${t.chargeCoverage}/${t.stationCount} 站`}
         />
         <Kpi
           icon={<CircleDollarSign />}
-          label="服务费收入"
-          value={money(t.revenue)}
+          label={t.serviceCoverage<t.stationCount?"服务费收入（可核算小计）":"服务费收入"}
+          value={t.serviceCoverage?money(t.revenue):"金额待核算"}
           change={t.rc}
+          sub={`可核算 ${t.serviceCoverage}/${t.stationCount} 站`}
         />
         <Kpi
           icon={<Gauge />}
-          label="经营毛利 / 利润"
-          value={money(t.profit)}
+          label={t.profitCoverage<t.stationCount?"经营毛利（可核算小计）":"经营毛利 / 利润"}
+          value={t.profitCoverage?money(t.profit):"金额待核算"}
           change={t.pc}
+          sub={`可核算 ${t.profitCoverage}/${t.stationCount} 站`}
         />
         {sn === "全部场站" ? (
           <Kpi
@@ -4015,7 +4022,7 @@ function Kpi({
               {change >= 0 ? <TrendingUp /> : <TrendingDown />}
               {pct(change)}
             </span>
-            <small>较上周</small>
+            <small>较上周{sub?` · ${sub}`:""}</small>
           </>
         ) : (
           <small>{sub}</small>
