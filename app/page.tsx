@@ -4198,11 +4198,13 @@ function BarList({
   scrollable?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
-  const max = Math.max(...rows.map((x) => num(x.record.profit)), 1);
+  const rankedRows = rows.filter((x) => x.record.profit != null);
+  const pendingRows = rows.filter((x) => x.record.profit == null);
+  const max = Math.max(...rankedRows.map((x) => num(x.record.profit)), 1);
   return (
     <>
     <div className={`bar-list${scrollable ? " ranking-scroll" : ""}`}>
-      {(scrollable || showAll ? rows : rows.slice(0, 5)).map((x, i) => (
+      {(scrollable || showAll ? rankedRows : rankedRows.slice(0, 5)).map((x, i) => (
         <div key={x.station.name} className={i < 3 ? "top-three" : ""}>
           <span>{i + 1}</span>
           <div>
@@ -4216,20 +4218,15 @@ function BarList({
               />
             </i>
           </div>
-          <strong title={x.record.profit == null && x.record.partialProfit != null
-            ? `已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh；差额已归快充总量，但缺少分时依据，整站毛利待核对`
-            : undefined}>
-            {x.record.profit != null ? money(x.record.profit)
-              : x.record.partialProfit != null ? `${money(x.record.partialProfit)}*` : "待核算"}
-          </strong>
+          <strong>{money(num(x.record.profit))}</strong>
           <small className={num(x.record.chargeChange) >= 0 ? "up" : "down"}>
             {pct(x.record.chargeChange)}
           </small>
         </div>
       ))}
     </div>
-    {rows.some((x) => x.record.profit == null && x.record.partialProfit != null) && <small className="ranking-partial-note">* 为已有分时明细的毛利；差额归入快充总电量，分时收入与整站毛利待核对。悬停金额可查看覆盖电量。</small>}
-    {!scrollable && rows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rows.length} 站`}</button>}
+    {pendingRows.length > 0 && <details className="ranking-pending"><summary>{pendingRows.length} 站整站毛利待核算（不参与排名）</summary>{pendingRows.map((x) => <p key={x.station.name}><b>{x.station.name}</b>：{x.record.partialProfit != null ? `${money(x.record.partialProfit)} 为已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh 的部分毛利；其余快充电量缺分时明细` : "毛利待核算"}</p>)}</details>}
+    {!scrollable && rankedRows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rankedRows.length} 站`}</button>}
     </>
   );
 }
