@@ -1808,7 +1808,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     rows = scope(sn)
       .map((s) => ({ station: s, record: recordAt(s, wi) }))
       .filter((item): item is { station: S; record: R } => Boolean(item.record))
-      .sort((a, b) => num(b.record.profit) - num(a.record.profit)),
+      .sort((a, b) => (b.record.profit ?? -Infinity) - (a.record.profit ?? -Infinity)),
     attention = rows
       .filter((x) => num(x.record.chargeChange) < -0.12)
       .sort((a, b) => num(a.record.chargeChange) - num(b.record.chargeChange)),
@@ -1903,7 +1903,7 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
   const renderStationDiagnosis = (item: (typeof rows)[number]) => (
     <div key={item.station.name} className={num(item.record.chargeChange) < 0 ? "negative" : "positive"}>
       <header><b>{item.station.name}</b><span>{pct(item.record.chargeChange)}</span></header>
-      <p>充电量 {qty(num(item.record.charge))} kWh · 经营利润 {money(num(item.record.profit))}</p>
+      <p>充电量 {qty(num(item.record.charge))} kWh · 经营利润 {item.record.profit == null ? "待核算" : money(item.record.profit)}</p>
       {renderAnalysisBlock(item)}
     </div>
   );
@@ -4198,7 +4198,7 @@ function BarList({
               />
             </i>
           </div>
-          <strong>{money(num(x.record.profit))}</strong>
+          <strong>{x.record.profit == null ? "待核算" : money(x.record.profit)}</strong>
           <small className={num(x.record.chargeChange) >= 0 ? "up" : "down"}>
             {pct(x.record.chargeChange)}
           </small>
