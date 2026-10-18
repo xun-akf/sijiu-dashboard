@@ -539,6 +539,13 @@
   background: #173a30;
   color: #e8fff7;
 }
+.data-center-shortcuts button.active {
+  background: #245044;
+  color: #e8fff7;
+}
+.data-center-section[hidden] {
+  display: none;
+}
 .cost-panel {
   padding: 13px 15px;
   margin-bottom: 10px;

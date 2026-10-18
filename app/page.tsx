@@ -2840,6 +2840,7 @@ function Config({
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
     [stationPickerOpen, setStationPickerOpen] = useState(false),
     [dataWeek, setDataWeek] = useState(allWeeks().at(-1) || ""),
+    [configSection, setConfigSection] = useState<"weekly" | "mode" | "record" | "analysis" | "cost" | "price" | "profiles" | "accounts">("weekly"),
     [openPanels, setOpenPanels] = useState<Record<string, boolean>>({}),
     [dataDraft, setDataDraft] = useState<Partial<R>>({}),
     [analysisPreview, setAnalysisPreview] = useState<Record<string, StationConfig> | null>(null),
@@ -3169,15 +3170,15 @@ function Config({
           <p>月度成本按月份自动匹配；对外电费按场站、按周匹配并重算利润。</p>
         </div>
         <div className="config-actions">
-          <label className="upload-button">
+          {configSection === "weekly" && <label className="upload-button">
             <input
               type="file"
               accept=".xlsx,.xls"
               onChange={(e) => importFile(e.target.files?.[0])}
             />
             导入周报 Excel
-          </label>
-          <button
+          </label>}
+          {(configSection === "cost" || configSection === "price" || configSection === "profiles") && <button
             className="ghost edit-toggle"
             onClick={() => {
               if (editing) setOpenPanels({});
@@ -3185,8 +3186,8 @@ function Config({
             }}
           >
             {editing ? "取消修改" : "修改"}
-          </button>
-          {editing && (
+          </button>}
+          {editing && (configSection === "cost" || configSection === "price" || configSection === "profiles") && (
             <button className="save-button" onClick={doSave}>
               保存并锁定
             </button>
@@ -3204,39 +3205,14 @@ function Config({
         <span>最后发布时间 <b>{adminMeta?.lastPublishedAt ? new Date(adminMeta.lastPublishedAt).toLocaleString("zh-CN", { hour12: false }) : "尚未发布"}</b></span>
         <span>当前发布状态 <b className={adminMeta?.publishStatus === "draft" ? "pending" : "published"}>{adminMeta?.publishStatus === "draft" ? "有未发布修改" : "已发布"}</b></span>
       </div>
-      <nav className="data-center-shortcuts" aria-label="数据中心快捷入口">
-        <button
-          onClick={() =>
-            document
-              .getElementById("weekly-data")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          周报数据
-        </button>
-        <button
-          onClick={() =>
-            document
-              .getElementById("station-profile")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          场站资料
-        </button>
-        <button
-          onClick={() =>
-            document
-              .getElementById("price-cost")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          价格成本
-        </button>
-        <button onClick={() => document.getElementById("record-editor")?.scrollIntoView({ behavior: "smooth" })}>历史数据修改</button>
-        <button onClick={() => document.getElementById("auto-analysis")?.scrollIntoView({ behavior: "smooth" })}>本周分析</button>
-        <button onClick={() => setStatus("竞站数据：请在趋势洞察中选择单站后点击“编辑价格”维护")}>竞站数据</button>
+      <nav className="data-center-shortcuts" aria-label="数据中心板块">
+        {([
+          ["weekly", "周报导入"], ["mode", "充电模式导入"], ["record", "历史数据修改"],
+          ["analysis", "本周分析"], ["cost", "月度电费成本"], ["price", "场站对外价格"],
+          ["profiles", "场站资料"], ["accounts", "账号权限"],
+        ] as const).map(([section, title]) => <button key={section} type="button" className={configSection === section ? "active" : ""} aria-current={configSection === section ? "page" : undefined} onClick={() => setConfigSection(section)}>{title}</button>)}
       </nav>
-      <div className="data-center-scope">
+      {(configSection === "record" || configSection === "cost" || configSection === "price" || configSection === "profiles") && <div className="data-center-scope">
         <div>
           <span>当前编辑范围</span>
           <b>{dataStation} · {displayWeek(dataWeek)}</b>
@@ -3268,9 +3244,14 @@ function Config({
         <select value={dataWeek} onChange={(event) => { setDataWeek(event.target.value); setDataDraft({}); }}>
           {allWeeks().map((week) => <option key={week} value={week}>{displayWeek(week)}</option>)}
         </select>
-      </div>
+      </div>}
+      <section className="data-center-section" hidden={configSection !== "accounts"}>
       <SuboperatorManager stationNames={stations.map((station) => station.name)} onStatus={setStatus} />
+      </section>
+      <section className="data-center-section" hidden={configSection !== "mode"}>
       <ModeImportPanel />
+      </section>
+      <section className="data-center-section" hidden={configSection !== "record"}>
       <div className="cost-panel record-editor" id="record-editor">
         <div className="section-head">
           <div>
@@ -3307,6 +3288,8 @@ function Config({
           </div>
         )}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "analysis"}>
       <div className="cost-panel auto-analysis-panel" id="auto-analysis">
         <div className="section-head">
           <div><h3>自动生成本周分析</h3><p>基于环比、尖峰平谷、服务费收入、利润、场景客群和已有竞站数据生成；待核验内容不会猜测。</p></div>
@@ -3323,6 +3306,9 @@ function Config({
           <div className="record-readonly"><span>当前已发布分析：<b>{cfg.__summary__?.analysis ? "已生成" : "尚未生成"}</b></span><span>导入新周报并确认后，也会自动生成并发布最新一周分析。</span></div>
         )}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "weekly"}>
+      {!preview && <div className="cost-panel"><h3>周报数据导入</h3><p>点击右上角“导入周报 Excel”，核对字段、场站及异常后保存草稿。</p></div>}
       {preview && (
         <div className="cost-panel import-preview" id="weekly-data">
           <div className="section-head">
@@ -3424,6 +3410,8 @@ function Config({
           <details className="ignored-stations"><summary>已忽略 {preview.matches.filter((match) => match.status === "ignored").length} 个非看板站点</summary><p>{preview.matches.filter((match) => match.status === "ignored").map((match) => match.excelName).join("、") || "无"}</p></details>
         </div>
       )}
+      </section>
+      <section className="data-center-section" hidden={configSection !== "cost"}>
       <div className="cost-panel matrix-panel" id="price-cost">
         <div className="section-head">
           <div>
@@ -3468,6 +3456,8 @@ function Config({
         </small>
         </>}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "price"}>
       <div className="cost-panel matrix-panel">
         <div className="section-head">
           <div>
@@ -3509,6 +3499,8 @@ function Config({
         </div>
         </>}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "profiles"}>
       <div className="config-card" id="station-profile">
         <div className="table-tools">
           <div className="search">
@@ -3616,6 +3608,7 @@ function Config({
         </div>
         }
       </div>
+      </section>
     </>
   );
 }
