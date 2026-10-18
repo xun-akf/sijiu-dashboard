@@ -111,6 +111,7 @@ export type TariffVersion = {
 export type OperatingResult = { electricityRevenue: number | null; serviceRevenue: number | null; profit: number | null };
 type CostConfig = {
   purchaseCostType?: string; billingType?: string; unifiedPrice?: string;
+  monthlyCostsJson?: string; gridFeesJson?: string;
 };
 type MonthlyCostConfig = { monthlyCostsJson?: string; gridFeesJson?: string };
 const touKeys = ["peak","high","flat","valley"] as const;
@@ -145,7 +146,7 @@ export function classifyDayOperatingMetrics(
   const serviceRevenue=amounts.reduce((sum,amount,index)=>sum+amount*(sell[index]?.service || 0),0);
   let costs: Record<string,Record<string,Record<string,string>>>={};
   let fees: Record<string,string>={};
-  try {costs=JSON.parse(monthlyConfig.monthlyCostsJson || "{}");fees=JSON.parse(monthlyConfig.gridFeesJson || "{}");}
+  try {costs=JSON.parse(stationConfig.monthlyCostsJson || monthlyConfig.monthlyCostsJson || "{}");fees=JSON.parse(stationConfig.gridFeesJson || monthlyConfig.gridFeesJson || "{}");}
   catch {return {electricityRevenue,serviceRevenue,profit:null};}
   const date=new Date(fact.date+"T00:00:00Z"), month=String(date.getUTCMonth()+1);
   const yearMonth=`${date.getUTCFullYear()}-${month}`;
