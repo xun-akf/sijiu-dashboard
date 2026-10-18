@@ -48,20 +48,23 @@ export async function loadModeData(start: string, end: string) {
   if (profiles.error) throw profiles.error;
   if (tariffs.error) throw tariffs.error;
   if (!shared.ok) throw new Error("购电成本配置读取失败");
-  const state=await shared.json() as {configs?:Record<string,Record<string,string>>};
+  const state=await shared.json() as {configs?:Record<string,Record<string,string>>;modeData?:{facts?:ModeEnergyFact[];tariffs?:TariffVersion[]}};
+  const acceptanceFacts=(state.modeData?.facts || []).filter((fact)=>fact.date>=start && fact.date<=end);
+  const acceptanceNames=new Set(acceptanceFacts.map((fact)=>`${fact.stationName}|${fact.date}|${fact.mode}|${fact.deviceId || ""}`));
+  const acceptanceTariffs=state.modeData?.tariffs || [];
   return {
     profiles:(profiles.data || []) as StationProfile[],
     calendar,
-    tariffs:(tariffs.data || []) as TariffVersion[],
+    tariffs:[...(tariffs.data || []) as TariffVersion[],...acceptanceTariffs],
     configs:state.configs || {},
-    facts:facts.map((x):ModeEnergyFact=>({
+    facts:[...facts.filter((x)=>!acceptanceNames.has(`${x.station_name}|${x.charge_date}|${x.charging_mode}|${x.device_key || ""}`)).map((x):ModeEnergyFact=>({
       stationName:x.station_name,date:x.charge_date,mode:x.charging_mode as "fast" | "slow",
       deviceId:x.device_key || null,peak:x.peak_kwh == null ? null : Number(x.peak_kwh),
       high:x.high_kwh == null ? null : Number(x.high_kwh),
       flat:x.flat_kwh == null ? null : Number(x.flat_kwh),
       valley:x.valley_kwh == null ? null : Number(x.valley_kwh),
       charge:Number(x.total_kwh),orders:x.orders,
-    })),
+    })),...acceptanceFacts],
   };
 }
 
