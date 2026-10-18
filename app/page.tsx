@@ -1807,6 +1807,11 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     attention = rows
       .filter((x) => num(x.record.chargeChange) < -0.12)
       .sort((a, b) => num(a.record.chargeChange) - num(b.record.chargeChange)),
+    changes = rows.flatMap((item) => {
+      const previous = recordAt(item.station, wi - 1);
+      if (!previous || wi <= 0 || item.record.charge == null || previous.charge == null) return [];
+      return [{ ...item, delta: num(item.record.charge) - num(previous.charge) }];
+    }).sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta)).slice(0, 5),
     range = week ? sundaySaturdayRange(week) : null,
     priorStart = range ? new Date(Date.parse(range.start + "T00:00:00Z") - 7 * 86400000).toISOString().slice(0, 10) : "",
     classifiedRows = analysisMode === "all" || !classified || !range ? [] : scope(sn).map((station) => {
@@ -1895,35 +1900,22 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => setAnalysisView("diagnosis")}>全场站数据诊断分析</button></div>
         {analysisView === "diagnosis" && <div className="metric-switch">{(["all", "fast", "slow"] as const).map((value) => <button key={value} className={analysisMode === value ? "active" : ""} onClick={() => setAnalysisMode(value)}>{value === "all" ? "整体" : value === "fast" ? "快充分析" : "慢充分析"}</button>)}</div>}
       </div>
-      {analysisView === "contribution" && <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏"><BarList rows={rows} /></Panel>}
+      {analysisView === "contribution" && <div className="business-ranking-grid">
+        <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable /></Panel>
+        <Panel title="变化较大的5站" sub="本周与上周充电量变化，按绝对值排序" extra="business-rank-panel">
+          <div className="business-change-list">{changes.length ? changes.map((x) => <div key={x.station.name}>
+            <b>{x.station.name}</b><strong className={x.delta >= 0 ? "up" : "down"}>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</strong>
+          </div>) : <p className="empty-note">暂无可比较的上周电量</p>}</div>
+        </Panel>
+        <Panel title="下降最严重的3站" sub="充电量环比下降超过12%，按降幅排序" extra="business-rank-panel">
+          <div className="business-change-list">{attention.length ? attention.slice(0, 3).map((x) => <div key={x.station.name}>
+            <b>{x.station.name}</b><strong className="down">{pct(x.record.chargeChange)}</strong>
+          </div>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
+        </Panel>
+      </div>}
       {analysisView === "diagnosis" && <p className="business-diagnosis-summary">{analysisMode === "all" ? generateWeeklyAnalyses(scope(sn), week, cfg).__summary__?.analysis || "本周运营诊断待补充" : modeDiagnosis}</p>}
       {analysisView === "diagnosis" && analysisMode === "all" && <>
       <details className="data-disclosure"><summary>逐站分析与编辑 <span>展开查看 {rows.length} 站</span></summary>
-      <div className="content-grid equal">
-        <Panel
-          title={`重点下降站点 · ${attention.length}个`}
-          sub="充电量环比下降超过 12%，按降幅排序"
-        >
-          <div className="attention-list">
-            {attention.length ? (
-              attention.slice(0, 5).map((x, index) => (
-                <div key={x.station.name}>
-                  <div className="attention-main">
-                    <i>{index + 1}</i>
-                    <div>
-                      <b>{x.station.name}</b>
-                      <small>经营利润 {money(num(x.record.profit))}</small>
-                    </div>
-                    <span className="down">{pct(x.record.chargeChange)}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="empty-note">本周暂无下降超过 12% 的场站</p>
-            )}
-          </div>
-        </Panel>
-      </div>
       <Panel
         title="全场站数据诊断"
         sub="默认展示结果；需要时再添加或编辑运营分析"
@@ -4320,16 +4312,18 @@ function InteractiveChart({
 function BarList({
   rows,
   danger = false,
+  scrollable = false,
 }: {
   rows: { station: S; record: R }[];
   danger?: boolean;
+  scrollable?: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const max = Math.max(...rows.map((x) => num(x.record.profit)), 1);
   return (
     <>
-    <div className="bar-list">
-      {(showAll ? rows : rows.slice(0, 5)).map((x, i) => (
+    <div className={`bar-list${scrollable ? " ranking-scroll" : ""}`}>
+      {(scrollable || showAll ? rows : rows.slice(0, 5)).map((x, i) => (
         <div key={x.station.name} className={i < 3 ? "top-three" : ""}>
           <span>{i + 1}</span>
           <div>
@@ -4350,7 +4344,7 @@ function BarList({
         </div>
       ))}
     </div>
-    {rows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rows.length} 站`}</button>}
+    {!scrollable && rows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rows.length} 站`}</button>}
     </>
   );
 }
