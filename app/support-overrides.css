@@ -135,10 +135,12 @@
 .period-data-note p { margin: 8px 0 0; line-height: 1.6; }
 .business-analysis-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
 .business-ranking-grid { display:grid; grid-template-columns:minmax(390px,1.5fr) minmax(240px,1fr) minmax(240px,1fr); gap:12px; align-items:start; }
-.business-mode-diagnoses { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
-.business-mode-diagnoses .data-disclosure { margin:0; }
-.business-mode-diagnoses .data-disclosure > summary { display:inline-flex; width:max-content; max-width:100%; justify-content:flex-start; gap:18px; padding:9px 13px; }
-.business-mode-diagnoses .business-diagnosis-summary { margin:0; }
+.business-mode-tabs { display:flex; flex-wrap:wrap; gap:7px; }
+.business-mode-tabs button { display:flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid #315347; border-radius:8px; background:#102c24; color:#d8eee5; font-size:12px; cursor:pointer; }
+.business-mode-tabs button.active { border-color:#46bc8c; background:#1c4b3a; color:#fff; }
+.business-mode-tabs small { color:#9cbeaf; font-size:10px; }
+.business-mode-diagnoses { min-width:0; margin-top:12px; }
+.business-mode-diagnoses .business-diagnosis-summary { margin:0 0 10px; }
 .business-mode-diagnoses .diagnosis-grid { margin-top:12px; }
 .business-rank-panel { min-width:0; padding:17px; }
 .business-ranking-grid .ranking-scroll { max-height:470px; overflow-y:auto; scrollbar-color:#3a6b57 #102820; padding-right:5px; }
