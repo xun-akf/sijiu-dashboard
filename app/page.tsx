@@ -2394,7 +2394,8 @@ const metricChangeText = (label: string, current: number | null, previous: numbe
 function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
   const index = station.records.findIndex((record) => record.week === week),
     current = station.records[index],
-    previous = station.records[index - 1];
+    preceding = allWeeks().filter((candidate) => weekOrderValue(candidate) < weekOrderValue(week)).sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0],
+    previous = station.records.find((record) => record.week === preceding);
   if (!current) return "该周期暂无数据，暂不生成分析。";
   const periods: [keyof Pick<R, "peak" | "high" | "flat" | "valley">, string][] = [
       ["peak", "尖"], ["high", "峰"], ["flat", "平"], ["valley", "谷"],
@@ -2469,6 +2470,9 @@ function withManualAnalysis(config: StationConfig, week: string, text: string): 
 }
 function generateWeeklyAnalyses(source: S[], week: string, configs: Record<string, StationConfig>) {
   const next = { ...configs };
+  const earlierWeeks = [...new Set(source.flatMap((station) => station.records.map((record) => record.week)))]
+    .filter((candidate) => weekOrderValue(candidate) < weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a));
   source.forEach((station) => {
     const stationCfg = { ...emptyConfig, ...configs[station.name] };
     next[station.name] = {
@@ -2476,10 +2480,11 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
       analysis: stationAnalysis(station, week, stationCfg),
     };
   });
-  const recordPair = (station: S) => {
-      const currentIndex = station.records.findIndex((record) => record.week === week);
-      return { current: station.records[currentIndex], previous: currentIndex < 0 ? station.records.at(-1) : station.records[currentIndex - 1], beforePrevious: currentIndex < 0 ? station.records.at(-2) : station.records[currentIndex - 2] };
-    },
+  const recordPair = (station: S) => ({
+      current: station.records.find((record) => record.week === week),
+      previous: station.records.find((record) => record.week === earlierWeeks[0]),
+      beforePrevious: station.records.find((record) => record.week === earlierWeeks[1]),
+    }),
     totalCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.charge), 0),
     totalPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.charge), 0),
     serviceCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.serviceRevenue), 0),
