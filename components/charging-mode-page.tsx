@@ -62,11 +62,19 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
     const fastBase=inferredMode==="fast"?weeklySummary:summarizeMode(facts,range.start,range.end,"fast");
     const adjustment=data.fastUnallocated;
     const fastExtra=adjustment?.stationName===profile.station_name&&adjustment.weekStart>=range.start&&adjustment.weekEnd<=range.end?adjustment.charge:0;
-    const fast=fastExtra>0&&fastBase.charge!=null?{...fastBase,charge:fastBase.charge+fastExtra}:fastBase;
     const slow=inferredMode==="slow"?weeklySummary:summarizeMode(facts,range.start,range.end,"slow");
+    const reconciledTou=periodType==="week"&&fastExtra>0&&adjustment?.weekStart===range.start&&adjustment.weekEnd===range.end&&actualTotal!=null&&slow.charge!=null
+      ? (['peak','high','flat','valley'] as const).map(key=>legacy?.[key]!=null&&slow[key]!=null?Number(legacy[key])-Number(slow[key]):null) : [];
+    const reconciledCharge=actualTotal!=null&&slow.charge!=null?actualTotal-slow.charge:null;
+    const fastReconciledFact=reconciledTou.length===4&&reconciledTou.every(value=>value!=null&&value>=-0.001)&&reconciledCharge!=null
+      && Math.abs(reconciledTou.reduce<number>((sum,value)=>sum+Number(value),0)-reconciledCharge)<0.02
+      ? {stationName:profile.station_name,date:range.end,mode:"fast" as const,deviceId:null,peak:Math.max(0,Number(reconciledTou[0])),high:Math.max(0,Number(reconciledTou[1])),flat:Math.max(0,Number(reconciledTou[2])),valley:Math.max(0,Number(reconciledTou[3])),charge:reconciledCharge,orders:null} : null;
+    const fast=fastReconciledFact?{...fastBase,charge:fastReconciledFact.charge,peak:fastReconciledFact.peak,high:fastReconciledFact.high,flat:fastReconciledFact.flat,valley:fastReconciledFact.valley}
+      :fastExtra>0&&fastBase.charge!=null?{...fastBase,charge:fastBase.charge+fastExtra}:fastBase;
     const coverage=reconcileModes(actualTotal,fast,slow);
     const metrics=(mode:ChargingMode)=>{
       const matching=modeFactsInRange(facts,mode,range.start,range.end);
+      if(mode==="fast"&&fastReconciledFact)return modeOperatingMetrics(fastReconciledFact,data,profile);
       if(inferredMode===mode)return {electricityRevenue:legacy?.electricityRevenue??null,serviceRevenue:legacy?.serviceRevenue??null,profit:legacy?.profit??null};
       if(!matching.length||mode==="fast"&&fastExtra>0)return {electricityRevenue:null,serviceRevenue:null,profit:null};
       const calculated=matching.map(fact=>modeOperatingMetrics(fact,data,profile));
@@ -107,7 +115,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
       const summary=mode==="fast"?fast:slow,modeMetrics=mode==="fast"?fastMetrics:slowMetrics;
       return summary.charge==null||modeMetrics.profit==null;
     });
-    return {profile,fast,slow,fastExtra,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,previousCharge,previousService,attention};
+    return {profile,fast,slow,fastExtra:fastReconciledFact?0:fastExtra,coverage,fastMetrics,slowMetrics,fastEfficiency,slowEfficiency,selectedCharge,selectedProfit,selectedService,selectedElectricity,selectedUtilization,previousCharge,previousService,attention};
   });},[data,periodDays,periodType,priorDays,priorRange.end,priorRange.start,range.end,range.start,selectedMode,station,stationTotals,stationRecords,previousStationRecords,reportingNames]);
 
   const totals=rows.reduce((acc,row)=>({fastGuns:acc.fastGuns+Number(row.profile.fast_guns||0),slowGuns:acc.slowGuns+Number(row.profile.slow_guns||0),fastPower:acc.fastPower+Number(row.profile.fast_power_kw||0),slowPower:acc.slowPower+Number(row.profile.slow_power_kw||0),fast:acc.fast+(row.fast.charge||0),slow:acc.slow+(row.slow.charge||0),hasFast:acc.hasFast||row.fast.charge!=null,hasSlow:acc.hasSlow||row.slow.charge!=null,unknown:acc.unknown+(row.coverage.unclassified||0),knownTotals:acc.knownTotals+(row.coverage.unclassified==null?0:1),excess:acc.excess+row.coverage.excess}),{fastGuns:0,slowGuns:0,fastPower:0,slowPower:0,fast:0,slow:0,hasFast:false,hasSlow:false,unknown:0,knownTotals:0,excess:0});
