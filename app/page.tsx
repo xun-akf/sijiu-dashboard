@@ -4004,6 +4004,7 @@ function InteractiveChart({
       : [...visibleLines].sort((a, b) => (b.data[pinned ?? hover ?? 0]?.value || 0) - (a.data[pinned ?? hover ?? 0]?.value || 0)).slice(0, 6)
     : visibleLines;
   const weeks = lines[0]?.data.map((point) => point.week) ?? [];
+  const sameYear = new Set(weeks.map((week) => week.match(/^\d{4}年/)?.[0])).size === 1;
   const activePoint = pinned ?? hover;
   const all = visibleLines.flatMap((line) =>
     line.data.map((point) => point.value),
@@ -4130,9 +4131,9 @@ function InteractiveChart({
           />
         ))}
       </svg>
-      <div className="xlabels">
+      <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
         {weeks.map((week) => (
-          <span key={week}>{week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
+          <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
         ))}
       </div>
       {showPrimaryLabels &&
