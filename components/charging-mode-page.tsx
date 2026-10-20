@@ -154,7 +154,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const changeText=(value:ReturnType<typeof comparison>)=>value==null?"环比待核":`环比 ${value.change>=0?"↑":"↓"}${Math.abs(value.change).toFixed(1)}% · ${value.count}站可比`;
   const missing=rows.map(row=>{
     const fields:string[]=[];
-    if(row.selectedCharge==null)fields.push("电量/分类");
+    if(row.selectedCharge==null)fields.push(periodType==="month"?"月度日级电量待导入（周报数据已保留）":"电量/分类");
     if(selectedMode==="all"&&periodType==="week"){
       const record=stationRecords[row.profile.station_name];
       const tou=Number(record?.peak||0)+Number(record?.high||0)+Number(record?.flat||0)+Number(record?.valley||0);
@@ -167,8 +167,8 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
         if(!fields.length&&!hasClassifiedMargin)fields.push("经营金额待核对");
       }
     }else{
-      if(row.selectedService==null)fields.push(`${selectedMode==="all"?"分时":"对应模式"}服务费待核`);
-      if(row.selectedProfit==null)fields.push(`${selectedMode==="all"?"分时":"对应模式"}毛利待核`);
+      if(row.selectedService==null)fields.push(periodType==="month"&&row.selectedCharge==null?"月度收入需日级电量":`${selectedMode==="all"?"分时":"对应模式"}服务费待核`);
+      if(row.selectedProfit==null)fields.push(periodType==="month"&&row.selectedCharge==null?"月度毛利需日级电量":`${selectedMode==="all"?"分时":"对应模式"}毛利待核`);
     }
     if(row.profile.guns==null)fields.push("枪数");
     if(row.profile.power_kw==null)fields.push("功率");
@@ -185,7 +185,7 @@ export default function ChargingModePage({week,station,selectedMode,periodType,r
   const rowValue=<T,>(mode:ChargingMode,fast:T,slow:T)=>mode==="fast"?fast:slow;
 
   return <div className="mode-page">
-    <p className="mode-period-note">{range.start}—{range.end} · {selectedMode==="all"?"全部模式":modeName(selectedMode)} · {rows.length}站有记录{incompleteMonth?` · 数据截至${lastRecordedDay||"待导入"}，非整月`:fullMonthOnly?" · 整月汇总":""}</p>
+    <p className="mode-period-note">{range.start}—{range.end} · {selectedMode==="all"?"全部模式":modeName(selectedMode)} · {rows.length}站纳入核对{incompleteMonth?` · 月度日级数据截至${lastRecordedDay||"待导入"}，未覆盖站点的周报数据仍保留，非整月`:fullMonthOnly?" · 整月汇总":""}</p>
     {loading?<p className="empty-note">正在读取分类数据…</p>:error?<p className="empty-note">{error}</p>:<>
       <div className="mode-primary-kpis">
         <div><span>充电量 <Info size={12}/></span><strong>{fmt(scopedCharge," kWh")}</strong><small>{changeText(chargeChange)}</small></div>
