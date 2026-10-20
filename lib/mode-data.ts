@@ -37,7 +37,7 @@ async function loadAllModeFacts(start:string,end:string) {
     if((page.data || []).length<1000) return rows;
   }
 }
-export async function loadModeData(start: string, end: string) {
+async function fetchModeData(start: string, end: string) {
   const [profiles,facts,calendar,tariffs,shared]=await Promise.all([
     dashboardClient.from("dashboard_station_profiles").select("station_name,source_name,operator_name,address,region,guns,fast_guns,slow_guns,power_kw,fast_power_kw,slow_power_kw,operation_status").order("station_name"),
     loadAllModeFacts(start,end),
@@ -67,6 +67,27 @@ export async function loadModeData(start: string, end: string) {
       charge:Number(x.total_kwh),orders:x.orders,
     })),...acceptanceFacts],
   };
+}
+
+type LoadedModeData = Awaited<ReturnType<typeof fetchModeData>>;
+const modeCache = new Map<string, { expires: number; request: Promise<LoadedModeData> }>();
+let cacheListenerAdded = false;
+export function invalidateModeDataCache() { modeCache.clear(); }
+export function loadModeData(start: string, end: string): Promise<LoadedModeData> {
+  if (typeof window !== "undefined" && !cacheListenerAdded) {
+    window.addEventListener("dashboard-state-changed", invalidateModeDataCache);
+    dashboardClient.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") invalidateModeDataCache();
+    });
+    cacheListenerAdded = true;
+  }
+  const key = `${start}|${end}`;
+  const cached = modeCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.request;
+  const request = fetchModeData(start, end);
+  modeCache.set(key, { expires: Date.now() + 15_000, request });
+  void request.catch(() => { if (modeCache.get(key)?.request === request) modeCache.delete(key); });
+  return request;
 }
 
 export function modeOperatingMetrics(fact:ModeEnergyFact,data:Awaited<ReturnType<typeof loadModeData>>,profile:StationProfile) {
@@ -101,5 +122,6 @@ export async function saveModeImport(file: File, preview: ModeImportPreview) {
   }));
   const {error}=await dashboardClient.from("dashboard_mode_energy").upsert(rows,{onConflict:"station_name,charge_date,charging_mode,device_key"});
   if (error) throw error;
+  invalidateModeDataCache();
   return batch.id as string;
 }
