@@ -4082,11 +4082,8 @@ function InteractiveChart({
           setHover(index);
         }}
       >
-        {[32, 60, 88, 116, 145].map((value, index) => (
-          <g key={value}><line x1="6" x2="94" y1={value} y2={value} className="gridline" />
-            {emphasizePrimary && <text x="6" y={value - 2} fill="#829a92" fontSize="3" textAnchor="start">{chartWanLabel(max - index * (max - min) / 4)}</text>}
-            {emphasizePrimary && secondaryValues.length > 0 && <text x="94" y={value - 2} fill="#829a92" fontSize="3" textAnchor="end">{chartWanLabel((4 - index) * secondaryMax / 4)}</text>}
-          </g>
+        {[32, 60, 88, 116, 145].map((value) => (
+          <line key={value} x1="6" x2="94" y1={value} y2={value} className="gridline" />
         ))}
         {visibleLines.map((line, lineIndex) => (
           <polyline
@@ -4140,6 +4137,16 @@ function InteractiveChart({
           />
         ))}
       </svg>
+      {emphasizePrimary && [32, 60, 88, 116, 145].map((value, index) => (
+        <span key={value} className="chart-y-label left" style={{top:`${18 + value / 170 * (large ? 290 : 205)}px`}}>
+          {chartWanLabel(max - index * (max - min) / 4)}
+        </span>
+      ))}
+      {emphasizePrimary && secondaryValues.length > 0 && [32, 60, 88, 116, 145].map((value, index) => (
+        <span key={value} className="chart-y-label right" style={{top:`${18 + value / 170 * (large ? 290 : 205)}px`}}>
+          {chartWanLabel((4 - index) * secondaryMax / 4)}
+        </span>
+      ))}
       <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
         {weeks.map((week) => (
           <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
