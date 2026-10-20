@@ -1431,7 +1431,6 @@ function OverviewTrends({
         >
           <InteractiveChart
             lines={chargeLines}
-            emphasizePrimary
             showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
@@ -1457,7 +1456,6 @@ function OverviewTrends({
         >
           <InteractiveChart
             lines={profitLines}
-            emphasizePrimary
             showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
@@ -3970,7 +3968,6 @@ function FilteredInteractiveChart({
 }
 function InteractiveChart({
   lines,
-  emphasizePrimary = false,
   large = false,
   focusedLine = null,
   onFocusLine,
@@ -3987,7 +3984,6 @@ function InteractiveChart({
     color: string;
     data: { week: string; value: number }[];
   }[];
-  emphasizePrimary?: boolean;
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
@@ -4014,17 +4010,32 @@ function InteractiveChart({
   const all = visibleLines.flatMap((line) =>
     line.data.map((point) => point.value),
   );
-  const primaryValues = emphasizePrimary ? (visibleLines[0]?.data.map(point => point.value) ?? []) : all;
+  const primaryValues = visibleLines[0]?.data.map(point => point.value) ?? all;
   const rawMax = Math.max(...primaryValues, 1);
-  const rawMin = emphasizePrimary && primaryValues.length ? Math.min(...primaryValues) : Math.min(...primaryValues, 0);
-  const pad = Math.max((rawMax - rawMin) * 0.16, rawMax * 0.015, 1);
-  const max = emphasizePrimary ? rawMax + pad : rawMax;
-  const min = emphasizePrimary ? Math.max(0, rawMin - pad) : rawMin;
-  const secondaryValues = emphasizePrimary ? visibleLines.slice(1).flatMap(line => line.data.map(point => point.value)) : [];
-  const secondaryMax = Math.max(...secondaryValues, 1) * 1.14;
+  const rawMin = primaryValues.length ? Math.min(...primaryValues) : 0;
+  const spread = Math.max(rawMax - rawMin, rawMax * 0.03, 1);
+  const low = rawMin >= 0 ? Math.max(0, rawMin - spread * 0.12) : rawMin - spread * 0.12;
+  const high = rawMax + spread * 0.12;
+  const roughStep = (high - low) / 5;
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, 0.001)));
+  const step = [1, 2, 5, 10].map(n => n * magnitude).find(n => n >= roughStep) ?? 10 * magnitude;
+  const min = Math.floor(low / step) * step;
+  const max = Math.max(min + step, Math.ceil(high / step) * step);
+  const axisTicks = Array.from({length:Math.round((max - min) / step) + 1}, (_, index) => max - index * step);
+  const secondaryValues = visibleLines.slice(1).flatMap(line => line.data.map(point => point.value));
+  const secondaryRawMax = Math.max(...secondaryValues, 1);
+  const secondaryRough = secondaryRawMax * 1.1 / 4;
+  const secondaryMagnitude = 10 ** Math.floor(Math.log10(secondaryRough));
+  const secondaryStep = ([1,2,5,10].map(n => n * secondaryMagnitude).find(n => n >= secondaryRough) ?? 10 * secondaryMagnitude);
+  const secondaryMax = secondaryStep * 4;
+  const axisText = (value:number) => step >= 10000 && step % 10000 === 0 && min % 10000 === 0
+    ? `${Math.round(value / 10000)}万`
+    : `${Math.round(value).toLocaleString("zh-CN")}${visibleLines[0]?.name.includes("利用率")?"%":""}`;
+  const secondaryAxisText = (value:number) => secondaryStep >= 10000 && secondaryStep % 10000 === 0
+    ? `${Math.round(value / 10000)}万` : Math.round(value).toLocaleString("zh-CN");
   const x = (index: number) => 8 + (index * 84) / Math.max(weeks.length - 1, 1);
   const y = (value: number, lineIndex = 0) =>
-    145 - (emphasizePrimary && lineIndex > 0
+    145 - (lineIndex > 0
       ? value / secondaryMax
       : (value - min) / Math.max(max - min, 1)) * 112;
   return (
@@ -4082,8 +4093,8 @@ function InteractiveChart({
           setHover(index);
         }}
       >
-        {[32, 60, 88, 116, 145].map((value) => (
-          <line key={value} x1="6" x2="94" y1={value} y2={value} className="gridline" />
+        {axisTicks.map((value) => (
+          <line key={value} x1="6" x2="94" y1={y(value)} y2={y(value)} className="gridline" />
         ))}
         {visibleLines.map((line, lineIndex) => (
           <polyline
@@ -4093,29 +4104,11 @@ function InteractiveChart({
               .join(" ")}
             fill="none"
             stroke={line.color}
-            strokeWidth={focusedLine === line.name ? "3" : "1.8"}
+            strokeWidth={focusedLine === line.name ? "3.5" : "2.5"}
             opacity={focusedLine && focusedLine !== line.name ? 0.18 : 1}
             vectorEffect="non-scaling-stroke"
           />
         ))}
-        {visibleLines.flatMap((line, lineIndex) =>
-          line.data.map((point, index) => {
-            const radius = activePoint === index ? 1.8 : 1.05;
-            return (
-              <circle
-                key={`${line.name}-${index}`}
-                cx={x(index)}
-                cy={y(point.value, lineIndex)}
-                r={radius}
-                fill={line.color}
-                stroke="#0d241e"
-                strokeWidth=".45"
-                vectorEffect="non-scaling-stroke"
-                opacity={focusedLine && focusedLine !== line.name ? 0.16 : 1}
-              />
-            );
-          }),
-        )}
         {activePoint !== null && (
           <line
             x1={x(activePoint)}
@@ -4137,15 +4130,18 @@ function InteractiveChart({
           />
         ))}
       </svg>
-      {emphasizePrimary && [32, 60, 88, 116, 145].map((value, index) => (
-        <span key={value} className="chart-y-label left" style={{top:`${18 + value / 170 * (large ? 290 : 205)}px`}}>
-          {chartWanLabel(max - index * (max - min) / 4)}
+      {axisTicks.map((value) => (
+        <span key={value} className="chart-y-label left" style={{top:`${18 + y(value) / 170 * (large ? 290 : 205)}px`}}>
+          {axisText(value)}
         </span>
       ))}
-      {emphasizePrimary && secondaryValues.length > 0 && [32, 60, 88, 116, 145].map((value, index) => (
-        <span key={value} className="chart-y-label right" style={{top:`${18 + value / 170 * (large ? 290 : 205)}px`}}>
-          {chartWanLabel((4 - index) * secondaryMax / 4)}
+      {secondaryValues.length > 0 && [0,1,2,3,4].map((index) => (
+        <span key={index} className="chart-y-label right" style={{top:`${18 + (33 + index * 28) / 170 * (large ? 290 : 205)}px`}}>
+          {secondaryAxisText((4 - index) * secondaryStep)}
         </span>
+      ))}
+      {activePoint !== null && visibleLines.map((line, index) => (
+        <i key={line.name} className="chart-active-point" style={{left:`${x(activePoint)}%`,top:`${18 + y(line.data[activePoint]?.value ?? 0,index) / 170 * (large ? 290 : 205)}px`,background:line.color}} />
       ))}
       <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
         {weeks.map((week) => (
