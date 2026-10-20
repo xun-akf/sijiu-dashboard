@@ -644,6 +644,20 @@
   .period-view .mode-table-wrap td { padding: 8px 4px; font-size: 10px; }
   .period-view .mode-table-wrap th:first-child { width: 30%; }
 }
+
+.interactive-chart .chart-y-label {
+  position: absolute;
+  z-index: 1;
+  width: 6%;
+  transform: translateY(-50%);
+  color: #91a99f;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.interactive-chart .chart-y-label.left { left: 0; text-align: left; }
+.interactive-chart .chart-y-label.right { right: 0; text-align: right; }
 @media (max-width: 720px) {
   .matrix-panel .matrix-row {
     grid-template-columns: minmax(70px, 1fr) repeat(4, minmax(65px, 1fr));
