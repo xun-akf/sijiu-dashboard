@@ -1427,10 +1427,11 @@ function OverviewTrends({
       >
         <Panel
           title="充电量趋势图"
-          sub="折线标注总量；点击某周查看尖峰平谷明细"
+          sub="左轴总量、右轴尖峰平谷；点击某周查看明细"
         >
           <InteractiveChart
             lines={chargeLines}
+            emphasizePrimary
             showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
@@ -1452,10 +1453,11 @@ function OverviewTrends({
       >
         <Panel
           title="毛利额趋势图"
-          sub="折线标注毛利总额；点击某周查看尖峰平谷明细"
+          sub="纵轴按毛利区间显示；点击某周查看尖峰平谷明细"
         >
           <InteractiveChart
             lines={profitLines}
+            emphasizePrimary
             showWeekDateRange
             showPrimaryLabels
             tooltipRequiresPin
@@ -3968,6 +3970,7 @@ function FilteredInteractiveChart({
 }
 function InteractiveChart({
   lines,
+  emphasizePrimary = false,
   large = false,
   focusedLine = null,
   onFocusLine,
@@ -3984,6 +3987,7 @@ function InteractiveChart({
     color: string;
     data: { week: string; value: number }[];
   }[];
+  emphasizePrimary?: boolean;
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
@@ -4010,11 +4014,19 @@ function InteractiveChart({
   const all = visibleLines.flatMap((line) =>
     line.data.map((point) => point.value),
   );
-  const max = Math.max(...all, 1),
-    min = Math.min(...all, 0);
+  const primaryValues = emphasizePrimary ? (visibleLines[0]?.data.map(point => point.value) ?? []) : all;
+  const rawMax = Math.max(...primaryValues, 1);
+  const rawMin = emphasizePrimary && primaryValues.length ? Math.min(...primaryValues) : Math.min(...primaryValues, 0);
+  const pad = Math.max((rawMax - rawMin) * 0.16, rawMax * 0.015, 1);
+  const max = emphasizePrimary ? rawMax + pad : rawMax;
+  const min = emphasizePrimary ? Math.max(0, rawMin - pad) : rawMin;
+  const secondaryValues = emphasizePrimary ? visibleLines.slice(1).flatMap(line => line.data.map(point => point.value)) : [];
+  const secondaryMax = Math.max(...secondaryValues, 1) * 1.14;
   const x = (index: number) => 8 + (index * 84) / Math.max(weeks.length - 1, 1);
-  const y = (value: number) =>
-    145 - ((value - min) / Math.max(max - min, 1)) * 112;
+  const y = (value: number, lineIndex = 0) =>
+    145 - (emphasizePrimary && lineIndex > 0
+      ? value / secondaryMax
+      : (value - min) / Math.max(max - min, 1)) * 112;
   return (
     <div className={`interactive-chart ${large ? "large" : ""}`}>
       {rankedTooltip && lines.length > 8 ? <details className="chart-legend-details"><summary>选择场站（{lines.length}）{focusedLine ? ` · ${focusedLine}` : ""}</summary><div className="chart-legend">
@@ -4070,21 +4082,17 @@ function InteractiveChart({
           setHover(index);
         }}
       >
-        {[32, 60, 88, 116, 145].map((value) => (
-          <line
-            key={value}
-            x1="6"
-            x2="94"
-            y1={value}
-            y2={value}
-            className="gridline"
-          />
+        {[32, 60, 88, 116, 145].map((value, index) => (
+          <g key={value}><line x1="6" x2="94" y1={value} y2={value} className="gridline" />
+            {emphasizePrimary && <text x="6" y={value - 2} fill="#829a92" fontSize="3" textAnchor="start">{chartWanLabel(max - index * (max - min) / 4)}</text>}
+            {emphasizePrimary && secondaryValues.length > 0 && <text x="94" y={value - 2} fill="#829a92" fontSize="3" textAnchor="end">{chartWanLabel((4 - index) * secondaryMax / 4)}</text>}
+          </g>
         ))}
-        {visibleLines.map((line) => (
+        {visibleLines.map((line, lineIndex) => (
           <polyline
             key={line.name}
             points={line.data
-              .map((point, index) => `${x(index)},${y(point.value)}`)
+              .map((point, index) => `${x(index)},${y(point.value, lineIndex)}`)
               .join(" ")}
             fill="none"
             stroke={line.color}
@@ -4093,14 +4101,14 @@ function InteractiveChart({
             vectorEffect="non-scaling-stroke"
           />
         ))}
-        {visibleLines.flatMap((line) =>
+        {visibleLines.flatMap((line, lineIndex) =>
           line.data.map((point, index) => {
             const radius = activePoint === index ? 1.8 : 1.05;
             return (
               <circle
                 key={`${line.name}-${index}`}
                 cx={x(index)}
-                cy={y(point.value)}
+                cy={y(point.value, lineIndex)}
                 r={radius}
                 fill={line.color}
                 stroke="#0d241e"
