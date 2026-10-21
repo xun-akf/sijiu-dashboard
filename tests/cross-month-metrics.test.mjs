@@ -37,3 +37,16 @@ test('corrected October cost overrides a station copy of the old monthly templat
   const result = calculateOperatingMetrics({ week: '2026年10月2周', charge: 10623, peak: 0, high: 0, flat: 10623, valley: 0 }, config, monthly);
   assert.ok(Math.abs(result.profit - 10623 * (0.75 - 0.495329)) < 1e-8);
 });
+
+test('station contracted electricity cost remains ahead of the shared October tariff', () => {
+  const config = {
+    purchaseCostType: '售电价',
+    monthlyCostsJson: JSON.stringify({ '10': { '售电价': { high: '0.2016', flat: '0.126', valley: '0.0504' } } }),
+    gridFeesJson: JSON.stringify({ '10': '0.237473' }),
+    servicePricesJson: JSON.stringify({ '2026年10月2周': { high: '0.2', flat: '0.2', valley: '0.2' } }),
+    externalPricesJson: JSON.stringify({ '2026年10月2周': { high: '0.8', flat: '0.8', valley: '0.8' } }),
+  };
+  const monthly = { monthlyCostsJson: JSON.stringify({ '2026-10': { '售电价': { high: '0.6', flat: '0.41', valley: '0.22' } } }) };
+  const result = calculateOperatingMetrics({ week: '2026年10月2周', charge: 10, peak: 0, high: 0, flat: 10, valley: 0 }, config, monthly);
+  assert.ok(Math.abs(result.profit - 10 * (0.8 - 0.126 - 0.237473)) < 1e-8);
+});
