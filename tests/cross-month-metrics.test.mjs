@@ -23,3 +23,17 @@ test('a single cross-month week sums metrics using each calendar month cost', ()
   assert.equal(result.serviceRevenue, 5);
   assert.equal(result.profit, 10);
 });
+
+test('corrected October cost overrides a station copy of the old monthly template', () => {
+  const config = {
+    billingType: '大工业电价',
+    monthlyCostsJson: JSON.stringify({ '10': { '大工业电价': { peak: '0.8', high: '0.7', flat: '0.723618', valley: '0.2' } } }),
+    servicePricesJson: JSON.stringify({ '2026年10月2周': { peak: '0.2', high: '0.2', flat: '0.2', valley: '0.2' } }),
+    electricityPricesJson: JSON.stringify({ '2026年10月2周': { peak: '0.55', high: '0.55', flat: '0.55', valley: '0.55' } }),
+  };
+  const monthly = {
+    monthlyCostsJson: JSON.stringify({ '2026-10': { '大工业电价': { peak: '0.845373', high: '0.723618', flat: '0.495329', valley: '0.26704' } } }),
+  };
+  const result = calculateOperatingMetrics({ week: '2026年10月2周', charge: 10623, peak: 0, high: 0, flat: 10623, valley: 0 }, config, monthly);
+  assert.ok(Math.abs(result.profit - 10623 * (0.75 - 0.495329)) < 1e-8);
+});
