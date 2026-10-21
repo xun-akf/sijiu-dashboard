@@ -45,6 +45,7 @@ import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
+import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -1254,8 +1255,13 @@ function OverviewTrends({
       if (mode === "week") return points;
       const grouped = new Map<string, number>();
       points.forEach((x) => {
+        if (!Number.isFinite(x.value)) {
+          const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
+          if (!grouped.has(m)) grouped.set(m, NaN);
+          return;
+        }
         const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
-        grouped.set(m, (grouped.get(m) || 0) + x.value);
+        grouped.set(m, (Number.isFinite(grouped.get(m)) ? grouped.get(m)! : 0) + x.value);
       });
       return [...grouped].map(([week, value]) => ({ week, value }));
     },
@@ -1265,20 +1271,20 @@ function OverviewTrends({
       points.forEach((x) => {
         const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
         const current = grouped.get(m) || { total: 0, count: 0 };
-        grouped.set(m, { total: current.total + x.value, count: current.count + 1 });
+        grouped.set(m, Number.isFinite(x.value) ? { total: current.total + x.value, count: current.count + 1 } : current);
       });
       return [...grouped].map(([week, value]) => ({
         week,
-        value: value.count ? value.total / value.count : 0,
+        value: value.count ? value.total / value.count : NaN,
       }));
     },
     raw = (key: keyof R) =>
       allWeeks().map((week, i) => ({
         week,
-        value: scope(sn).reduce(
+        value: scope(sn).some((station) => typeof recordAt(station, i)?.[key] === "number") ? scope(sn).reduce(
           (a, s) => a + num(recordAt(s, i)?.[key] as number | null),
           0,
-        ),
+        ) : NaN,
       })),
     chargeTotal = aggregate(raw("charge")),
     profitTotal = aggregate(raw("profit")),
@@ -1294,7 +1300,7 @@ function OverviewTrends({
           0,
         );
         const capacity = gunCount * 25 * 24 * 7;
-        return { week, value: capacity ? (charge / capacity) * 100 : 0 };
+        return { week, value: capacity && selectedStations.some((station) => typeof recordAt(station, i)?.charge === "number") ? (charge / capacity) * 100 : NaN };
       }),
     ),
     chargeParts = periods.map(([key, label, color]) => ({
@@ -1338,12 +1344,13 @@ function OverviewTrends({
         })),
       ),
     })),
-    size = 8,
-    maxOffset = Math.max(0, chargeTotal.length - size),
-    start = Math.max(0, maxOffset - offset),
-    slice = <T,>(x: T[]) => x.slice(start, start + size),
+    endIndex = Math.max(0, chargeTotal.length - 1 - offset),
+    size = Math.max(...[chargeTotal, profitTotal, serviceTotal, gunUtilization].map((series) =>
+      visibleTrendCount(series.map((point) => point.value), mode, endIndex))),
+    maxOffset = Math.max(0, chargeTotal.length - 1),
+    start = Math.max(0, endIndex - size + 1),
+    slice = <T,>(x: T[]) => x.slice(start, endIndex + 1),
     visibleLabels = chargeTotal.map((x) => x.week),
-    endIndex = Math.min(chargeTotal.length - 1, start + size - 1),
     move = (older: boolean) =>
       setOffset((v) => Math.max(0, Math.min(maxOffset, v + (older ? 1 : -1)))),
     handleUp = (x: number) => {
@@ -1400,7 +1407,7 @@ function OverviewTrends({
           </button>
         </div>
         <span>
-          默认显示最近8{mode === "week" ? "周" : "个月"} ·
+          默认显示最近{size}{mode === "week" ? "周" : "个月"} ·
           在图表上按住鼠标向左拖动查看历史
         </span>
         <label>
@@ -1409,7 +1416,7 @@ function OverviewTrends({
             value={visibleLabels[endIndex] || ""}
             onChange={(e) => {
               const i = visibleLabels.indexOf(e.target.value),
-                desired = Math.max(0, i - size + 1);
+                desired = Math.max(0, i);
               setOffset(Math.max(0, maxOffset - desired));
             }}
           >
@@ -1433,7 +1440,6 @@ function OverviewTrends({
             lines={chargeLines}
             showWeekDateRange
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `${value.toFixed(2)} kWh`}
           />
         </Panel>
@@ -1458,7 +1464,6 @@ function OverviewTrends({
             lines={profitLines}
             showWeekDateRange
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `¥${value.toFixed(2)}`}
           />
         </Panel>
@@ -1486,7 +1491,6 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `¥${value.toFixed(2)}`}
           />
         </Panel>
@@ -1504,7 +1508,6 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `${value.toFixed(2)}%`}
             primaryLabelFormatter={(value) => `${value.toFixed(1)}%`}
           />
@@ -1777,7 +1780,6 @@ function StationAnalysis({
             onFocusLine={(name) => setTotalChargeOnly(name === "总充电量")}
             isolateFocusedLine
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `${value.toFixed(2)} kWh`}
           />
         </Panel>
@@ -1794,7 +1796,6 @@ function StationAnalysis({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
             valueFormatter={(value) => `¥${value.toFixed(2)}`}
           />
         </Panel>
@@ -3903,7 +3904,7 @@ function FilteredInteractiveChart({
   rankedTooltip = false,
   valueFormatter = chartWan,
   showPrimaryLabels = true,
-  tooltipRequiresPin = true,
+  tooltipRequiresPin = false,
   primaryLabelFormatter = chartWanLabel,
 }: {
   lines: { name: string; color: string; data: { week: string; value: number }[] }[];
@@ -3932,7 +3933,8 @@ function FilteredInteractiveChart({
   const aggregated = lines.map((line) => ({ ...line, data: aggregate(line.data) }));
   const labels = aggregated[0]?.data.map((point) => point.week) || [];
   const selectedEnd = labels.includes(endLabel) ? labels.indexOf(endLabel) : labels.length - 1;
-  const start = Math.max(0, selectedEnd - 7);
+  const count = visibleTrendCount(aggregated[0]?.data.map((point) => point.value) ?? [], mode, selectedEnd);
+  const start = Math.max(0, selectedEnd - count + 1);
   const visible = aggregated.map((line) => ({
     ...line,
     data: line.data.slice(start, selectedEnd + 1),
@@ -4011,33 +4013,29 @@ function InteractiveChart({
     line.data.map((point) => point.value),
   );
   const primaryValues = visibleLines[0]?.data.map(point => point.value) ?? all;
-  const rawMax = Math.max(...primaryValues, 1);
-  const rawMin = primaryValues.length ? Math.min(...primaryValues) : 0;
-  const spread = Math.max(rawMax - rawMin, rawMax * 0.03, 1);
-  const low = rawMin >= 0 ? Math.max(0, rawMin - spread * 0.12) : rawMin - spread * 0.12;
-  const high = rawMax + spread * 0.12;
-  const roughStep = (high - low) / 5;
-  const magnitude = 10 ** Math.floor(Math.log10(Math.max(roughStep, 0.001)));
-  const step = [1, 2, 5, 10].map(n => n * magnitude).find(n => n >= roughStep) ?? 10 * magnitude;
-  const min = Math.floor(low / step) * step;
-  const max = Math.max(min + step, Math.ceil(high / step) * step);
-  const axisTicks = Array.from({length:Math.round((max - min) / step) + 1}, (_, index) => max - index * step);
+  const finitePrimary = primaryValues.filter(Number.isFinite);
+  const { max, ticks: axisTicks } = chartScale(primaryValues);
   const secondaryValues = visibleLines.slice(1).flatMap(line => line.data.map(point => point.value));
-  const secondaryRawMax = Math.max(...secondaryValues, 1);
-  const secondaryRough = secondaryRawMax * 1.1 / 4;
-  const secondaryMagnitude = 10 ** Math.floor(Math.log10(secondaryRough));
-  const secondaryStep = ([1,2,5,10].map(n => n * secondaryMagnitude).find(n => n >= secondaryRough) ?? 10 * secondaryMagnitude);
-  const secondaryMax = secondaryStep * 4;
-  const axisText = (value:number) => step >= 10000 && step % 10000 === 0 && min % 10000 === 0
-    ? `${Math.round(value / 10000)}万`
-    : `${Math.round(value).toLocaleString("zh-CN")}${visibleLines[0]?.name.includes("利用率")?"%":""}`;
-  const secondaryAxisText = (value:number) => secondaryStep >= 10000 && secondaryStep % 10000 === 0
-    ? `${Math.round(value / 10000)}万` : Math.round(value).toLocaleString("zh-CN");
+  const { max: secondaryMax, ticks: secondaryTicks } = chartScale(secondaryValues);
+  const isUtilization = visibleLines[0]?.name.includes("利用率");
+  const isCharge = visibleLines[0]?.name.includes("充电量") || visibleLines[0]?.name === "总量";
+  const axisUnit = isUtilization ? "%" : isCharge ? (max >= 10000 ? "万kWh" : "kWh") : (max >= 10000 ? "万元" : "元");
+  const axisText = (value:number) => isUtilization ? Number(value.toFixed(2)).toString()
+    : max >= 10000 ? Number((value / 10000).toFixed(2)).toString()
+    : Number(value.toFixed(2)).toLocaleString("zh-CN");
+  const secondaryUnit = isCharge ? (secondaryMax >= 10000 ? "万kWh" : "kWh") : (secondaryMax >= 10000 ? "万元" : "元");
+  const secondaryAxisText = (value:number) => secondaryMax >= 10000
+    ? Number((value / 10000).toFixed(2)).toString() : Number(value.toFixed(2)).toLocaleString("zh-CN");
   const x = (index: number) => 8 + (index * 84) / Math.max(weeks.length - 1, 1);
   const y = (value: number, lineIndex = 0) =>
     145 - (lineIndex > 0
       ? value / secondaryMax
-      : (value - min) / Math.max(max - min, 1)) * 112;
+      : value / max) * 112;
+  const labelPoints = new Set([0, weeks.length - 1]);
+  if (finitePrimary.length > 2) {
+    labelPoints.add(primaryValues.indexOf(Math.max(...finitePrimary)));
+    labelPoints.add(primaryValues.indexOf(Math.min(...finitePrimary)));
+  }
   return (
     <div className={`interactive-chart ${large ? "large" : ""}`}>
       {rankedTooltip && lines.length > 8 ? <details className="chart-legend-details"><summary>选择场站（{lines.length}）{focusedLine ? ` · ${focusedLine}` : ""}</summary><div className="chart-legend">
@@ -4059,7 +4057,10 @@ function InteractiveChart({
             {line.name}
           </button>
         ))}
-      </div></details> : <div className="chart-legend">{lines.map((line) => <button key={line.name} className={focusedLine === line.name ? "focused" : ""} onClick={() => onFocusLine?.(focusedLine === line.name ? null : line.name)}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
+      </div></details> : <div className="chart-legend">{lines.map((line, index) => <button key={line.name} aria-pressed={!hidden.includes(line.name)} className={`${focusedLine === line.name ? "focused" : ""} ${hidden.includes(line.name) ? "hidden" : ""}`} onClick={() => onFocusLine ? onFocusLine(focusedLine === line.name ? null : line.name) : index > 0 && setHidden((current) => current.includes(line.name) ? current.filter((name) => name !== line.name) : [...current, line.name])}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
+      <div className="chart-plot" style={{height:large ? 255 : 184}}>
+      <span className="chart-axis-unit left">{axisUnit}</span>
+      {secondaryValues.length > 0 && <span className="chart-axis-unit right">{secondaryUnit}</span>}
       <svg
         viewBox="0 0 100 170"
         preserveAspectRatio="none"
@@ -4094,21 +4095,22 @@ function InteractiveChart({
         }}
       >
         {axisTicks.map((value) => (
-          <line key={value} x1="6" x2="94" y1={y(value)} y2={y(value)} className="gridline" />
+          <line key={value} x1="8" x2="92" y1={y(value)} y2={y(value)} className="gridline" />
         ))}
-        {visibleLines.map((line, lineIndex) => (
-          <polyline
-            key={line.name}
-            points={line.data
-              .map((point, index) => `${x(index)},${y(point.value, lineIndex)}`)
-              .join(" ")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={focusedLine === line.name ? "3.5" : "2.5"}
+        {visibleLines.flatMap((line, lineIndex) => {
+          const segments: string[] = [];
+          let current: string[] = [];
+          line.data.forEach((point, index) => {
+            if (Number.isFinite(point.value)) current.push(`${x(index)},${y(point.value, lineIndex)}`);
+            else if (current.length) { segments.push(current.join(" ")); current = []; }
+          });
+          if (current.length) segments.push(current.join(" "));
+          return segments.map((points, segment) => <polyline key={`${line.name}-${segment}`} points={points}
+            fill="none" stroke={line.color}
+            strokeWidth={focusedLine === line.name ? "3.6" : lineIndex === 0 ? "3" : "2.4"}
             opacity={focusedLine && focusedLine !== line.name ? 0.18 : 1}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
+            vectorEffect="non-scaling-stroke" />);
+        })}
         {activePoint !== null && (
           <line
             x1={x(activePoint)}
@@ -4131,36 +4133,38 @@ function InteractiveChart({
         ))}
       </svg>
       {axisTicks.map((value) => (
-        <span key={value} className="chart-y-label left" style={{top:`${18 + y(value) / 170 * (large ? 290 : 205)}px`}}>
+        <span key={value} className="chart-y-label left" style={{top:`${y(value) / 170 * 100}%`}}>
           {axisText(value)}
         </span>
       ))}
-      {secondaryValues.length > 0 && [0,1,2,3,4].map((index) => (
-        <span key={index} className="chart-y-label right" style={{top:`${18 + (33 + index * 28) / 170 * (large ? 290 : 205)}px`}}>
-          {secondaryAxisText((4 - index) * secondaryStep)}
+      {secondaryValues.length > 0 && secondaryTicks.map((value) => (
+        <span key={value} className="chart-y-label right" style={{top:`${y(value, 1) / 170 * 100}%`}}>
+          {secondaryAxisText(value)}
         </span>
       ))}
-      {activePoint !== null && visibleLines.map((line, index) => (
-        <i key={line.name} className="chart-active-point" style={{left:`${x(activePoint)}%`,top:`${18 + y(line.data[activePoint]?.value ?? 0,index) / 170 * (large ? 290 : 205)}px`,background:line.color}} />
-      ))}
-      <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
-        {weeks.map((week) => (
-          <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
-        ))}
-      </div>
+      {visibleLines.flatMap((line, lineIndex) => line.data.map((point, index) => Number.isFinite(point.value) && (
+        <i key={`${line.name}-${index}`} className={`chart-active-point${activePoint === index ? " active" : ""}`} style={{left:`${x(index)}%`,top:`${y(point.value,lineIndex) / 170 * 100}%`,background:line.color,opacity:focusedLine && focusedLine !== line.name ? 0.18 : 1}} />
+      )))}
       {showPrimaryLabels &&
-        visibleLines[0]?.data.map((point, index) => (
+        visibleLines[0]?.data.map((point, index) => Number.isFinite(point.value) && (weeks.length <= 8 || labelPoints.has(index) || index % 2 === 0) && (
           <span
             className="chart-value-label"
             key={`primary-label-${point.week}`}
             style={{
               left: `${x(index)}%`,
-              top: `${20 + (y(point.value) / 170) * 184 - 15}px`,
+              top: `${Math.max(3, y(point.value) / 170 * 100 - 8)}%`,
             }}
           >
             {primaryLabelFormatter(point.value)}
+            {labelPoints.has(index) && index > 0 && <small>{Number.isFinite(visibleLines[0]?.data[index - 1]?.value) && visibleLines[0].data[index - 1].value !== 0 ? pct(point.value / visibleLines[0].data[index - 1].value - 1) : "—"}</small>}
           </span>
         ))}
+      </div>
+      <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
+        {weeks.map((week) => (
+          <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
+        ))}
+      </div>
       {activePoint !== null &&
         weeks[activePoint] &&
         (!tooltipRequiresPin || pinned !== null) && (
@@ -4174,12 +4178,11 @@ function InteractiveChart({
               <i style={{ background: line.color }} />
               {line.name}
               <strong>
-                {valueFormatter(line.data[activePoint]?.value || 0)}
-                {rankedTooltip &&
-                  activePoint > 0 &&
+                {Number.isFinite(line.data[activePoint]?.value) ? valueFormatter(line.data[activePoint].value) : "无数据"}
+                {activePoint > 0 &&
                   (() => {
-                    const current = line.data[activePoint]?.value || 0,
-                      previous = line.data[activePoint - 1]?.value || 0,
+                    const current = line.data[activePoint]?.value,
+                      previous = line.data[activePoint - 1]?.value,
                       rank =
                         visibleLines
                           .filter((item) => item.name !== "全场趋势")
@@ -4189,7 +4192,7 @@ function InteractiveChart({
                               (a.data[activePoint]?.value || 0),
                           )
                           .findIndex((item) => item.name === line.name) + 1;
-                    return ` · 上周 ${valueFormatter(previous)} · ${previous ? pct(current / previous - 1) : "—"}${line.name === "全场趋势" ? "" : ` · 第${rank}名`}`;
+                    return ` · 上周 ${Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · ${Number.isFinite(current) && Number.isFinite(previous) && previous !== 0 ? pct(current / previous - 1) : "—"}${rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}`;
                   })()}
               </strong>
             </span>
