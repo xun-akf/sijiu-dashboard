@@ -1344,8 +1344,7 @@ function OverviewTrends({
       ),
     })),
     endIndex = Math.max(0, chargeTotal.length - 1 - offset),
-    size = Math.max(...[chargeTotal, profitTotal, serviceTotal, gunUtilization].map((series) =>
-      visibleTrendCount(series.map((point) => point.value), mode, endIndex))),
+    size = visibleTrendCount(chargeTotal.map((point) => point.value), mode, endIndex),
     maxOffset = Math.max(0, chargeTotal.length - 1),
     start = Math.max(0, endIndex - size + 1),
     slice = <T,>(x: T[]) => x.slice(start, endIndex + 1),
@@ -4168,7 +4167,11 @@ function InteractiveChart({
         (!tooltipRequiresPin || pinned !== null) && (
         <div
           className={`chart-tooltip ${rankedTooltip ? "ranked" : ""}`}
-          style={{ left: `${Math.min(82, Math.max(9, x(activePoint)))}%` }}
+          style={x(activePoint) < 30
+            ? { left: 0, transform: "none" }
+            : x(activePoint) > 70
+              ? { left: "auto", right: 0, transform: "none" }
+              : { left: `${x(activePoint)}%` }}
         >
           <b>{weeks[activePoint]}{pinned !== null ? " · 已固定" : ""}</b>
           {tooltipLines.map((line) => (
@@ -4177,7 +4180,7 @@ function InteractiveChart({
               {line.name}
               <strong>
                 {Number.isFinite(line.data[activePoint]?.value) ? valueFormatter(line.data[activePoint].value) : "无数据"}
-                {activePoint > 0 &&
+                {activePoint > 0 && activePoint >= Math.max(0, weeks.length - 4) &&
                   (() => {
                     const current = line.data[activePoint]?.value,
                       previous = line.data[activePoint - 1]?.value,
