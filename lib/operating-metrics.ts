@@ -51,10 +51,17 @@ export function resolveMonthlyCost(config: MetricConfig, monthly: MetricConfig, 
   const own = parseMonthly<Record<string, TouPrice>>(config.monthlyCostsJson);
   const shared = parseMonthly<Record<string, TouPrice>>(monthly.monthlyCostsJson);
   const yearMonth = `${year}-${month}`;
+  const stationMonth = own[yearMonth]?.[costType];
+  const sharedMonth = shared[yearMonth]?.[costType];
+  // A copied station template can duplicate the high price into peak.
+  // Match the other three periods before using the corrected shared peak.
+  const copiedPeak = costType === "大工业电价" && stationMonth && sharedMonth
+    && (["high", "flat", "valley"] as const).every((key) => stationMonth[key] === sharedMonth[key])
+    && stationMonth.peak !== sharedMonth.peak;
   // The shared industrial price can correct an old station template. A station's
   // contracted electricity cost is specific to that station and must win.
   return costType === "大工业电价"
-    ? own[yearMonth]?.[costType] ?? shared[yearMonth]?.[costType] ?? own[String(month)]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice()
+    ? (copiedPeak ? sharedMonth : stationMonth) ?? sharedMonth ?? own[String(month)]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice()
     : own[yearMonth]?.[costType] ?? own[String(month)]?.[costType] ?? shared[yearMonth]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice();
 }
 
