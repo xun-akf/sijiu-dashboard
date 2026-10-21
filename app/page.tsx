@@ -95,8 +95,7 @@ const num = (v: number | null | undefined) => v ?? 0,
   money = (v: number) =>
     `¥${v.toLocaleString("zh-CN", { maximumFractionDigits: 0 })}`,
   qty = (v: number) => v.toLocaleString("zh-CN", { maximumFractionDigits: 0 }),
-  chartWan = (v: number) => `${Math.round(v / 10000)}万`,
-  chartWanLabel = (v: number) => `${(v / 10000).toFixed(1)}万`,
+  chartWan = (v: number) => `${Math.round(v).toLocaleString("zh-CN")}`,
   pct = (v: number | null) =>
     v == null ? "—" : `${v >= 0 ? "↑" : "↓"} ${Math.abs(v * 100).toFixed(1)}%`;
 const importValue = (value: number | null | undefined) => value == null
@@ -1440,7 +1439,7 @@ function OverviewTrends({
             lines={chargeLines}
             showWeekDateRange
             showPrimaryLabels
-            valueFormatter={(value) => `${value.toFixed(2)} kWh`}
+            valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
         <Panel
@@ -1464,7 +1463,7 @@ function OverviewTrends({
             lines={profitLines}
             showWeekDateRange
             showPrimaryLabels
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
@@ -1491,7 +1490,7 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
         <Panel
@@ -1508,8 +1507,8 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            valueFormatter={(value) => `${value.toFixed(2)}%`}
-            primaryLabelFormatter={(value) => `${value.toFixed(1)}%`}
+            valueFormatter={(value) => `${Math.round(value)}%`}
+            primaryLabelFormatter={(value) => `${Math.round(value)}%`}
           />
         </Panel>
       </div>
@@ -1780,7 +1779,7 @@ function StationAnalysis({
             onFocusLine={(name) => setTotalChargeOnly(name === "总充电量")}
             isolateFocusedLine
             showPrimaryLabels
-            valueFormatter={(value) => `${value.toFixed(2)} kWh`}
+            valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
         <Panel title={isAll ? "全站经营利润趋势" : "单站经营利润趋势"} sub="服务费利润与电费利润汇总">
@@ -1796,7 +1795,7 @@ function StationAnalysis({
               },
             ]}
             showPrimaryLabels
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
       </div>
@@ -3905,7 +3904,7 @@ function FilteredInteractiveChart({
   valueFormatter = chartWan,
   showPrimaryLabels = true,
   tooltipRequiresPin = false,
-  primaryLabelFormatter = chartWanLabel,
+  primaryLabelFormatter = valueFormatter,
 }: {
   lines: { name: string; color: string; data: { week: string; value: number }[] }[];
   large?: boolean;
@@ -3979,7 +3978,7 @@ function InteractiveChart({
   showPrimaryLabels = false,
   tooltipRequiresPin = false,
   showWeekDateRange = false,
-  primaryLabelFormatter = chartWanLabel,
+  primaryLabelFormatter = valueFormatter,
 }: {
   lines: {
     name: string;
@@ -4013,12 +4012,11 @@ function InteractiveChart({
     line.data.map((point) => point.value),
   );
   const primaryValues = visibleLines[0]?.data.map(point => point.value) ?? all;
-  const finitePrimary = primaryValues.filter(Number.isFinite);
   const { max, ticks: axisTicks } = chartScale(primaryValues);
   const secondaryValues = visibleLines.slice(1).flatMap(line => line.data.map(point => point.value));
   const { max: secondaryMax, ticks: secondaryTicks } = chartScale(secondaryValues);
-  const isUtilization = visibleLines[0]?.name.includes("利用率");
-  const isCharge = visibleLines[0]?.name.includes("充电量") || visibleLines[0]?.name === "总量";
+  const isUtilization = lines[0]?.name.includes("利用率");
+  const isCharge = lines[0]?.name.includes("充电量") || lines[0]?.name === "总量";
   const axisUnit = isUtilization ? "%" : isCharge ? (max >= 10000 ? "万kWh" : "kWh") : (max >= 10000 ? "万元" : "元");
   const axisText = (value:number) => isUtilization ? Number(value.toFixed(2)).toString()
     : max >= 10000 ? Number((value / 10000).toFixed(2)).toString()
@@ -4031,11 +4029,19 @@ function InteractiveChart({
     145 - (lineIndex > 0
       ? value / secondaryMax
       : value / max) * 112;
-  const labelPoints = new Set([0, weeks.length - 1]);
-  if (finitePrimary.length > 2) {
-    labelPoints.add(primaryValues.indexOf(Math.max(...finitePrimary)));
-    labelPoints.add(primaryValues.indexOf(Math.min(...finitePrimary)));
-  }
+  const latestPoint = primaryValues.findLastIndex(Number.isFinite);
+  const chartPct = (change: number) => `${change >= 0 ? "↑" : "↓"} ${Math.round(Math.abs(change * 100))}%`;
+  const toggleLine = (line: { name: string }, index: number) => {
+    if (onFocusLine && index === 0) {
+      onFocusLine(focusedLine === line.name ? null : line.name);
+      return;
+    }
+    if (onFocusLine && focusedLine) onFocusLine(null);
+    setHidden((current) => {
+      if (current.includes(line.name)) return current.filter((name) => name !== line.name);
+      return lines.length - current.length <= 1 ? current : [...current, line.name];
+    });
+  };
   return (
     <div className={`interactive-chart ${large ? "large" : ""}`}>
       {rankedTooltip && lines.length > 8 ? <details className="chart-legend-details"><summary>选择场站（{lines.length}）{focusedLine ? ` · ${focusedLine}` : ""}</summary><div className="chart-legend">
@@ -4043,21 +4049,13 @@ function InteractiveChart({
           <button
             key={line.name}
             className={`${hidden.includes(line.name) ? "hidden" : ""} ${focusedLine === line.name ? "focused" : ""} ${focusedLine && focusedLine !== line.name ? "muted" : ""}`}
-            onClick={() =>
-              onFocusLine
-                ? onFocusLine(focusedLine === line.name ? null : line.name)
-                : setHidden((v) =>
-                    v.includes(line.name)
-                      ? v.filter((x) => x !== line.name)
-                      : [...v, line.name],
-                  )
-            }
+            onClick={() => toggleLine(line, lines.indexOf(line))}
           >
             <i style={{ background: line.color }} />
             {line.name}
           </button>
         ))}
-      </div></details> : <div className="chart-legend">{lines.map((line, index) => <button key={line.name} aria-pressed={!hidden.includes(line.name)} className={`${focusedLine === line.name ? "focused" : ""} ${hidden.includes(line.name) ? "hidden" : ""}`} onClick={() => onFocusLine ? onFocusLine(focusedLine === line.name ? null : line.name) : index > 0 && setHidden((current) => current.includes(line.name) ? current.filter((name) => name !== line.name) : [...current, line.name])}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
+      </div></details> : <div className="chart-legend">{lines.map((line, index) => <button key={line.name} aria-pressed={!hidden.includes(line.name) && (!isolateFocusedLine || !focusedLine || line.name === focusedLine)} className={`${focusedLine === line.name ? "focused" : ""} ${hidden.includes(line.name) || (isolateFocusedLine && focusedLine && line.name !== focusedLine) ? "hidden" : ""}`} onClick={() => toggleLine(line, index)}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
       <div className="chart-plot" style={{height:large ? 255 : 184}}>
       <span className="chart-axis-unit left">{axisUnit}</span>
       {secondaryValues.length > 0 && <span className="chart-axis-unit right">{secondaryUnit}</span>}
@@ -4146,17 +4144,17 @@ function InteractiveChart({
         <i key={`${line.name}-${index}`} className={`chart-active-point${activePoint === index ? " active" : ""}`} style={{left:`${x(index)}%`,top:`${y(point.value,lineIndex) / 170 * 100}%`,background:line.color,opacity:focusedLine && focusedLine !== line.name ? 0.18 : 1}} />
       )))}
       {showPrimaryLabels &&
-        visibleLines[0]?.data.map((point, index) => Number.isFinite(point.value) && (weeks.length <= 8 || labelPoints.has(index) || index % 2 === 0) && (
+        visibleLines[0]?.data.map((point, index) => Number.isFinite(point.value) && index === latestPoint && (
           <span
             className="chart-value-label"
             key={`primary-label-${point.week}`}
             style={{
-              left: `${x(index)}%`,
+              left: `${Math.min(84, x(index))}%`,
               top: `${Math.max(3, y(point.value) / 170 * 100 - 8)}%`,
             }}
           >
             {primaryLabelFormatter(point.value)}
-            {labelPoints.has(index) && index > 0 && <small>{Number.isFinite(visibleLines[0]?.data[index - 1]?.value) && visibleLines[0].data[index - 1].value !== 0 ? pct(point.value / visibleLines[0].data[index - 1].value - 1) : "—"}</small>}
+            {index > 0 && Number.isFinite(visibleLines[0]?.data[index - 1]?.value) && visibleLines[0].data[index - 1].value !== 0 && <small>{chartPct(point.value / visibleLines[0].data[index - 1].value - 1)}</small>}
           </span>
         ))}
       </div>
@@ -4192,7 +4190,7 @@ function InteractiveChart({
                               (a.data[activePoint]?.value || 0),
                           )
                           .findIndex((item) => item.name === line.name) + 1;
-                    return ` · 上周 ${Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · ${Number.isFinite(current) && Number.isFinite(previous) && previous !== 0 ? pct(current / previous - 1) : "—"}${rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}`;
+                    return ` · 上周 ${Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · ${Number.isFinite(current) && Number.isFinite(previous) && previous !== 0 ? chartPct(current / previous - 1) : "—"}${rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}`;
                   })()}
               </strong>
             </span>
