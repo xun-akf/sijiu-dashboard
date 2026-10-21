@@ -43,6 +43,7 @@ import { loadModeData } from "@/lib/mode-data";
 import { sundaySaturdayRange } from "@/lib/charging-mode";
 import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
+import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
@@ -902,8 +903,8 @@ export default function Home() {
               导出周报
             </button>
             {admin ? (
-              <button className="primary" disabled title="PR #5 验收草稿与正式版隔离，禁止发布">
-                验收草稿
+              <button className="primary" disabled={isAcceptanceDashboard || publishing} onClick={publishDashboard} title={isAcceptanceDashboard ? "PR #5 验收草稿与正式版隔离，禁止发布" : undefined}>
+                {isAcceptanceDashboard ? "验收草稿" : publishing ? "发布中…" : "发布更新"}
               </button>
             ) : null}
             <button

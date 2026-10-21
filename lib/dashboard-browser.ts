@@ -2,7 +2,9 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type { AccessRole } from "@/lib/access-control";
-import { readSharedState, writeSharedState } from "@/lib/site-state";
+import { isAcceptanceDashboard, publishSharedState, readSharedState, writeSharedState } from "@/lib/site-state";
+import { validateDashboardData } from "@/lib/import-validation";
+import { recalculateLatestDashboardWeek } from "@/lib/operating-metrics";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase-config";
 
 export const SITE_BASE_PATH = process.env.NEXT_PUBLIC_SITE_BASE_PATH === "/" ? "" : "/sijiu-dashboard";
@@ -115,7 +117,23 @@ export async function dashboardFetch(input: RequestInfo | URL, init?: RequestIni
     }
   }
   if (method === "POST") {
-    return jsonResponse({ error: "PR #5 验收环境禁止发布到正式版" }, 403);
+    if (isAcceptanceDashboard) return jsonResponse({ error: "PR #5 验收环境禁止发布到正式版" }, 403);
+    try {
+      const body = JSON.parse(String(init?.body || "{}")) as { confirmWarnings?: boolean };
+      const [draft, published] = await Promise.all([
+        readSharedState(dashboardClient, "operator"),
+        readSharedState(dashboardClient, "viewer"),
+      ]);
+      const recalculated = recalculateLatestDashboardWeek(draft.stationData, draft.configs);
+      const report = validateDashboardData(recalculated, published.stationData, { configs: draft.configs, allowPublishedHistory: true });
+      if (report.status === "error") return jsonResponse({ error: "草稿存在严重数据错误，已禁止发布", report }, 422);
+      if (report.status === "warning" && !body.confirmWarnings) return jsonResponse({ error: "草稿存在校验警告，请确认后继续", report }, 409);
+      await writeSharedState(dashboardClient, { stationData: recalculated, configs: draft.configs });
+      await publishSharedState(dashboardClient);
+      return jsonResponse({ ok: true, report });
+    } catch (error) {
+      return jsonResponse({ error: `发布失败：${error instanceof Error ? error.message : String(error)}` }, 500);
+    }
   }
   return jsonResponse({ error: "不支持的请求" }, 405);
 }
