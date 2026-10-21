@@ -4174,30 +4174,31 @@ function InteractiveChart({
               : { left: `${x(activePoint)}%` }}
         >
           <b>{weeks[activePoint]}{pinned !== null ? " · 已固定" : ""}</b>
-          {tooltipLines.map((line) => (
-            <span key={line.name}>
+          {tooltipLines.map((line) => {
+            const current = line.data[activePoint]?.value;
+            const previous = activePoint > 0 ? line.data[activePoint - 1]?.value : undefined;
+            const showComparison = activePoint > 0 && activePoint >= Math.max(0, weeks.length - 4);
+            const change = typeof current === "number" && Number.isFinite(current) && typeof previous === "number" && Number.isFinite(previous) && previous !== 0
+              ? current / previous - 1 : null;
+            const rank = rankedTooltip ? visibleLines
+              .filter((item) => item.name !== "全场趋势")
+              .sort((a, b) => (b.data[activePoint]?.value || 0) - (a.data[activePoint]?.value || 0))
+              .findIndex((item) => item.name === line.name) + 1 : 0;
+            return <span key={line.name}>
               <i style={{ background: line.color }} />
               {line.name}
               <strong>
-                {Number.isFinite(line.data[activePoint]?.value) ? valueFormatter(line.data[activePoint].value) : "无数据"}
-                {activePoint > 0 && activePoint >= Math.max(0, weeks.length - 4) &&
-                  (() => {
-                    const current = line.data[activePoint]?.value,
-                      previous = line.data[activePoint - 1]?.value,
-                      rank =
-                        visibleLines
-                          .filter((item) => item.name !== "全场趋势")
-                          .sort(
-                            (a, b) =>
-                              (b.data[activePoint]?.value || 0) -
-                              (a.data[activePoint]?.value || 0),
-                          )
-                          .findIndex((item) => item.name === line.name) + 1;
-                    return ` · 上周 ${Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · ${Number.isFinite(current) && Number.isFinite(previous) && previous !== 0 ? chartPct(current / previous - 1) : "—"}${rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}`;
-                  })()}
+                {Number.isFinite(current) ? valueFormatter(current) : "无数据"}
+                {showComparison && <>
+                  {` · 上周 ${typeof previous === "number" && Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · `}
+                  <em className={change === null || Math.round(change * 100) === 0 ? "flat" : change > 0 ? "up" : "down"}>
+                    {change === null ? "—" : chartPct(change)}
+                  </em>
+                  {rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}
+                </>}
               </strong>
-            </span>
-          ))}
+            </span>;
+          })}
           {rankedTooltip && visibleLines.length > tooltipLines.length && <small>显示前 6 站；选择场站可查看单站明细</small>}
         </div>
       )}

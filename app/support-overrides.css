@@ -197,6 +197,10 @@
 .chart-tooltip strong {
   white-space: nowrap;
 }
+.chart-tooltip strong em { font-style: normal; font-weight: 700; }
+.chart-tooltip strong em.up { color: #36d399; }
+.chart-tooltip strong em.down { color: #ff7c7c; }
+.chart-tooltip strong em.flat { color: #b5c8c1; }
 .weekly-summary {
   display: grid;
   grid-template-columns: 130px minmax(310px, 0.8fr) minmax(0, 1.4fr);
