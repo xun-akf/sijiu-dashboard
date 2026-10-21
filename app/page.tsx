@@ -2659,7 +2659,7 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
-    [month, setMonth] = useState("10"),
+    [month, setMonth] = useState(() => String(weekParts(allWeeks().at(-1) || "").month || 10)),
     [dataStation, setDataStation] = useState(stations[0]?.name || ""),
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
     [stationPickerOpen, setStationPickerOpen] = useState(false),
@@ -3055,7 +3055,7 @@ function Config({
           ["profiles", "场站资料"], ["accounts", "账号权限"],
         ] as const).map(([section, title]) => <button key={section} type="button" className={configSection === section ? "active" : ""} aria-current={configSection === section ? "page" : undefined} onClick={() => setConfigSection(section)}>{title}</button>)}
       </nav>
-      {(configSection === "record" || configSection === "cost" || configSection === "price" || configSection === "profiles") && <div className="data-center-scope">
+      {(configSection === "record" || configSection === "price" || configSection === "profiles") && <div className="data-center-scope">
         <div>
           <span>当前编辑范围</span>
           <b>{dataStation} · {displayWeek(dataWeek)}</b>
@@ -3084,7 +3084,7 @@ function Config({
             }}>{station.name}</button>) : <span>没有匹配场站</span>}
           </div>}
         </div>
-        <select value={dataWeek} onChange={(event) => { setDataWeek(event.target.value); setDataDraft({}); }}>
+        <select value={dataWeek} onChange={(event) => { setDataWeek(event.target.value); setMonth(String(weekParts(event.target.value).month)); setDataDraft({}); }}>
           {allWeeks().map((week) => <option key={week} value={week}>{displayWeek(week)}</option>)}
         </select>
       </div>}
