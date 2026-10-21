@@ -67,3 +67,12 @@ test("按日生效价格与当月购电成本算分类收入，旧日不回套�
   assert.ok(Math.abs(result.profit-3.0)<1e-9);
   assert.deepEqual(classifyDayOperatingMetrics({...fact,date:"2026-10-17"},tariff,{},monthly),{electricityRevenue:null,serviceRevenue:null,profit:null});
 });
+
+test("分类利润使用当年修正成本，不被场站旧月份模板覆盖", () => {
+  const fact=sample("2026-10-18","fast",10,{peak:0,high:0,flat:10,valley:0});
+  const tariff=[{station_name:"测试站",charging_mode:"fast",effective_from:"2026-10-18",effective_until:null,windows:[{start:"00:00",end:"24:00",period:"平",electricity:0.55,service:0.2}]}];
+  const station={billingType:"大工业电价",monthlyCostsJson:JSON.stringify({"10":{"大工业电价":{flat:"0.723618"}}})};
+  const monthly={monthlyCostsJson:JSON.stringify({"2026-10":{"大工业电价":{flat:"0.495329"}}})};
+  const result=classifyDayOperatingMetrics(fact,tariff,station,monthly);
+  assert.ok(Math.abs(result.profit-10*(0.75-0.495329))<1e-9);
+});

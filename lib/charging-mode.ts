@@ -144,17 +144,20 @@ export function classifyDayOperatingMetrics(
   if (sell.some((rate,index)=>amounts[index]>0 && (!rate || !Number.isFinite(rate.electricity) || !Number.isFinite(rate.service)))) return unavailable;
   const electricityRevenue=amounts.reduce((sum,amount,index)=>sum+amount*(sell[index]?.electricity || 0),0);
   const serviceRevenue=amounts.reduce((sum,amount,index)=>sum+amount*(sell[index]?.service || 0),0);
-  let costs: Record<string,Record<string,Record<string,string>>>={};
-  let fees: Record<string,string>={};
-  try {costs=JSON.parse(stationConfig.monthlyCostsJson || monthlyConfig.monthlyCostsJson || "{}");fees=JSON.parse(stationConfig.gridFeesJson || monthlyConfig.gridFeesJson || "{}");}
+  let ownCosts: Record<string,Record<string,Record<string,string>>>={},sharedCosts: Record<string,Record<string,Record<string,string>>>={};
+  let ownFees: Record<string,string>={},sharedFees: Record<string,string>={};
+  try {
+    ownCosts=JSON.parse(stationConfig.monthlyCostsJson || "{}"); sharedCosts=JSON.parse(monthlyConfig.monthlyCostsJson || "{}");
+    ownFees=JSON.parse(stationConfig.gridFeesJson || "{}"); sharedFees=JSON.parse(monthlyConfig.gridFeesJson || "{}");
+  }
   catch {return {electricityRevenue,serviceRevenue,profit:null};}
   const date=new Date(fact.date+"T00:00:00Z"), month=String(date.getUTCMonth()+1);
   const yearMonth=`${date.getUTCFullYear()}-${month}`;
   const costType=stationConfig.purchaseCostType || stationConfig.billingType || "大工业电价";
   const perTou=costType==="一口价"
     ? Object.fromEntries(touKeys.map((key)=>[key,stationConfig.unifiedPrice]))
-    : (costs[yearMonth] || costs[month])?.[costType];
-  const gridFee=costType==="售电价" ? Number(fees[yearMonth] ?? fees[month] ?? 0) : 0;
+    : ownCosts[yearMonth]?.[costType] ?? sharedCosts[yearMonth]?.[costType] ?? ownCosts[month]?.[costType] ?? sharedCosts[month]?.[costType];
+  const gridFee=costType==="售电价" ? Number(ownFees[yearMonth] ?? sharedFees[yearMonth] ?? ownFees[month] ?? sharedFees[month] ?? 0) : 0;
   if (!Number.isFinite(gridFee)) return {electricityRevenue,serviceRevenue,profit:null};
   let profit=0;
   for (let index=0;index<touKeys.length;index++){
