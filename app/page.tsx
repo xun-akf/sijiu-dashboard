@@ -4028,7 +4028,6 @@ function InteractiveChart({
     145 - (lineIndex > 0
       ? value / secondaryMax
       : value / max) * 112;
-  const latestPoint = primaryValues.findLastIndex(Number.isFinite);
   const chartPct = (change: number) => `${change >= 0 ? "↑" : "↓"} ${Math.round(Math.abs(change * 100))}%`;
   const toggleLine = (line: { name: string }, index: number) => {
     if (onFocusLine && index === 0) {
@@ -4142,20 +4141,6 @@ function InteractiveChart({
       {visibleLines.flatMap((line, lineIndex) => line.data.map((point, index) => Number.isFinite(point.value) && (
         <i key={`${line.name}-${index}`} className={`chart-active-point${activePoint === index ? " active" : ""}`} style={{left:`${x(index)}%`,top:`${y(point.value,lineIndex) / 170 * 100}%`,background:line.color,opacity:focusedLine && focusedLine !== line.name ? 0.18 : 1}} />
       )))}
-      {showPrimaryLabels &&
-        visibleLines[0]?.data.map((point, index) => Number.isFinite(point.value) && index === latestPoint && (
-          <span
-            className="chart-value-label"
-            key={`primary-label-${point.week}`}
-            style={{
-              left: `${Math.min(84, x(index))}%`,
-              top: `${Math.max(3, y(point.value) / 170 * 100 - 8)}%`,
-            }}
-          >
-            {primaryLabelFormatter(point.value)}
-            {index > 0 && Number.isFinite(visibleLines[0]?.data[index - 1]?.value) && visibleLines[0].data[index - 1].value !== 0 && <small>{chartPct(point.value / visibleLines[0].data[index - 1].value - 1)}</small>}
-          </span>
-        ))}
       </div>
       <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
         {weeks.map((week) => (
