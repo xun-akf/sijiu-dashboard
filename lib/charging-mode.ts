@@ -156,7 +156,9 @@ export function classifyDayOperatingMetrics(
   const costType=stationConfig.purchaseCostType || stationConfig.billingType || "大工业电价";
   const perTou=costType==="一口价"
     ? Object.fromEntries(touKeys.map((key)=>[key,stationConfig.unifiedPrice]))
-    : ownCosts[yearMonth]?.[costType] ?? sharedCosts[yearMonth]?.[costType] ?? ownCosts[month]?.[costType] ?? sharedCosts[month]?.[costType];
+    : costType==="大工业电价"
+      ? ownCosts[yearMonth]?.[costType] ?? sharedCosts[yearMonth]?.[costType] ?? ownCosts[month]?.[costType] ?? sharedCosts[month]?.[costType]
+      : ownCosts[yearMonth]?.[costType] ?? ownCosts[month]?.[costType] ?? sharedCosts[yearMonth]?.[costType] ?? sharedCosts[month]?.[costType];
   const gridFee=costType==="售电价" ? Number(ownFees[yearMonth] ?? sharedFees[yearMonth] ?? ownFees[month] ?? sharedFees[month] ?? 0) : 0;
   if (!Number.isFinite(gridFee)) return {electricityRevenue,serviceRevenue,profit:null};
   let profit=0;

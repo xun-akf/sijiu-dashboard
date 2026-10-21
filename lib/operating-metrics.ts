@@ -51,9 +51,11 @@ export function resolveMonthlyCost(config: MetricConfig, monthly: MetricConfig, 
   const own = parseMonthly<Record<string, TouPrice>>(config.monthlyCostsJson);
   const shared = parseMonthly<Record<string, TouPrice>>(monthly.monthlyCostsJson);
   const yearMonth = `${year}-${month}`;
-  // Explicit year-month prices take precedence over the old 1–12 template.
-  return own[yearMonth]?.[costType] ?? shared[yearMonth]?.[costType]
-    ?? own[String(month)]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice();
+  // The shared industrial price can correct an old station template. A station's
+  // contracted electricity cost is specific to that station and must win.
+  return costType === "大工业电价"
+    ? own[yearMonth]?.[costType] ?? shared[yearMonth]?.[costType] ?? own[String(month)]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice()
+    : own[yearMonth]?.[costType] ?? own[String(month)]?.[costType] ?? shared[yearMonth]?.[costType] ?? shared[String(month)]?.[costType] ?? emptyPrice();
 }
 
 export function resolveMonthlyGridFee(config: MetricConfig, monthly: MetricConfig, year: number, month: number): number {
