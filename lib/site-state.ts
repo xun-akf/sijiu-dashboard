@@ -6,6 +6,7 @@ type AuthenticatedClient = SupabaseClient;
 export type SharedDashboardState = {
   stationData?: unknown;
   configs?: unknown;
+  modeData?: unknown;
   operator?: string;
   operatorName?: string;
   reportName?: string;
@@ -18,7 +19,13 @@ export type SharedDashboardState = {
 
 const legacyKeys = { stationData: "station_data", configs: "configs" } as const;
 const draftKeys = { stationData: "station_data_draft", configs: "configs_draft" } as const;
+// PR #5 has its own draft snapshot. The existing draft is read only as its
+// initial baseline; no acceptance import can change main's draft or published data.
+const acceptanceKeys = { stationData: "station_data_pr5_acceptance", configs: "configs_pr5_acceptance" } as const;
+const acceptanceModeKey = "mode_data_pr5_acceptance";
+const publishedModeKey = "mode_data_published";
 const publishedKeys = { stationData: "station_data_published", configs: "configs_published" } as const;
+export const isAcceptanceDashboard = process.env.NEXT_PUBLIC_DASHBOARD_ACCEPTANCE === "true";
 
 const isObject = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === "object" && !Array.isArray(value);
 const meaningfulFieldCount = (value: unknown) => isObject(value)
@@ -48,27 +55,26 @@ export async function readSharedState(client: AuthenticatedClient, role: AccessR
     if (error) throw error;
     return (data ?? {}) as SharedDashboardState;
   }
-  const preferred = role === "operator" ? draftKeys : publishedKeys;
-  const recoveryKeys = role === "operator" ? Object.values(publishedKeys) : [];
+  const preferred = role === "operator" ? (isAcceptanceDashboard ? acceptanceKeys : draftKeys) : publishedKeys;
+  const recoveryKeys = role === "operator" ? [...(isAcceptanceDashboard ? Object.values(draftKeys) : []), ...Object.values(publishedKeys)] : [];
+  const modeKey = role === "operator" && isAcceptanceDashboard ? acceptanceModeKey : publishedModeKey;
   const { data: rows, error } = await client
     .from("dashboard_state")
     .select("key,value,updated_at")
-    .in("key", [...Object.values(preferred), ...recoveryKeys, ...Object.values(legacyKeys)]);
+    .in("key", [...Object.values(preferred), modeKey, ...recoveryKeys, ...Object.values(legacyKeys)]);
   if (error) throw error;
   const result: SharedDashboardState = {};
-  for (const row of rows ?? []) {
-    if (row.key === preferred.stationData) result.stationData = row.value;
-    if (row.key === preferred.configs) result.configs = row.value;
-    if (row.key === legacyKeys.stationData && result.stationData === undefined) result.stationData = row.value;
-    if (row.key === legacyKeys.configs && result.configs === undefined) result.configs = row.value;
-  }
+  const get = (key: string) => (rows ?? []).find((row) => row.key === key)?.value;
+  result.stationData = get(preferred.stationData) ?? (role === "operator" ? get(draftKeys.stationData) : undefined) ?? get(legacyKeys.stationData);
+  result.configs = get(preferred.configs) ?? (role === "operator" ? get(draftKeys.configs) : undefined) ?? get(legacyKeys.configs);
+  result.modeData = get(modeKey);
   if (role === "operator") {
     const publishedConfigs = (rows ?? []).find((row) => row.key === publishedKeys.configs)?.value;
     const legacyConfigs = (rows ?? []).find((row) => row.key === legacyKeys.configs)?.value;
     result.configs = mergeRecoveredConfigs(publishedConfigs ?? legacyConfigs, result.configs);
   }
   if (role === "operator") {
-    const draftTimes = (rows ?? []).filter((row) => Object.values(draftKeys).includes(row.key as never)).map((row) => row.updated_at).filter(Boolean);
+    const draftTimes = (rows ?? []).filter((row) => Object.values(preferred).includes(row.key as never)).map((row) => row.updated_at).filter(Boolean);
     const publishedTimes = (rows ?? []).filter((row) => Object.values(publishedKeys).includes(row.key as never)).map((row) => row.updated_at).filter(Boolean);
     const lastModifiedAt = draftTimes.sort().at(-1) ?? null;
     const lastPublishedAt = publishedTimes.sort().at(-1) ?? null;
@@ -92,7 +98,7 @@ export async function writeSharedState(client: AuthenticatedClient, patch: Share
     Object.entries(patch).filter(([name, value]) => name in draftKeys && value !== undefined),
   ) as SharedDashboardState;
   const rows = Object.entries(cleanPatch).map(([name, value]) => ({
-    key: draftKeys[name as keyof typeof draftKeys], value, updated_at: new Date().toISOString(),
+    key: (isAcceptanceDashboard ? acceptanceKeys : draftKeys)[name as keyof typeof draftKeys], value, updated_at: new Date().toISOString(),
   }));
   if (!rows.length) return;
   const { error } = await client.from("dashboard_state").upsert(rows, { onConflict: "key" });
@@ -100,6 +106,7 @@ export async function writeSharedState(client: AuthenticatedClient, patch: Share
 }
 
 export async function publishSharedState(client: AuthenticatedClient) {
+  if (isAcceptanceDashboard) throw new Error("PR #5 验收环境禁止发布到正式版");
   const { error } = await client.rpc("publish_dashboard_state");
   if (error) throw error;
 }

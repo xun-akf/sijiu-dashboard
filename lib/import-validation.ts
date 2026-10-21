@@ -109,7 +109,10 @@ export function validateDashboardData(
   stations.forEach((station) => {
     const stationName = String(station.name || "").trim();
     const records = Array.isArray(station.records) ? station.records as RecordLike[] : [];
-    if (!records.length) add("error", stationName, "—", "周次", "缺失", "该场站没有任何周次数据", "至少补充一周有效数据");
+    if (!records.length && expectedNames.includes(stationName))
+      add("error", stationName, "—", "周次", "缺失", "已有场站的全部历史周次被清空", "恢复历史数据");
+    else if (!records.length && !options.allowPublishedHistory)
+      add("warning", stationName, "—", "周次", "缺失", "新场站暂无经营数据", "后续导入真实数据；勿填0");
     const weeks = records.map((record) => String(record.week || "").trim());
     allWeekSets.push(weeks.filter(Boolean));
     weeks.forEach((week, index) => {

@@ -1,10 +1,10 @@
 "use client";
 import "./diagnosis.css";
+import "./charging-mode.css";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { strFromU8, unzipSync } from "fflate";
 import {
   Activity,
-  BarChart3,
   BatteryCharging,
   Building2,
   ChevronDown,
@@ -36,6 +36,17 @@ import { parseImportNumber, validateDashboardData, type ValidationReport } from 
 import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
 import { calculateOperatingMetrics, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
+import ChargingModePage from "@/components/charging-mode-page";
+import PeriodViews from "@/components/period-views";
+import { ModeImportPanel } from "@/components/mode-import-panel";
+import { loadModeData } from "@/lib/mode-data";
+import { sundaySaturdayRange } from "@/lib/charging-mode";
+import stationCatalog from "@/data/station-catalog-20261018.json";
+import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
+import { isAcceptanceDashboard } from "@/lib/site-state";
+import { dashboardClient } from "@/lib/dashboard-browser";
+import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
+import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -53,6 +64,8 @@ type R = {
   servicePerKwh: number | null;
   electricityProfitPerKwh: number | null;
   profit: number | null;
+  partialProfit?: number | null;
+  partialCharge?: number | null;
   peak: number | null;
   high: number | null;
   flat: number | null;
@@ -61,7 +74,7 @@ type R = {
   weeklySegments?: EnergyRecord[];
 };
 type S = { name: string; records: R[] };
-type View = "overview" | "station" | "business" | "trend" | "config";
+type View = "overview" | "station" | "business" | "mode" | "config";
 type AdminMeta = { lastModifiedAt: string | null; lastPublishedAt: string | null; publishStatus: "published" | "draft" };
 type PartnerBrand = { operator?: string; operatorName?: string; reportName?: string };
 const OperatorContext = createContext(false);
@@ -69,6 +82,11 @@ const removedStations = new Set([
   "蔚景云创新中心充电站",
   "蔚景云华阳物流园一期",
   "蔚景云华阳物流园二期",
+  "蔚景云中和执法大队充电站",
+  "蔚景云浮生半日闲清居充电站",
+  "蔚景云迎宾路慢充站",
+  "蔚景云阿嘎山居民宿充电站",
+  "宜宾市生态环境局充电站",
 ]);
 const baseStations = (data.stations as S[]).filter(
   (s) => !removedStations.has(s.name),
@@ -78,8 +96,7 @@ const num = (v: number | null | undefined) => v ?? 0,
   money = (v: number) =>
     `¥${v.toLocaleString("zh-CN", { maximumFractionDigits: 0 })}`,
   qty = (v: number) => v.toLocaleString("zh-CN", { maximumFractionDigits: 0 }),
-  chartWan = (v: number) => `${Math.round(v / 10000)}万`,
-  chartWanLabel = (v: number) => `${(v / 10000).toFixed(1)}万`,
+  chartWan = (v: number) => `${Math.round(v).toLocaleString("zh-CN")}`,
   pct = (v: number | null) =>
     v == null ? "—" : `${v >= 0 ? "↑" : "↓"} ${Math.abs(v * 100).toFixed(1)}%`;
 const importValue = (value: number | null | undefined) => value == null
@@ -88,8 +105,8 @@ const importValue = (value: number | null | undefined) => value == null
 const nav = [
   { id: "overview" as View, label: "运营总览", icon: LayoutDashboard },
   { id: "station" as View, label: "场站分析", icon: MapPin },
-  { id: "trend" as View, label: "趋势洞察", icon: Activity },
-  { id: "business" as View, label: "经营分析", icon: BarChart3 },
+  { id: "business" as View, label: "趋势洞察", icon: Activity },
+  { id: "mode" as View, label: "充电模式", icon: BatteryCharging },
   { id: "config" as View, label: "数据中心", icon: Settings2 },
 ];
 type StationConfig = {
@@ -198,6 +215,9 @@ const weekDateRange = (label: string): string => {
   if (month < 1 || month > 12 || ordinal < 1 || ordinal > 5) return "";
   const wednesday = new Date(Date.UTC(year, month - 1, 1 + 7 * (ordinal - 1)));
   wednesday.setUTCDate(wednesday.getUTCDate() + (3 - wednesday.getUTCDay() + 7) % 7);
+  // Legacy labels can contain a fifth week even when the month has only four Wednesdays.
+  // Keep the saved label but do not invent a range that overlaps the next month's week.
+  if (wednesday.getUTCMonth() !== month - 1) return "";
   const sunday = new Date(wednesday);
   sunday.setUTCDate(wednesday.getUTCDate() - 3);
   const saturday = new Date(sunday);
@@ -217,19 +237,25 @@ function useConfigs() {
   const [cfg, setCfg] = useState<Record<string, StationConfig>>({});
   const [loaded, setLoaded] = useState(false);
   const lastLoadedConfig = useRef<string | null>(null);
+  const operatorDraft = useRef(false);
   useEffect(() => {
     let live = true;
-    const refresh = () => dashboardFetch("/api/dashboard-state", { cache: "no-store" })
-      .then(async (response) => {
+    const refresh = () => Promise.all([
+      dashboardFetch("/api/access", { cache: "no-store" }),
+      dashboardFetch("/api/dashboard-state", { cache: "no-store" }),
+    ])
+      .then(async ([access, response]) => {
         if (!response.ok) throw new Error("共享配置读取失败");
+        operatorDraft.current = access.ok && (await access.json()).role === "operator";
         return response.json() as Promise<{ configs?: Record<string, StationConfig> }>;
       })
       .then((shared) => {
         if (live && shared.configs && Object.keys(shared.configs).length) {
-          const serialized = JSON.stringify(shared.configs);
+          const configs = operatorDraft.current ? withCompetitorWorkbook(shared.configs) : shared.configs;
+          const serialized = JSON.stringify(configs);
           if (serialized !== lastLoadedConfig.current) {
             lastLoadedConfig.current = serialized;
-            setCfg(shared.configs);
+            setCfg(configs);
           }
         }
         if (live) setLoaded(true);
@@ -243,10 +269,11 @@ function useConfigs() {
     const handleRemoteState = (event: Event) => {
       const configs = (event as CustomEvent<Record<string, StationConfig>>).detail;
       if (!configs) return;
-      const serialized = JSON.stringify(configs);
+      const next = operatorDraft.current ? withCompetitorWorkbook(configs) : configs;
+      const serialized = JSON.stringify(next);
       if (serialized !== lastLoadedConfig.current) {
         lastLoadedConfig.current = serialized;
-        setCfg(configs);
+        setCfg(next);
       }
     };
     window.addEventListener("dashboard-state-changed", handleRealtimeChange);
@@ -610,6 +637,10 @@ export default function Home() {
   const [view, setView] = useState<View>("overview"),
     [wi, setWi] = useState(baseStations[0]?.records.length - 1 || 0),
     [sn, setSn] = useState("全部场站"),
+    [operatorFilter,setOperatorFilter]=useState("全部运营商"),
+    [stationOperators,setStationOperators]=useState<Record<string,string>>({}),
+    [chargingMode, setChargingMode] = useState<"all" | "fast" | "slow">("all"),
+    [periodType, setPeriodType] = useState<"week" | "month">("week"),
     [stationData, setStationData] = useState<S[]>(baseStations),
     [exporting, setExporting] = useState(false),
     [admin, setAdmin] = useState(false),
@@ -625,7 +656,21 @@ export default function Home() {
   const lastLoadedSharedConfigs = useRef<string | null>(null);
   // Legacy dashboard helpers synchronously read this snapshot during render.
   // eslint-disable-next-line react-hooks/globals
-  stations = stationData;
+  const catalogOperators = Object.fromEntries(stationCatalog.map((item) => [item.name,item.operator]));
+  const visibleStationData = stationData.filter((item) => !removedStations.has(item.name));
+  const scopedNames = new Set(scopedStationNames(visibleStationData.map((item) => item.name),operatorFilter,catalogOperators,stationOperators));
+  stations = visibleStationData.filter((item) => scopedNames.has(item.name));
+  const reportingNames=reportingStationNames(stations,allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周",periodType);
+  const noWeeklyHistory=sn!=="全部场站" && visibleStationData.some((item)=>item.name===sn && item.records.length===0);
+  const openStationAnalysis=(name:string)=>{setSn(name);setPeriodType("week");setView("station");window.scrollTo({top:0,behavior:"smooth"});};
+  useEffect(()=>{
+    if(!accessRole)return;
+    let live=true;
+    void Promise.resolve(dashboardClient.from("dashboard_station_profiles").select("station_name,operator_name")).then(({data,error})=>{
+      if(live && !error && data)setStationOperators(Object.fromEntries(data.filter((p)=>p.operator_name).map((p)=>[p.station_name,p.operator_name])));
+    }).catch(()=>{});
+    return ()=>{live=false;};
+  },[accessRole]);
   useEffect(() => {
     let live = true;
     (async () => {
@@ -721,7 +766,7 @@ export default function Home() {
         return x.year - y.year || x.month - y.month || x.week - y.week;
       });
       return { name, records };
-    }).filter((station) => station.records.length);
+    });
     if (!deferSave) await saveDashboardPatch({ stationData: merged });
     if (commitLocal) {
       const mergedWeeks = [...new Set(merged.flatMap((station) => station.records.map((record) => record.week)))];
@@ -824,7 +869,7 @@ export default function Home() {
               <button
                 key={x.id}
                 className={view === x.id ? "active" : ""}
-                onClick={() => setView(x.id)}
+                onClick={() => { setView(x.id); if (x.id === "station" || x.id === "business") setPeriodType("week"); if (x.id === "business") setSn("全部场站"); }}
               >
                 <I />
                 {x.label}
@@ -842,7 +887,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <h1>{nav.find((x) => x.id === view)?.label}</h1>
-            <p>{admin ? "四九实业周报 · 运营管理端" : partner ? `${partnerBrand.reportName || "运营周报"} · 只读端` : "四九实业周报 · 只读端"} · 2025年11月至最新一周</p>
+            {view === "overview" && <p>{admin ? "四九实业周报 · 运营管理端" : partner ? `${partnerBrand.reportName || "运营周报"} · 只读端` : "四九实业周报 · 只读端"} · 2025年11月至最新一周</p>}
           </div>
           <div className="actions">
             <button
@@ -858,8 +903,8 @@ export default function Home() {
               导出周报
             </button>
             {admin ? (
-              <button className="primary" onClick={publishDashboard} disabled={publishing}>
-                {publishing ? "发布中..." : "发布更新"}
+              <button className="primary" disabled={isAcceptanceDashboard || publishing} onClick={publishDashboard} title={isAcceptanceDashboard ? "PR #5 验收草稿与正式版隔离，禁止发布" : undefined}>
+                {isAcceptanceDashboard ? "验收草稿" : publishing ? "发布中…" : "发布更新"}
               </button>
             ) : null}
             <button
@@ -891,14 +936,20 @@ export default function Home() {
           </section>
         ) : null}
         {view !== "config" && (
-          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} />
+          <Filters wi={wi} setWi={setWi} sn={sn} setSn={setSn} periodType={periodType} operatorFilter={operatorFilter} setOperatorFilter={(value)=>{const visible=new Set(scopedStationNames(visibleStationData.map((item)=>item.name),value,catalogOperators,stationOperators));const weeks=[...new Set(visibleStationData.filter((item)=>visible.has(item.name)).flatMap((item)=>item.records.map((r)=>r.week)))].sort((a,b)=>weekOrderValue(a)-weekOrderValue(b));setOperatorFilter(value);setSn("全部场站");setWi(Math.max(0,weeks.length-1));}} operatorOptions={operatorChoices(visibleStationData.map((item)=>item.name),catalogOperators,stationOperators)} />
         )}{" "}
-        {view === "overview" && <Overview wi={wi} sn={sn} />}{" "}
-        {view === "station" && (
-          <StationAnalysis wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
+        {view !== "config" && view !== "station" && view !== "business" && <div className="mode-switchbar">
+          <div className="metric-switch">{(["week","month"] as const).map((value)=><button key={value} className={periodType===value?"active":""} onClick={()=>setPeriodType(value)}>{value==="week"?"周度":"月度"}</button>)}</div>
+          {view === "mode" && <div className="metric-switch">{(["all","fast","slow"] as const).map((value)=><button key={value} className={chargingMode===value?"active":""} onClick={()=>setChargingMode(value)}>{value==="all"?"全部":value==="fast"?"快充":"慢充"}</button>)}</div>}
+        </div>}
+        {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
+        {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
+        {view === "station" && periodType === "week" && !noWeeklyHistory && (
+          <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
-        {view === "business" && <Business wi={wi} sn={sn} />}{" "}
-        {view === "trend" && <TrendInsights sn={sn} />}{" "}
+        {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} onStationSelect={openStationAnalysis} />}{" "}
+        {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} previousStationRecords={Object.fromEntries(stations.map((item)=>[item.name,wi>0?recordAt(item,wi-1) as StoredWeeklyResult|undefined:undefined]))} />}
+        {view !== "mode" && view !== "config" && periodType === "month" && <PeriodViews view={view} week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} selectedMode="all" periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} />}
         {view === "config" && admin && (
           <Config onImport={applyImport} onRecordSave={updateWeeklyRecord} adminMeta={adminMeta} />
         )}{" "}
@@ -918,35 +969,61 @@ function Filters({
   setWi,
   sn,
   setSn,
+  periodType,
+  operatorFilter,
+  setOperatorFilter,
+  operatorOptions,
 }: {
   wi: number;
   setWi: (v: number) => void;
   sn: string;
   setSn: (v: string) => void;
+  periodType: "week" | "month";
+  operatorFilter:string;
+  setOperatorFilter:(value:string)=>void;
+  operatorOptions:string[];
 }) {
+  const [stationSearchOpen, setStationSearchOpen] = useState(false);
+  const [stationQuery, setStationQuery] = useState("");
+  useEffect(() => { setStationQuery(sn === "全部场站" ? "" : sn); }, [sn]);
+  const matchingStations = stations.filter((station) => station.name.includes(stationQuery.trim()));
+  const chooseStation = (name: string) => { setSn(name); setStationQuery(name === "全部场站" ? "" : name); setStationSearchOpen(false); };
+  const weeks=allWeeks();
+  const months=[...new Set(weeks.map((w)=>w.match(/^(\d{4}年\d{1,2}月)/)?.[1]).filter((x):x is string=>Boolean(x)))];
+  const selectedMonth=weeks[wi]?.match(/^(\d{4}年\d{1,2}月)/)?.[1] || months.at(-1) || "";
   return (
     <div className="filterbar">
       <label>
         <span>统计周期</span>
-        <select value={wi} onChange={(e) => setWi(+e.target.value)}>
-          {allWeeks().map((w, i) => (
+        {periodType==="month" ? <select value={selectedMonth} onChange={(e)=>setWi(weeks.findIndex((w)=>w.startsWith(e.target.value)))}>
+          {months.map((month)=><option key={month} value={month}>{month}</option>)}
+        </select> : <select value={wi} onChange={(e) => setWi(+e.target.value)}>
+          {weeks.map((w, i) => (
             <option key={w} value={i}>
               {displayWeek(w)}
             </option>
           ))}
-        </select>
+        </select>}
         <ChevronDown />
       </label>
       <label>
-        <span>场站范围</span>
-        <select value={sn} onChange={(e) => setSn(e.target.value)}>
-          <option>全部场站</option>
-          {stations.map((s) => (
-            <option key={s.name}>{s.name}</option>
-          ))}
-        </select>
+        <span>运营商</span>
+        <select value={operatorFilter} onChange={(e)=>setOperatorFilter(e.target.value)}><option>全部运营商</option>{operatorOptions.map((name)=><option key={name}>{name}</option>)}</select>
         <ChevronDown />
       </label>
+      <div className="station-filter-label">
+        <span>场站范围</span>
+        <div className="station-search-control" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setStationSearchOpen(false); }}>
+          <Search aria-hidden="true" />
+          <input aria-label="搜索或选择场站" role="combobox" aria-expanded={stationSearchOpen} aria-controls="station-search-options" value={stationQuery} onFocus={() => setStationSearchOpen(true)} onChange={(e) => { setStationQuery(e.target.value); setStationSearchOpen(true); }} onKeyDown={(e) => { if (e.key === "Enter" && matchingStations.length) chooseStation(matchingStations[0].name); if (e.key === "Escape") setStationSearchOpen(false); }} placeholder="全部场站 · 输入站名搜索" />
+          {sn !== "全部场站" && <button type="button" aria-label="清除场站选择" onClick={() => chooseStation("全部场站")}>×</button>}
+          {stationSearchOpen && <div className="station-search-options" id="station-search-options" role="listbox">
+            <button type="button" role="option" aria-selected={sn === "全部场站"} onClick={() => chooseStation("全部场站")}>全部场站</button>
+            {matchingStations.map((station) => <button type="button" role="option" aria-selected={sn === station.name} key={station.name} onClick={() => chooseStation(station.name)}>{station.name}</button>)}
+            {!matchingStations.length && <small>没有匹配的场站</small>}
+          </div>}
+        </div>
+      </div>
       <div className="data-note">
         <Sparkles />
         曲线支持鼠标悬停查看数值
@@ -982,6 +1059,10 @@ function totals(sn: string, wi: number) {
     charge,
     revenue,
     profit,
+    chargeCoverage:cur.filter(r=>r.charge!=null).length,
+    serviceCoverage:cur.filter(r=>r.serviceRevenue!=null).length,
+    profitCoverage:cur.filter(r=>r.profit!=null).length,
+    stationCount:ss.length,
     active: cur.filter((r) => num(r.charge) > 0).length,
     cc: pc ? charge / pc - 1 : null,
     rc: pr ? revenue / pr - 1 : null,
@@ -990,7 +1071,7 @@ function totals(sn: string, wi: number) {
 }
 function Overview({ wi, sn }: { wi: number; sn: string }) {
   const { cfg } = useConfigs();
-  const t = useMemo(() => totals(sn, wi), [wi, sn]),
+  const t = totals(sn, wi),
     charge = series(sn, "charge"),
     profit = series(sn, "profit"),
     selected = scope(sn).map((s) => ({ station: s, record: recordAt(s, wi) })).filter((item): item is { station: S; record: R } => Boolean(item.record)),
@@ -1012,27 +1093,30 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         <Kpi
           icon={<BatteryCharging />}
           label="总充电量"
-          value={`${qty(t.charge)} kWh`}
+          value={t.chargeCoverage?`${qty(t.charge)} kWh`:"暂无经营记录"}
           change={t.cc}
+          sub={`有记录 ${t.chargeCoverage}/${t.stationCount} 站`}
         />
         <Kpi
           icon={<CircleDollarSign />}
-          label="服务费收入"
-          value={money(t.revenue)}
+          label={t.serviceCoverage<t.stationCount?"服务费收入（可核算小计）":"服务费收入"}
+          value={t.serviceCoverage?money(t.revenue):"金额待核算"}
           change={t.rc}
+          sub={`可核算 ${t.serviceCoverage}/${t.stationCount} 站`}
         />
         <Kpi
           icon={<Gauge />}
-          label="经营毛利 / 利润"
-          value={money(t.profit)}
+          label={t.profitCoverage<t.stationCount?"经营毛利（可核算小计）":"经营毛利 / 利润"}
+          value={t.profitCoverage?money(t.profit):"金额待核算"}
           change={t.pc}
+          sub={`可核算 ${t.profitCoverage}/${t.stationCount} 站`}
         />
         {sn === "全部场站" ? (
           <Kpi
             icon={<Building2 />}
-            label="有数据场站"
-            value={`${t.active} / ${scope(sn).length}`}
-            sub="本周产生充电量"
+            label="有电量场站"
+            value={`${t.chargeCoverage} / ${t.stationCount}`}
+            sub={`其中 ${t.active} 站电量大于 0；毛利可核算 ${t.profitCoverage} 站`}
           />
         ) : (
           <GunCard station={sn} />
@@ -1057,7 +1141,7 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
         previousMix={prevMix}
         configs={cfg}
       />
-      <Panel
+      <details className="data-disclosure weekly-overview-disclosure"><summary>全部场站经营结果 <span>展开查看 {selected.length} 站</span></summary><Panel
         title="18站完整经营结果"
         sub={`${displayWeek(allWeeks()[wi])} · 尖峰平谷、收入、每度利润、当周利润同屏`}
         extra="ranking"
@@ -1068,7 +1152,7 @@ function Overview({ wi, sn }: { wi: number; sn: string }) {
           )}
           detailed
         />
-      </Panel>
+      </Panel></details>
     </>
   );
 }
@@ -1171,8 +1255,13 @@ function OverviewTrends({
       if (mode === "week") return points;
       const grouped = new Map<string, number>();
       points.forEach((x) => {
+        if (!Number.isFinite(x.value)) {
+          const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
+          if (!grouped.has(m)) grouped.set(m, NaN);
+          return;
+        }
         const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
-        grouped.set(m, (grouped.get(m) || 0) + x.value);
+        grouped.set(m, (Number.isFinite(grouped.get(m)) ? grouped.get(m)! : 0) + x.value);
       });
       return [...grouped].map(([week, value]) => ({ week, value }));
     },
@@ -1182,20 +1271,20 @@ function OverviewTrends({
       points.forEach((x) => {
         const parts = weekParts(x.week), m = `${parts.year}年${parts.month}月`;
         const current = grouped.get(m) || { total: 0, count: 0 };
-        grouped.set(m, { total: current.total + x.value, count: current.count + 1 });
+        grouped.set(m, Number.isFinite(x.value) ? { total: current.total + x.value, count: current.count + 1 } : current);
       });
       return [...grouped].map(([week, value]) => ({
         week,
-        value: value.count ? value.total / value.count : 0,
+        value: value.count ? value.total / value.count : NaN,
       }));
     },
     raw = (key: keyof R) =>
       allWeeks().map((week, i) => ({
         week,
-        value: scope(sn).reduce(
+        value: scope(sn).some((station) => typeof recordAt(station, i)?.[key] === "number") ? scope(sn).reduce(
           (a, s) => a + num(recordAt(s, i)?.[key] as number | null),
           0,
-        ),
+        ) : NaN,
       })),
     chargeTotal = aggregate(raw("charge")),
     profitTotal = aggregate(raw("profit")),
@@ -1211,7 +1300,7 @@ function OverviewTrends({
           0,
         );
         const capacity = gunCount * 25 * 24 * 7;
-        return { week, value: capacity ? (charge / capacity) * 100 : 0 };
+        return { week, value: capacity && selectedStations.some((station) => typeof recordAt(station, i)?.charge === "number") ? (charge / capacity) * 100 : NaN };
       }),
     ),
     chargeParts = periods.map(([key, label, color]) => ({
@@ -1225,8 +1314,26 @@ function OverviewTrends({
       if (!record) return total;
       const stationConfig = { ...emptyConfig, ...configs[station.name] };
       const monthlyConfig = { ...emptyConfig, ...configs.__monthly__ };
-      return total + num(calculateOperatingMetrics(record, stationConfig, monthlyConfig).periodProfit[key]);
+      const metrics = calculateOperatingMetrics(record, stationConfig, monthlyConfig);
+      if (record.profit == null || metrics.profit == null ||
+          [record.peak, record.high, record.flat, record.valley].some((value) => value == null) ||
+          Math.abs(metrics.profit - record.profit) > 0.02) return total;
+      return total + num(metrics.periodProfit[key]);
     }, 0),
+    periodProfitCoverage = (index: number) => {
+      const records = scope(sn).map((station) => ({ station, record: recordAt(station, index) }))
+        .filter((item): item is { station: S; record: R } => Boolean(item.record && num(item.record.charge) > 0));
+      const matched = records.filter(({ station, record }) => {
+        if (record.profit == null || [record.peak, record.high, record.flat, record.valley].some((v) => v == null)) return false;
+        const metrics = calculateOperatingMetrics(record, { ...emptyConfig, ...configs[station.name] }, { ...emptyConfig, ...configs.__monthly__ });
+        return metrics.profit != null && Math.abs(metrics.profit - record.profit) <= 0.02;
+      }).length;
+      return { matched, total: records.length };
+    },
+    periodProfitMatches = (index: number) => {
+      const coverage = periodProfitCoverage(index);
+      return coverage.total > 0 && coverage.matched === coverage.total;
+    },
     profitParts = periods.map(([key, label, color]) => ({
       name: label,
       color,
@@ -1237,12 +1344,12 @@ function OverviewTrends({
         })),
       ),
     })),
-    size = 8,
-    maxOffset = Math.max(0, chargeTotal.length - size),
-    start = Math.max(0, maxOffset - offset),
-    slice = <T,>(x: T[]) => x.slice(start, start + size),
+    endIndex = Math.max(0, chargeTotal.length - 1 - offset),
+    size = visibleTrendCount(chargeTotal.map((point) => point.value), mode, endIndex),
+    maxOffset = Math.max(0, chargeTotal.length - 1),
+    start = Math.max(0, endIndex - size + 1),
+    slice = <T,>(x: T[]) => x.slice(start, endIndex + 1),
     visibleLabels = chargeTotal.map((x) => x.week),
-    endIndex = Math.min(chargeTotal.length - 1, start + size - 1),
     move = (older: boolean) =>
       setOffset((v) => Math.max(0, Math.min(maxOffset, v + (older ? 1 : -1)))),
     handleUp = (x: number) => {
@@ -1268,7 +1375,11 @@ function OverviewTrends({
     ],
     profitLines = [
       { name: "毛利总额", color: "#e8fff7", data: slice(profitTotal) },
-      ...(slice(profitTotal).some((point) => isHistoricalActualWeek(point.week))
+      ...(slice(profitTotal).some((point) => {
+        const indexes = allWeeks().map((week, index) => ({ week, index })).filter(({ week }) =>
+          mode === "week" ? week === point.week : `${weekParts(week).year}年${weekParts(week).month}月` === point.week);
+        return !indexes.length || indexes.some(({ week, index }) => isHistoricalActualWeek(week) || !periodProfitMatches(index));
+      })
         ? [] : profitParts.map((x) => ({ ...x, data: slice(x.data) }))),
     ];
   return (
@@ -1295,7 +1406,7 @@ function OverviewTrends({
           </button>
         </div>
         <span>
-          默认显示最近8{mode === "week" ? "周" : "个月"} ·
+          默认显示最近{size}{mode === "week" ? "周" : "个月"} ·
           在图表上按住鼠标向左拖动查看历史
         </span>
         <label>
@@ -1304,7 +1415,7 @@ function OverviewTrends({
             value={visibleLabels[endIndex] || ""}
             onChange={(e) => {
               const i = visibleLabels.indexOf(e.target.value),
-                desired = Math.max(0, i - size + 1);
+                desired = Math.max(0, i);
               setOffset(Math.max(0, maxOffset - desired));
             }}
           >
@@ -1322,14 +1433,13 @@ function OverviewTrends({
       >
         <Panel
           title="充电量趋势图"
-          sub="折线标注总量；点击某周查看尖峰平谷明细"
+          sub="左轴总量、右轴尖峰平谷；点击某周查看明细"
         >
           <InteractiveChart
             lines={chargeLines}
             showWeekDateRange
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `${value.toFixed(2)} kWh`}
+            valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
         <Panel
@@ -1347,20 +1457,22 @@ function OverviewTrends({
       >
         <Panel
           title="毛利额趋势图"
-          sub="折线标注毛利总额；点击某周查看尖峰平谷明细"
+          sub="纵轴按毛利区间显示；点击某周查看尖峰平谷明细"
         >
           <InteractiveChart
             lines={profitLines}
             showWeekDateRange
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
-          {isHistoricalActualWeek(allWeeks()[wi] || "")
-            ? <p className="empty-note">该历史周按原表显示毛利总额，未保存分时毛利，不按现价推算。</p>
-            : <MoneyMixComparison current={profitMix} previous={prevProfitMix} />}
+          {isHistoricalActualWeek(allWeeks()[wi] || "") || periodProfitCoverage(wi).matched === 0
+            ? <p className="empty-note">该周尚无可核对的分时毛利；毛利总额仍按已保存的经营记录统计。</p>
+            : <>
+                <p className="compact-config-summary">分时图覆盖 {periodProfitCoverage(wi).matched}/{periodProfitCoverage(wi).total} 个有电量站；其余站的分时数据或计费结果待核对。</p>
+                <MoneyMixComparison current={profitMix} previous={prevProfitMix} />
+              </>}
         </Panel>
       </div>
       <div className="trend-pair">
@@ -1378,8 +1490,7 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
         <Panel
@@ -1396,9 +1507,8 @@ function OverviewTrends({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `${value.toFixed(2)}%`}
-            primaryLabelFormatter={(value) => `${value.toFixed(1)}%`}
+            valueFormatter={(value) => `${Math.round(value)}%`}
+            primaryLabelFormatter={(value) => `${Math.round(value)}%`}
           />
         </Panel>
       </div>
@@ -1519,13 +1629,17 @@ function StationAnalysis({
     weatherByWeek = safeJson<Record<string, string>>(c.weatherByWeekJson, {}),
     eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
+    [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
+    [totalChargeOnly, setTotalChargeOnly] = useState(false),
     [saved, setSaved] = useState(false);
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
     update(selected.name, field, JSON.stringify({ ...values, [selectedWeek]: value }));
   };
   const doSave = async () => {
-    await save();
+    const latestWeek = selected.records.at(-1)?.week || "";
+    await save({ ...cfg, [selected.name]: { ...c, analysis: stationAnalysis(selected, latestWeek, c) } });
     setEditing(false);
+    setOriginalCompetitors(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
   };
@@ -1563,11 +1677,15 @@ function StationAnalysis({
         </div>
         {!isAll && <div className="config-actions">
           {editing && (
-            <button className="ghost" onClick={() => setEditing(false)}>
+            <button className="ghost" onClick={() => {
+              if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
+              setEditing(false);
+              setOriginalCompetitors(null);
+            }}>
               取消
             </button>
           )}
-          <button onClick={() => (editing ? doSave() : setEditing(true))}>
+          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setEditing(true))}>
             {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
           </button>
         </div>}
@@ -1641,21 +1759,27 @@ function StationAnalysis({
         </article>
       </div>
       <div className="content-grid equal">
-        <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="按周统计，悬停查看准确电量">
+        <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="尖峰平谷与总充电量；点击总充电量可单独查看">
           <FilteredInteractiveChart
             lines={[
               {
-                name: "充电量",
-                color: "#36d399",
+                name: "总充电量",
+                color: "#e8fff7",
                 data: chosen.records.map((x) => ({
                   week: x.week,
                   value: num(x.charge),
                 })),
               },
+              ...([ ["peak", "尖段", "#ff6b6b"], ["high", "峰段", "#ffb454"], ["flat", "平段", "#36d399"], ["valley", "谷段", "#6f8cff"] ] as const).map(([key, name, color]) => ({
+                name, color,
+                data: chosen.records.map((x) => ({ week: x.week, value: num(x[key]) })),
+              })),
             ]}
+            focusedLine={totalChargeOnly ? "总充电量" : null}
+            onFocusLine={(name) => setTotalChargeOnly(name === "总充电量")}
+            isolateFocusedLine
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `${value.toFixed(2)} kWh`}
+            valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
         <Panel title={isAll ? "全站经营利润趋势" : "单站经营利润趋势"} sub="服务费利润与电费利润汇总">
@@ -1671,8 +1795,7 @@ function StationAnalysis({
               },
             ]}
             showPrimaryLabels
-            tooltipRequiresPin
-            valueFormatter={(value) => `¥${value.toFixed(2)}`}
+            valueFormatter={(value) => `¥${Math.round(value).toLocaleString("zh-CN")}`}
           />
         </Panel>
       </div>
@@ -1680,11 +1803,16 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
+      {!isAll && <StationCompetitorSection station={selected} editing={editing} cfg={c} update={update} />}
     </>
   );
 }
-function Business({ wi, sn }: { wi: number; sn: string }) {
+function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStationSelect:(name:string)=>void }) {
   const week = allWeeks()[wi],
+    [analysisView, setAnalysisView] = useState<"contribution" | "diagnosis">("contribution"),
+    [diagnosisMode, setDiagnosisMode] = useState<"fast" | "slow" | "mixed" | "unknown" | null>(null),
+    [classified, setClassified] = useState<Awaited<ReturnType<typeof loadModeData>> | null>(null),
+    [classificationError, setClassificationError] = useState(""),
     canEdit = useContext(OperatorContext),
     { cfg } = useConfigs(),
     [editingStation, setEditingStation] = useState<string | null>(null),
@@ -1695,10 +1823,19 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
     rows = scope(sn)
       .map((s) => ({ station: s, record: recordAt(s, wi) }))
       .filter((item): item is { station: S; record: R } => Boolean(item.record))
-      .sort((a, b) => num(b.record.profit) - num(a.record.profit)),
+      .sort((a, b) => (b.record.profit ?? -Infinity) - (a.record.profit ?? -Infinity)),
     attention = rows
       .filter((x) => num(x.record.chargeChange) < -0.12)
       .sort((a, b) => num(a.record.chargeChange) - num(b.record.chargeChange)),
+    changes = rows.flatMap((item) => {
+      const previous = recordAt(item.station, wi - 1);
+      if (!previous || wi <= 0 || item.record.charge == null || previous.charge == null) return [];
+      const priorCharge = num(previous.charge);
+      if (priorCharge <= 0) return [];
+      return [{ ...item, delta: num(item.record.charge) - priorCharge, rate: num(item.record.charge) / priorCharge - 1 }];
+    }).sort((a, b) => Math.abs(b.rate) - Math.abs(a.rate)).slice(0, 5),
+    range = week ? sundaySaturdayRange(week) : null,
+    priorStart = range ? new Date(Date.parse(range.start + "T00:00:00Z") - 7 * 86400000).toISOString().slice(0, 10) : "",
     doSave = async (name: string) => {
       if (!canEdit || saving || !week) return;
       setSaving(true);
@@ -1714,6 +1851,15 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         setSaving(false);
       }
     };
+  useEffect(() => {
+    if (!range) return;
+    let live = true;
+    setClassified(null);
+    loadModeData(priorStart, range.end).then((result) => {
+      if (live) { setClassified(result); setClassificationError(""); }
+    }).catch(() => { if (live) setClassificationError("分类数据读取失败，请稍后重试"); });
+    return () => { live = false; };
+  }, [priorStart, range?.end]);
   const renderAnalysisBlock = (item: (typeof rows)[number]) => {
     const name = item.station.name,
       value = conciseStationDiagnosis(item.station, week, { ...emptyConfig, ...cfg[name] }),
@@ -1742,6 +1888,40 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
       </div>
     );
   };
+  const modeDiagnosis = (analysisMode: "fast" | "slow") => {
+    if (classificationError) return classificationError;
+    if (!classified) return "正在读取分类记录…";
+    const classifiedRows = scope(sn).map((station) => {
+      const facts = classified.facts.filter((fact) => fact.stationName === station.name && fact.mode === analysisMode);
+      const current = facts.filter((fact) => range && fact.date >= range.start && fact.date <= range.end);
+      const previous = facts.filter((fact) => range && fact.date >= priorStart && fact.date < range.start);
+      return { name: station.name, charge: current.length ? current.reduce((sum, fact) => sum + fact.charge, 0) : null,
+        previous: previous.length ? previous.reduce((sum, fact) => sum + fact.charge, 0) : null };
+    });
+    const recorded = classifiedRows.filter((item) => item.charge != null);
+    if (!recorded.length) return `本周${analysisMode === "fast" ? "快充" : "慢充"}待导入分类数据，暂无可核实的经营结论。`;
+    const comparable = recorded.filter((item) => item.previous != null);
+    const charge = recorded.reduce((sum, item) => sum + Number(item.charge), 0);
+    const changes = comparable.map((item) => ({ name: item.name, delta: Number(item.charge) - Number(item.previous) })).sort((a, b) => b.delta - a.delta);
+    const highest = changes[0], lowest = changes.at(-1);
+    const leader = highest && highest.delta > 0 ? `主要增长来自${highest.name}（+${highest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
+    const laggard = lowest && lowest.delta < 0 ? `主要下降来自${lowest.name}（${lowest.delta.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度）。` : "";
+    return `本周${analysisMode === "fast" ? "快充" : "慢充"}有${recorded.length}站录入真实分类电量，合计${charge.toLocaleString("zh-CN", { maximumFractionDigits: 1 })}度；其中${comparable.length}站有上周同模式记录可比较。${leader}${laggard}${recorded.length < scope(sn).length ? `其余${scope(sn).length - recorded.length}站分类待补充，未按零值处理。` : ""}`;
+  };
+  const modeGroups = { fast: [] as typeof rows, slow: [] as typeof rows, mixed: [] as typeof rows, unknown: [] as typeof rows };
+  for (const item of rows) {
+    const profile = stationCatalog.find((station) => station.name === item.station.name);
+    const hasFast = Number(profile?.fastGuns) > 0;
+    const hasSlow = Number(profile?.slowGuns) > 0;
+    modeGroups[hasFast && hasSlow ? "mixed" : hasFast ? "fast" : hasSlow ? "slow" : "unknown"].push(item);
+  }
+  const renderStationDiagnosis = (item: (typeof rows)[number]) => (
+    <div key={item.station.name} className={num(item.record.chargeChange) < 0 ? "negative" : "positive"}>
+      <header><b>{item.station.name}</b><span>{pct(item.record.chargeChange)}</span></header>
+      <p>充电量 {qty(num(item.record.charge))} kWh · 经营利润 {item.record.profit == null ? "待核算" : money(item.record.profit)}</p>
+      {renderAnalysisBlock(item)}
+    </div>
+  );
   return (
     <>
       <div className="page-heading business-head">
@@ -1752,303 +1932,51 @@ function Business({ wi, sn }: { wi: number; sn: string }) {
         </div>
         <span className="attention-count">重点关注 {attention.length} 个</span>
       </div>
-      <div className="content-grid equal">
-        <Panel title="经营利润排名" sub="排名、利润与充电量环比同屏">
-          <BarList rows={rows} />
-        </Panel>
-        <Panel
-          title={`重点下降站点 · ${attention.length}个`}
-          sub="充电量环比下降超过 12%，按降幅排序"
-        >
-          <div className="attention-list">
-            {attention.length ? (
-              attention.slice(0, 5).map((x, index) => (
-                <div key={x.station.name}>
-                  <div className="attention-main">
-                    <i>{index + 1}</i>
-                    <div>
-                      <b>{x.station.name}</b>
-                      <small>经营利润 {money(num(x.record.profit))}</small>
-                    </div>
-                    <span className="down">{pct(x.record.chargeChange)}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="empty-note">本周暂无下降超过 12% 的场站</p>
-            )}
-          </div>
-        </Panel>
-      </div>
-      <Panel
-        title="全场站数据诊断"
-        sub="默认展示结果；需要时再添加或编辑运营分析"
-        extra="ranking"
-      >
-        <div className="diagnosis-grid">
-          {rows.map((x) => (
-            <div
-              key={x.station.name}
-              className={
-                num(x.record.chargeChange) < 0 ? "negative" : "positive"
-              }
-            >
-              <header>
-                <b>{x.station.name}</b>
-                <span>{pct(x.record.chargeChange)}</span>
-              </header>
-              <p>
-                充电量 {qty(num(x.record.charge))} kWh · 经营利润{" "}
-                {money(num(x.record.profit))}
-              </p>
-              {renderAnalysisBlock(x)}
-            </div>
-          ))}
-        </div>
-      </Panel>
-    </>
-  );
-}
-function TrendInsights({ sn }: { sn: string }) {
-  if (sn === "全部场站") return <AllStationTrendSummary />;
-  const chosen = stations.find((s) => s.name === sn)!;
-  return <SingleStationTrend station={chosen} />;
-}
-function AllStationTrendSummary() {
-  const latest = allWeeks().length - 1,
-    [mode, setMode] = useState<
-      "all" | "top5" | "growth" | "decline" | "custom"
-    >("top5"),
-    [focus, setFocus] = useState<string | null>(null),
-    [custom, setCustom] = useState<string[]>([]),
-    ranked = [...stations].sort(
-      (a, b) => num(recordAt(b, latest)?.charge) - num(recordAt(a, latest)?.charge),
-    ),
-    growth = [...stations]
-      .filter((s) => num(recordAt(s, latest)?.chargeChange) >= 0)
-      .sort(
-        (a, b) =>
-          num(recordAt(b, latest)?.chargeChange) -
-          num(recordAt(a, latest)?.chargeChange),
-      ),
-    decline = [...stations]
-      .filter((s) => num(recordAt(s, latest)?.chargeChange) < 0)
-      .sort(
-        (a, b) =>
-          num(recordAt(a, latest)?.chargeChange) -
-          num(recordAt(b, latest)?.chargeChange),
-      ),
-    shown =
-      mode === "all"
-        ? stations
-        : mode === "growth"
-          ? growth
-          : mode === "decline"
-            ? decline
-            : mode === "custom"
-              ? stations.filter((s) => custom.includes(s.name))
-              : ranked.slice(0, 5),
-    colors = [
-      "#36d399",
-      "#ffb454",
-      "#66a8ff",
-      "#c28cff",
-      "#ff7474",
-      "#5eead4",
-      "#f9a8d4",
-      "#a3e635",
-    ],
-    aggregate = {
-      name: "全场趋势",
-      color: "#e8fff7",
-      data: allWeeks().map((week, index) => ({
-        week,
-        value: stations.reduce(
-          (sum, station) => sum + num(recordAt(station, index)?.charge),
-          0,
-        ),
-      })),
-    },
-    lines = [
-      aggregate,
-      ...shown.map((station, index) => ({
-        name: station.name,
-        color: colors[index % colors.length],
-        data: station.records.map((record) => ({
-          week: record.week,
-          value: num(record.charge),
-        })),
-      })),
-    ];
-  return (
-    <>
-      <div className="executive-note">
-        <Sparkles />
-        <div>
-          <b>18站趋势洞察</b>
-          <span>默认聚焦 TOP5；点击场站后突出该线，其余曲线自动降权。</span>
-        </div>
-      </div>
-      <div className="trend-filterbar">
-        {(
-          [
-            ["all", "全部"],
-            ["top5", "TOP5"],
-            ["growth", "增长"],
-            ["decline", "下降"],
-            ["custom", "自定义"],
-          ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            className={mode === key ? "active" : ""}
-            onClick={() => {
-              setMode(key);
-              setFocus(null);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-        <span>当前显示 {shown.length} 个场站 + 全场趋势</span>
-      </div>
-      {mode === "custom" && (
-        <div className="trend-custom-list">
-          {stations.map((station) => (
-            <label key={station.name}>
-              <input
-                type="checkbox"
-                checked={custom.includes(station.name)}
-                onChange={() =>
-                  setCustom((value) =>
-                    value.includes(station.name)
-                      ? value.filter((name) => name !== station.name)
-                      : [...value, station.name],
-                  )
-                }
-              />
-              {station.name}
-            </label>
-          ))}
-        </div>
-      )}
-      <Panel
-        title="充电量趋势对比"
-        sub="悬停查看本周、上周、环比与当前排名；点击图例聚焦场站"
-      >
-        <FilteredInteractiveChart
-          lines={lines}
-          large
-          focusedLine={focus}
-          onFocusLine={setFocus}
-          rankedTooltip
-          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
-      <Panel
-        title="18站最新周经营结果"
-        sub="一次查看全部场站，不用逐站切换"
-        extra="ranking"
-      >
-        <StationTable
-          rows={stations
-            .map((s) => ({ station: s, record: recordAt(s, latest) }))
-            .filter((item): item is { station: S; record: R } => Boolean(item.record))
-            .sort((a, b) => num(b.record.profit) - num(a.record.profit))}
-          detailed
-        />
-      </Panel>
-    </>
-  );
-}
-function SingleStationTrend({ station }: { station: S }) {
-  const { cfg, update, save } = useConfigs(),
-    c = { ...emptyConfig, ...cfg[station.name] },
-    [editing, setEditing] = useState(false),
-    [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
-    doSave = async () => {
-      const latestWeek = station.records.at(-1)?.week || "",
-        updated = { ...c, analysis: stationAnalysis(station, latestWeek, c) };
-      await save({ ...cfg, [station.name]: updated });
-      setEditing(false);
-      setOriginalCompetitors(null);
-    };
-  return (
-    <>
-      <div className="page-heading trend-head">
-        <div>
-          <span className="eyebrow">本站尖峰平谷与竞站洞察</span>
-          <h2>{station.name}</h2>
-          <p>外售价格及竞站价格按周维护；保存后锁定。</p>
-        </div>
-        <div className="config-actions">
-          <button className="ghost" onClick={() => {
-            if (editing) {
-              if (originalCompetitors != null)
-                update(station.name, "competitorsJson", originalCompetitors);
-              setEditing(false);
-              setOriginalCompetitors(null);
-            } else {
-              setOriginalCompetitors(c.competitorsJson);
-              setEditing(true);
-            }
-          }}>
-            {editing ? "取消编辑" : "编辑竞站"}
-          </button>
-          {editing && (
-            <button className="save-button" onClick={doSave}>
-              保存并锁定
+      <div className="business-analysis-controls">
+        <div className="metric-switch"><button className={analysisView === "contribution" ? "active" : ""} onClick={() => setAnalysisView("contribution")}>各站利润排名</button><button className={analysisView === "diagnosis" ? "active" : ""} onClick={() => { setAnalysisView("diagnosis"); setDiagnosisMode(null); }}>全场站数据诊断分析</button></div>
+        {analysisView === "diagnosis" && <div className="business-mode-tabs" aria-label="选择逐站分析类型">
+          {(["fast", "slow", "mixed", "unknown"] as const).filter((mode) => mode !== "unknown" || modeGroups.unknown.length > 0).map((mode) => (
+            <button key={mode} className={diagnosisMode === mode ? "active" : ""} onClick={() => setDiagnosisMode(mode)}>
+              {mode === "fast" ? "快充" : mode === "slow" ? "慢充" : mode === "mixed" ? "混合站" : "模式待补充"}
+              <small>{modeGroups[mode].length}站</small>
             </button>
-          )}
-        </div>
+          ))}
+        </div>}
       </div>
-      <Panel title="本站尖峰平谷充电量趋势" sub="移动鼠标联动查看各时段电量">
-        <FilteredInteractiveChart
-          lines={[
-            {
-              name: "尖段",
-              color: "#ff6b6b",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.peak),
-              })),
-            },
-            {
-              name: "峰段",
-              color: "#ffb454",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.high),
-              })),
-            },
-            {
-              name: "平段",
-              color: "#36d399",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.flat),
-              })),
-            },
-            {
-              name: "谷段",
-              color: "#6f8cff",
-              data: station.records.map((r) => ({
-                week: r.week,
-                value: num(r.valley),
-              })),
-            },
-          ]}
-          large
-          valueFormatter={(value) => `${value.toFixed(2)} kWh`}
-        />
-      </Panel>
+      {analysisView === "contribution" && <div className="business-ranking-grid">
+        <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable onStationSelect={onStationSelect} /></Panel>
+        <Panel title="充电量环比变化最大的5站" sub="本周对比上周，按环比变化幅度排序" extra="business-rank-panel">
+          <div className="business-change-list">{changes.length ? changes.map((x) => <button type="button" onClick={()=>onStationSelect(x.station.name)} aria-label={`查看${x.station.name}场站分析`} key={x.station.name}>
+            <b>{x.station.name}</b><strong className={x.rate >= 0 ? "up" : "down"}>{x.rate >= 0 ? "↑" : "↓"} {Math.abs(x.rate * 100).toFixed(1)}%</strong><small>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</small>
+          </button>) : <p className="empty-note">暂无可比较的上周电量</p>}</div>
+        </Panel>
+        <Panel title="下降最严重的3站" sub="充电量环比下降超过12%，按降幅排序" extra="business-rank-panel">
+          <div className="business-change-list">{attention.length ? attention.slice(0, 3).map((x) => <button type="button" onClick={()=>onStationSelect(x.station.name)} aria-label={`查看${x.station.name}场站分析`} key={x.station.name}>
+            <b>{x.station.name}</b><strong className="down">{pct(x.record.chargeChange)}</strong>
+          </button>) : <p className="empty-note">本周暂无符合条件的场站</p>}</div>
+        </Panel>
+      </div>}
+      {analysisView === "diagnosis" && diagnosisMode && <section className="business-mode-diagnoses">
+        {(diagnosisMode === "fast" || diagnosisMode === "slow") && <p className="business-diagnosis-summary">{modeDiagnosis(diagnosisMode)}</p>}
+        {diagnosisMode === "mixed" && <p className="business-diagnosis-summary">以下为站点总体经营分析，快慢充分类电量不在此重复累计。</p>}
+        <div className="diagnosis-grid">{modeGroups[diagnosisMode].map(renderStationDiagnosis)}</div>
+      </section>}
+    </>
+  );
+}
+function StationCompetitorSection({ station, editing, cfg, update }: {
+  station: S;
+  editing: boolean;
+  cfg: StationConfig;
+  update: (n: string, k: keyof StationConfig, v: string) => void;
+}) {
+  return (
       <CompetitorEditor
         station={station}
         editing={editing}
-        cfg={c}
+        cfg={cfg}
         update={update}
       />
-    </>
   );
 }
 type Competitor = {
@@ -2333,25 +2261,17 @@ function CompetitorEditor({
       title="本站与周边竞站"
       sub="默认展示用户最终支付总价；展开详情查看电费与服务费"
       extra="ranking compact-competitor-panel"
+      actions={<div className="competitor-tools">
+        <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
+          <option value="distance">距离最近</option>
+          <option value="low">价格最低</option>
+          <option value="high">价格最高</option>
+          <option value="diff">与本站差价最大</option>
+        </select>
+        <label><input type="checkbox" checked={threatOnly} onChange={(event) => setThreatOnly(event.target.checked)} />只看比本站便宜的竞站</label>
+        {editing && <button className="add-competitor-button" onClick={addCompetitor}>新增竞站</button>}
+      </div>}
     >
-      <div className="own-price-benchmark">
-        <div>
-          <b>本站价格基准</b>
-          <small>用户最终支付总价</small>
-        </div>
-        {keys.map((key) => (
-          <label key={key}>
-            <span>{labels[key]}</span>
-            <input
-              aria-label={"本站" + labels[key] + "段价格"}
-              disabled={!editing}
-              value={ownT[key]}
-              onChange={(event) => setOwn(key, event.target.value)}
-              placeholder="—"
-            />
-          </label>
-        ))}
-      </div>
       <div
         className={
           "competitor-summary " + (competition === "较弱" ? "weak" : "")
@@ -2390,27 +2310,6 @@ function CompetitorEditor({
               ? "✓ 本站价格具备竞争优势"
               : "≈ 本站价格与周边平均水平接近"}
         </p>
-      </div>
-      <div className="competitor-tools">
-        <select
-          value={sortBy}
-          onChange={(event) => setSortBy(event.target.value as typeof sortBy)}
-          aria-label="竞站排序"
-        >
-          <option value="distance">距离最近</option>
-          <option value="low">价格最低</option>
-          <option value="high">价格最高</option>
-          <option value="diff">与本站差价最大</option>
-        </select>
-        <label>
-          <input
-            type="checkbox"
-            checked={threatOnly}
-            onChange={(event) => setThreatOnly(event.target.checked)}
-          />
-          只看比本站便宜的竞站
-        </label>
-        {editing && <button className="add-competitor-button" onClick={addCompetitor}>新增竞站</button>}
       </div>
       <div className="competitor-table">
         <div className="competitor-table-head">
@@ -2502,14 +2401,16 @@ function CompetitorEditor({
   );
 }
 const metricChangeText = (label: string, current: number | null, previous: number | null) => {
+  if (current == null) return `${label}待核算`;
   if (!previous) return `${label}暂无可比上期`;
-  const change = num(current) / previous - 1;
+  const change = current / previous - 1;
   return `${label}${change >= 0 ? "增长" : "下降"}${Math.abs(change * 100).toFixed(1)}%`;
 };
 function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
   const index = station.records.findIndex((record) => record.week === week),
     current = station.records[index],
-    previous = station.records[index - 1];
+    preceding = allWeeks().filter((candidate) => weekOrderValue(candidate) < weekOrderValue(week)).sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0],
+    previous = station.records.find((record) => record.week === preceding);
   if (!current) return "该周期暂无数据，暂不生成分析。";
   const periods: [keyof Pick<R, "peak" | "high" | "flat" | "valley">, string][] = [
       ["peak", "尖"], ["high", "峰"], ["flat", "平"], ["valley", "谷"],
@@ -2555,7 +2456,7 @@ function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
     action = competitors.length
       ? `${averagePriceDiff == null ? "竞站分时价格待补充" : `本站有效时段均价较周边${averagePriceDiff >= 0 ? "高" : "低"}${Math.abs(averagePriceDiff).toFixed(3)}元/度`}${nearest ? `，最近竞站为${nearest.name}` : "，距离待补充"}；建议优先核查下降时段的客流与设备状态。`
       : "竞站价格暂未完整核验，先核查客流、设备在线情况与分时结构，不对原因作主观判断。";
-  return `${metricChangeText("充电量", current.charge, previous?.charge ?? null)}，${metricChangeText("服务费收入", current.serviceRevenue, previous?.serviceRevenue ?? null)}，经营利润${money(num(current.profit))}；${cause}。${context ? `场景核验：${context}。` : ""}${action}`;
+  return `${metricChangeText("充电量", current.charge, previous?.charge ?? null)}，${metricChangeText("服务费收入", current.serviceRevenue, previous?.serviceRevenue ?? null)}，${current.profit == null ? "经营利润待核算" : `经营利润${money(current.profit)}`}；${cause}。${context ? `场景核验：${context}。` : ""}${action}`;
 }
 // Manual text is stored by station AND week in the published/draft configs JSON.
 // The legacy `analysis` field remains a generated/latest-week compatibility value.
@@ -2584,6 +2485,9 @@ function withManualAnalysis(config: StationConfig, week: string, text: string): 
 }
 function generateWeeklyAnalyses(source: S[], week: string, configs: Record<string, StationConfig>) {
   const next = { ...configs };
+  const earlierWeeks = [...new Set(source.flatMap((station) => station.records.map((record) => record.week)))]
+    .filter((candidate) => weekOrderValue(candidate) < weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a));
   source.forEach((station) => {
     const stationCfg = { ...emptyConfig, ...configs[station.name] };
     next[station.name] = {
@@ -2591,17 +2495,19 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
       analysis: stationAnalysis(station, week, stationCfg),
     };
   });
-  const recordPair = (station: S) => {
-      const currentIndex = station.records.findIndex((record) => record.week === week);
-      return { current: station.records[currentIndex], previous: station.records[currentIndex - 1], beforePrevious: station.records[currentIndex - 2] };
-    },
+  const recordPair = (station: S) => ({
+      current: station.records.find((record) => record.week === week),
+      previous: station.records.find((record) => record.week === earlierWeeks[0]),
+      beforePrevious: station.records.find((record) => record.week === earlierWeeks[1]),
+    }),
     totalCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.charge), 0),
     totalPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.charge), 0),
     serviceCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.serviceRevenue), 0),
     servicePrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.serviceRevenue), 0),
     profitCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.profit), 0),
     profitPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.profit), 0),
-    stationMoves = source.map((station) => {
+    moneyCoverage = source.filter((station) => recordPair(station).current?.profit != null).length,
+    stationMoves = source.filter((station) => recordPair(station).current?.charge != null).map((station) => {
       const { current, previous, beforePrevious } = recordPair(station);
       return {
         name: station.name.replace("充电站", ""),
@@ -2630,7 +2536,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
   next.__summary__ = {
     ...emptyConfig,
     ...configs.__summary__,
-    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${metricChangeText("经营利润", profitCurrent, profitPrevious)}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
+    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${moneyCoverage < source.length ? `服务费收入可核算小计${money(serviceCurrent)}、经营利润可核算小计${money(profitCurrent)}，覆盖${moneyCoverage}/${source.length}站` : `${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${metricChangeText("经营利润", profitCurrent, profitPrevious)}`}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
   };
   return next;
 }
@@ -2753,11 +2659,12 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
-    [month, setMonth] = useState("8"),
+    [month, setMonth] = useState("10"),
     [dataStation, setDataStation] = useState(stations[0]?.name || ""),
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
     [stationPickerOpen, setStationPickerOpen] = useState(false),
     [dataWeek, setDataWeek] = useState(allWeeks().at(-1) || ""),
+    [configSection, setConfigSection] = useState<"weekly" | "mode" | "record" | "analysis" | "cost" | "price" | "profiles" | "accounts">("weekly"),
     [openPanels, setOpenPanels] = useState<Record<string, boolean>>({}),
     [dataDraft, setDataDraft] = useState<Partial<R>>({}),
     [analysisPreview, setAnalysisPreview] = useState<Record<string, StationConfig> | null>(null),
@@ -2796,6 +2703,9 @@ function Config({
       stationCfg.servicePricesJson,
       {},
     ),
+    displayElectricityPrices = electricityPrices[priceWeek] || resolveWeeklyPrice(stationCfg.electricityPricesJson, priceWeek),
+    displayServicePrices = servicePrices[priceWeek] || resolveWeeklyPrice(stationCfg.servicePricesJson, priceWeek),
+    displayExternalPrices = external[priceWeek] || resolveWeeklyPrice(stationCfg.externalPricesJson, priceWeek),
     periods: [keyof PeriodPrice, string][] = [
       ["peak", "尖段"],
       ["high", "峰段"],
@@ -2833,16 +2743,15 @@ function Config({
       value: string,
     ) => {
       const own = group === "electricity" ? electricityPrices : servicePrices,
-        other = group === "electricity" ? servicePrices : electricityPrices,
         nextOwn = {
           ...blankPrice(),
-          ...own[priceWeek],
+          ...(group === "electricity" ? displayElectricityPrices : displayServicePrices),
           [key]: value,
         },
-        totalValue = String(Number(value || 0) + Number(other[priceWeek]?.[key] || 0)),
+        totalValue = String(Number(value || 0) + Number((group === "electricity" ? displayServicePrices : displayElectricityPrices)[key] || 0)),
         nextTotal = {
           ...blankPrice(),
-          ...external[priceWeek],
+          ...displayExternalPrices,
           [key]: totalValue,
         };
       update(
@@ -2894,6 +2803,22 @@ function Config({
           });
           return;
         }
+        // The source's total and TOU buckets must agree before any money is
+        // derived. Preserve both actual figures for review instead of silently
+        // pricing only the incomplete buckets.
+        const touTotal = num(record.peak) + num(record.high) + num(record.flat) + num(record.valley);
+        if (record.charge != null && Math.abs(record.charge - touTotal) >= 0.01) {
+          record.peakServiceRevenue = null;
+          record.highServiceRevenue = null;
+          record.flatServiceRevenue = null;
+          record.valleyServiceRevenue = null;
+          record.electricityRevenue = null;
+          record.serviceRevenue = null;
+          record.profit = null;
+          record.servicePerKwh = null;
+          record.electricityProfitPerKwh = null;
+          return;
+        }
         const metrics = calculateOperatingMetrics(record, stationConfig, monthly);
         record.guns = Number(stationConfig.guns) > 0 ? Number(stationConfig.guns) : null;
         record.peakServiceRevenue = metrics.periodService.peak;
@@ -2922,6 +2847,7 @@ function Config({
         const savedAliases = Object.fromEntries(stations.flatMap((station) =>
           safeJson<string[]>(({ ...emptyConfig, ...cfg[station.name] }).stationAliasesJson, []).map((alias) => [alias, station.name])));
         const builtInAliases: Record<string, string> = {
+          "蔚景云麦子酒店快充站": "蔚景云麦子酒店充电站",
           "蔚景云黄埔鱼珠智谷充电站": "黄埔鱼珠智谷充电站",
           "佛山创雄华府充电站": "麦电-佛山创雄华府充电站",
           "阳充天鹏酒店充电站": "阳充-天鹏酒店充电站",
@@ -3001,11 +2927,11 @@ function Config({
             valley: stationCfg.unifiedPrice,
           }
         : costs[monthKey]?.[purchaseCostType] || blankPrice(),
-    salePrice = external[priceWeek] || {
-      peak: String(Number(electricityPrices[priceWeek]?.peak || 0) + Number(servicePrices[priceWeek]?.peak || 0)),
-      high: String(Number(electricityPrices[priceWeek]?.high || 0) + Number(servicePrices[priceWeek]?.high || 0)),
-      flat: String(Number(electricityPrices[priceWeek]?.flat || 0) + Number(servicePrices[priceWeek]?.flat || 0)),
-      valley: String(Number(electricityPrices[priceWeek]?.valley || 0) + Number(servicePrices[priceWeek]?.valley || 0)),
+    salePrice = Object.values(displayExternalPrices).some(Boolean) ? displayExternalPrices : {
+      peak: String(Number(displayElectricityPrices.peak || 0) + Number(displayServicePrices.peak || 0)),
+      high: String(Number(displayElectricityPrices.high || 0) + Number(displayServicePrices.high || 0)),
+      flat: String(Number(displayElectricityPrices.flat || 0) + Number(displayServicePrices.flat || 0)),
+      valley: String(Number(displayElectricityPrices.valley || 0) + Number(displayServicePrices.valley || 0)),
     },
     complete = periods.every(
       ([k]) => Number(costPrice[k]) > 0 && Number(salePrice[k]) > 0,
@@ -3087,15 +3013,15 @@ function Config({
           <p>月度成本按月份自动匹配；对外电费按场站、按周匹配并重算利润。</p>
         </div>
         <div className="config-actions">
-          <label className="upload-button">
+          {configSection === "weekly" && <label className="upload-button">
             <input
               type="file"
               accept=".xlsx,.xls"
               onChange={(e) => importFile(e.target.files?.[0])}
             />
             导入周报 Excel
-          </label>
-          <button
+          </label>}
+          {(configSection === "cost" || configSection === "price" || configSection === "profiles") && <button
             className="ghost edit-toggle"
             onClick={() => {
               if (editing) setOpenPanels({});
@@ -3103,8 +3029,8 @@ function Config({
             }}
           >
             {editing ? "取消修改" : "修改"}
-          </button>
-          {editing && (
+          </button>}
+          {editing && (configSection === "cost" || configSection === "price" || configSection === "profiles") && (
             <button className="save-button" onClick={doSave}>
               保存并锁定
             </button>
@@ -3122,39 +3048,14 @@ function Config({
         <span>最后发布时间 <b>{adminMeta?.lastPublishedAt ? new Date(adminMeta.lastPublishedAt).toLocaleString("zh-CN", { hour12: false }) : "尚未发布"}</b></span>
         <span>当前发布状态 <b className={adminMeta?.publishStatus === "draft" ? "pending" : "published"}>{adminMeta?.publishStatus === "draft" ? "有未发布修改" : "已发布"}</b></span>
       </div>
-      <nav className="data-center-shortcuts" aria-label="数据中心快捷入口">
-        <button
-          onClick={() =>
-            document
-              .getElementById("weekly-data")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          周报数据
-        </button>
-        <button
-          onClick={() =>
-            document
-              .getElementById("station-profile")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          场站资料
-        </button>
-        <button
-          onClick={() =>
-            document
-              .getElementById("price-cost")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          价格成本
-        </button>
-        <button onClick={() => document.getElementById("record-editor")?.scrollIntoView({ behavior: "smooth" })}>历史数据修改</button>
-        <button onClick={() => document.getElementById("auto-analysis")?.scrollIntoView({ behavior: "smooth" })}>本周分析</button>
-        <button onClick={() => setStatus("竞站数据：请在趋势洞察中选择单站后点击“编辑价格”维护")}>竞站数据</button>
+      <nav className="data-center-shortcuts" aria-label="数据中心板块">
+        {([
+          ["weekly", "周报导入"], ["mode", "充电模式导入"], ["record", "历史数据修改"],
+          ["analysis", "本周分析"], ["cost", "月度电费成本"], ["price", "场站对外价格"],
+          ["profiles", "场站资料"], ["accounts", "账号权限"],
+        ] as const).map(([section, title]) => <button key={section} type="button" className={configSection === section ? "active" : ""} aria-current={configSection === section ? "page" : undefined} onClick={() => setConfigSection(section)}>{title}</button>)}
       </nav>
-      <div className="data-center-scope">
+      {(configSection === "record" || configSection === "cost" || configSection === "price" || configSection === "profiles") && <div className="data-center-scope">
         <div>
           <span>当前编辑范围</span>
           <b>{dataStation} · {displayWeek(dataWeek)}</b>
@@ -3186,8 +3087,14 @@ function Config({
         <select value={dataWeek} onChange={(event) => { setDataWeek(event.target.value); setDataDraft({}); }}>
           {allWeeks().map((week) => <option key={week} value={week}>{displayWeek(week)}</option>)}
         </select>
-      </div>
+      </div>}
+      <section className="data-center-section" hidden={configSection !== "accounts"}>
       <SuboperatorManager stationNames={stations.map((station) => station.name)} onStatus={setStatus} />
+      </section>
+      <section className="data-center-section" hidden={configSection !== "mode"}>
+      <ModeImportPanel />
+      </section>
+      <section className="data-center-section" hidden={configSection !== "record"}>
       <div className="cost-panel record-editor" id="record-editor">
         <div className="section-head">
           <div>
@@ -3224,6 +3131,8 @@ function Config({
           </div>
         )}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "analysis"}>
       <div className="cost-panel auto-analysis-panel" id="auto-analysis">
         <div className="section-head">
           <div><h3>自动生成本周分析</h3><p>基于环比、尖峰平谷、服务费收入、利润、场景客群和已有竞站数据生成；待核验内容不会猜测。</p></div>
@@ -3240,6 +3149,9 @@ function Config({
           <div className="record-readonly"><span>当前已发布分析：<b>{cfg.__summary__?.analysis ? "已生成" : "尚未生成"}</b></span><span>导入新周报并确认后，也会自动生成并发布最新一周分析。</span></div>
         )}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "weekly"}>
+      {!preview && <div className="cost-panel"><h3>周报数据导入</h3><p>点击右上角“导入周报 Excel”，核对字段、场站及异常后保存草稿。</p></div>}
       {preview && (
         <div className="cost-panel import-preview" id="weekly-data">
           <div className="section-head">
@@ -3302,7 +3214,7 @@ function Config({
               ))}</div>
             </div>
           )}
-          <div className="import-preview-table">
+          <details className="data-disclosure" open><summary>导入数据预览 <span>点击收起或展开</span></summary><div className="import-preview-table">
             <table>
               <thead>
                 <tr>
@@ -3337,10 +3249,12 @@ function Config({
                 })}
               </tbody>
             </table>
-          </div>
+          </div></details>
           <details className="ignored-stations"><summary>已忽略 {preview.matches.filter((match) => match.status === "ignored").length} 个非看板站点</summary><p>{preview.matches.filter((match) => match.status === "ignored").map((match) => match.excelName).join("、") || "无"}</p></details>
         </div>
       )}
+      </section>
+      <section className="data-center-section" hidden={configSection !== "cost"}>
       <div className="cost-panel matrix-panel" id="price-cost">
         <div className="section-head">
           <div>
@@ -3371,6 +3285,7 @@ function Config({
             </div>
           ))}
         </div>
+        {costYear === 2026 && month === "10" && costs[month]?.["大工业电价"]?.flat === "0.723618" && <p className="cost-check-note">10月平段成本请核对：草稿现存 0.723618 元/度，您此前提供的参考值为 0.495329 元/度。此处仅提示，未自动改价。</p>}
         <label className="grid-fee-field">
           售电价电网过路费
           <input
@@ -3385,6 +3300,8 @@ function Config({
         </small>
         </>}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "price"}>
       <div className="cost-panel matrix-panel">
         <div className="section-head">
           <div>
@@ -3392,6 +3309,7 @@ function Config({
             <p>
               电费和服务费按场站、周次分别保存；最终总价自动相加并同步至竞站对比。
             </p>
+            {(!electricityPrices[priceWeek]||!servicePrices[priceWeek])&&<small>本周未单独配置的价格显示最近已生效周次；编辑后才保存为本周价格。</small>}
           </div>
           <button className="panel-toggle" onClick={() => toggleEditablePanel("weeklyPrice")}>{openPanels.weeklyPrice ? "收起" : "详情/编辑"}</button>
         </div>
@@ -3405,7 +3323,7 @@ function Config({
                     {label}
                     <input
                       disabled={!editing}
-                      value={(group === "electricity" ? electricityPrices : servicePrices)[priceWeek]?.[key] || ""}
+                      value={(group === "electricity" ? displayElectricityPrices : displayServicePrices)[key] || ""}
                       onChange={(event) => setWeeklyPrice(group, key, event.target.value)}
                       placeholder="元/kWh"
                     />
@@ -3426,6 +3344,8 @@ function Config({
         </div>
         </>}
       </div>
+      </section>
+      <section className="data-center-section" hidden={configSection !== "profiles"}>
       <div className="config-card" id="station-profile">
         <div className="table-tools">
           <div className="search">
@@ -3533,6 +3453,7 @@ function Config({
         </div>
         }
       </div>
+      </section>
     </>
   );
 }
@@ -3635,6 +3556,7 @@ function StationHistoryTable({
     { cfg, save } = useConfigs(),
     stationCfg = { ...emptyConfig, ...cfg[station.name] },
     [editingWeek, setEditingWeek] = useState<string | null>(null),
+    [fullHistory, setFullHistory] = useState(false),
     [draft, setDraft] = useState<Partial<R>>({}),
     [status, setStatus] = useState(""),
     serviceKeys = {
@@ -3789,12 +3711,14 @@ function StationHistoryTable({
       { label: "每度服务费", value: (record) => num(record.servicePerKwh), format: "decimal" },
       { label: "每度电费利润", value: (record) => num(record.electricityProfitPerKwh), format: "decimal" },
       { label: "经营利润", value: (record) => record.profit, format: "money", editKey: "profit" },
-    ];
+    ],
+    visibleRows = fullHistory ? rows : rows.filter((_, index) => index >= 1 && index <= 5);
   return (
     <Panel
       title={aggregate ? "全部场站完整历史数据" : "单站完整历史数据"}
-      sub="2025年至今；左侧指标固定，周次横向排列并默认定位最新周"
+      sub="2025年至今；默认只展示尖峰平谷与总充电量，收入利润等完整明细可展开"
       extra="ranking station-history-panel"
+      actions={<button className="history-detail-toggle" type="button" onClick={() => setFullHistory((value) => !value)} aria-expanded={fullHistory}>{fullHistory ? "收起经营明细" : "展开收入利润明细与编辑"}</button>}
     >
       {status && <div className="history-edit-status">{status}</div>}
       <div ref={scrollRef} className="table-scroll history-table history-matrix-scroll">
@@ -3806,7 +3730,7 @@ function StationHistoryTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, rowIndex) => row.section ? (
+            {visibleRows.map((row, rowIndex) => row.section ? (
               <tr className="history-section-row" key={row.section}><th className="metric-col">{row.section}</th><td colSpan={station.records.length} /></tr>
             ) : (
               <tr key={`${row.label}-${rowIndex}`}>
@@ -3818,7 +3742,7 @@ function StationHistoryTable({
                 })}
               </tr>
             ))}
-            {admin && !aggregate && <tr className="history-actions-row">
+            {fullHistory && admin && !aggregate && <tr className="history-actions-row">
               <th className="metric-col">操作</th>
               {station.records.map((record, index) => <td className={index === station.records.length - 1 ? "latest-week" : ""} key={record.week}>{editingWeek === record.week ? <div className="history-row-actions"><button className="ghost" onClick={() => setEditingWeek(null)}>取消</button><button className="save-button" onClick={saveEdit}>保存</button></div> : <button className="history-edit-button" onClick={() => beginEdit(record)}>修改</button>}</td>)}
             </tr>}
@@ -3935,7 +3859,7 @@ function Kpi({
               {change >= 0 ? <TrendingUp /> : <TrendingDown />}
               {pct(change)}
             </span>
-            <small>较上周</small>
+            <small>较上周{sub?` · ${sub}`:""}</small>
           </>
         ) : (
           <small>{sub}</small>
@@ -3949,11 +3873,13 @@ function Panel({
   sub,
   children,
   extra = "",
+  actions,
 }: {
   title: string;
   sub: string;
   children: React.ReactNode;
   extra?: string;
+  actions?: React.ReactNode;
 }) {
   return (
     <article className={`panel ${extra}`}>
@@ -3962,6 +3888,7 @@ function Panel({
           <h2>{title}</h2>
           <p>{sub}</p>
         </div>
+        {actions}
       </div>
       {children}
     </article>
@@ -3972,16 +3899,18 @@ function FilteredInteractiveChart({
   large = false,
   focusedLine = null,
   onFocusLine,
+  isolateFocusedLine = false,
   rankedTooltip = false,
   valueFormatter = chartWan,
   showPrimaryLabels = true,
-  tooltipRequiresPin = true,
-  primaryLabelFormatter = chartWanLabel,
+  tooltipRequiresPin = false,
+  primaryLabelFormatter = valueFormatter,
 }: {
   lines: { name: string; color: string; data: { week: string; value: number }[] }[];
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
+  isolateFocusedLine?: boolean;
   rankedTooltip?: boolean;
   valueFormatter?: (value: number) => string;
   showPrimaryLabels?: boolean;
@@ -4003,7 +3932,8 @@ function FilteredInteractiveChart({
   const aggregated = lines.map((line) => ({ ...line, data: aggregate(line.data) }));
   const labels = aggregated[0]?.data.map((point) => point.week) || [];
   const selectedEnd = labels.includes(endLabel) ? labels.indexOf(endLabel) : labels.length - 1;
-  const start = Math.max(0, selectedEnd - 7);
+  const count = visibleTrendCount(aggregated[0]?.data.map((point) => point.value) ?? [], mode, selectedEnd);
+  const start = Math.max(0, selectedEnd - count + 1);
   const visible = aggregated.map((line) => ({
     ...line,
     data: line.data.slice(start, selectedEnd + 1),
@@ -4027,6 +3957,7 @@ function FilteredInteractiveChart({
         large={large}
         focusedLine={focusedLine}
         onFocusLine={onFocusLine}
+        isolateFocusedLine={isolateFocusedLine}
         rankedTooltip={rankedTooltip}
         valueFormatter={valueFormatter}
         showPrimaryLabels={showPrimaryLabels}
@@ -4041,12 +3972,13 @@ function InteractiveChart({
   large = false,
   focusedLine = null,
   onFocusLine,
+  isolateFocusedLine = false,
   rankedTooltip = false,
   valueFormatter = chartWan,
   showPrimaryLabels = false,
   tooltipRequiresPin = false,
   showWeekDateRange = false,
-  primaryLabelFormatter = chartWanLabel,
+  primaryLabelFormatter = valueFormatter,
 }: {
   lines: {
     name: string;
@@ -4056,6 +3988,7 @@ function InteractiveChart({
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
+  isolateFocusedLine?: boolean;
   rankedTooltip?: boolean;
   valueFormatter?: (value: number) => string;
   showPrimaryLabels?: boolean;
@@ -4066,39 +3999,65 @@ function InteractiveChart({
   const [hover, setHover] = useState<number | null>(null);
   const [pinned, setPinned] = useState<number | null>(null);
   const [hidden, setHidden] = useState<string[]>([]);
-  const visibleLines = lines.filter((line) => !hidden.includes(line.name));
+  const visibleLines = lines.filter((line) => !hidden.includes(line.name) && (!isolateFocusedLine || !focusedLine || line.name === focusedLine));
+  const tooltipLines = rankedTooltip && visibleLines.length > 6
+    ? focusedLine
+      ? visibleLines.filter((line) => line.name === focusedLine)
+      : [...visibleLines].sort((a, b) => (b.data[pinned ?? hover ?? 0]?.value || 0) - (a.data[pinned ?? hover ?? 0]?.value || 0)).slice(0, 6)
+    : visibleLines;
   const weeks = lines[0]?.data.map((point) => point.week) ?? [];
+  const sameYear = new Set(weeks.map((week) => week.match(/^\d{4}年/)?.[0])).size === 1;
   const activePoint = pinned ?? hover;
   const all = visibleLines.flatMap((line) =>
     line.data.map((point) => point.value),
   );
-  const max = Math.max(...all, 1),
-    min = Math.min(...all, 0);
+  const primaryValues = visibleLines[0]?.data.map(point => point.value) ?? all;
+  const { max, ticks: axisTicks } = chartScale(primaryValues);
+  const secondaryValues = visibleLines.slice(1).flatMap(line => line.data.map(point => point.value));
+  const { max: secondaryMax, ticks: secondaryTicks } = chartScale(secondaryValues);
+  const isUtilization = lines[0]?.name.includes("利用率");
+  const isCharge = lines[0]?.name.includes("充电量") || lines[0]?.name === "总量";
+  const axisUnit = isUtilization ? "%" : isCharge ? (max >= 10000 ? "万kWh" : "kWh") : (max >= 10000 ? "万元" : "元");
+  const axisText = (value:number) => isUtilization ? Number(value.toFixed(2)).toString()
+    : max >= 10000 ? Number((value / 10000).toFixed(2)).toString()
+    : Number(value.toFixed(2)).toLocaleString("zh-CN");
+  const secondaryUnit = isCharge ? (secondaryMax >= 10000 ? "万kWh" : "kWh") : (secondaryMax >= 10000 ? "万元" : "元");
+  const secondaryAxisText = (value:number) => secondaryMax >= 10000
+    ? Number((value / 10000).toFixed(2)).toString() : Number(value.toFixed(2)).toLocaleString("zh-CN");
   const x = (index: number) => 8 + (index * 84) / Math.max(weeks.length - 1, 1);
-  const y = (value: number) =>
-    145 - ((value - min) / Math.max(max - min, 1)) * 112;
+  const y = (value: number, lineIndex = 0) =>
+    145 - (lineIndex > 0
+      ? value / secondaryMax
+      : value / max) * 112;
+  const chartPct = (change: number) => `${change >= 0 ? "↑" : "↓"} ${Math.round(Math.abs(change * 100))}%`;
+  const toggleLine = (line: { name: string }, index: number) => {
+    if (onFocusLine && index === 0) {
+      onFocusLine(focusedLine === line.name ? null : line.name);
+      return;
+    }
+    if (onFocusLine && focusedLine) onFocusLine(null);
+    setHidden((current) => {
+      if (current.includes(line.name)) return current.filter((name) => name !== line.name);
+      return lines.length - current.length <= 1 ? current : [...current, line.name];
+    });
+  };
   return (
     <div className={`interactive-chart ${large ? "large" : ""}`}>
-      <div className="chart-legend">
+      {rankedTooltip && lines.length > 8 ? <details className="chart-legend-details"><summary>选择场站（{lines.length}）{focusedLine ? ` · ${focusedLine}` : ""}</summary><div className="chart-legend">
         {lines.map((line) => (
           <button
             key={line.name}
             className={`${hidden.includes(line.name) ? "hidden" : ""} ${focusedLine === line.name ? "focused" : ""} ${focusedLine && focusedLine !== line.name ? "muted" : ""}`}
-            onClick={() =>
-              onFocusLine
-                ? onFocusLine(focusedLine === line.name ? null : line.name)
-                : setHidden((v) =>
-                    v.includes(line.name)
-                      ? v.filter((x) => x !== line.name)
-                      : [...v, line.name],
-                  )
-            }
+            onClick={() => toggleLine(line, lines.indexOf(line))}
           >
             <i style={{ background: line.color }} />
             {line.name}
           </button>
         ))}
-      </div>
+      </div></details> : <div className="chart-legend">{lines.map((line, index) => <button key={line.name} aria-pressed={!hidden.includes(line.name) && (!isolateFocusedLine || !focusedLine || line.name === focusedLine)} className={`${focusedLine === line.name ? "focused" : ""} ${hidden.includes(line.name) || (isolateFocusedLine && focusedLine && line.name !== focusedLine) ? "hidden" : ""}`} onClick={() => toggleLine(line, index)}><i style={{ background: line.color }} />{line.name}</button>)}</div>}
+      <div className="chart-plot" style={{height:large ? 255 : 184}}>
+      <span className="chart-axis-unit left">{axisUnit}</span>
+      {secondaryValues.length > 0 && <span className="chart-axis-unit right">{secondaryUnit}</span>}
       <svg
         viewBox="0 0 100 170"
         preserveAspectRatio="none"
@@ -4132,47 +4091,23 @@ function InteractiveChart({
           setHover(index);
         }}
       >
-        {[32, 60, 88, 116, 145].map((value) => (
-          <line
-            key={value}
-            x1="6"
-            x2="94"
-            y1={value}
-            y2={value}
-            className="gridline"
-          />
+        {axisTicks.map((value) => (
+          <line key={value} x1="8" x2="92" y1={y(value)} y2={y(value)} className="gridline" />
         ))}
-        {visibleLines.map((line) => (
-          <polyline
-            key={line.name}
-            points={line.data
-              .map((point, index) => `${x(index)},${y(point.value)}`)
-              .join(" ")}
-            fill="none"
-            stroke={line.color}
-            strokeWidth={focusedLine === line.name ? "3" : "1.8"}
+        {visibleLines.flatMap((line, lineIndex) => {
+          const segments: string[] = [];
+          let current: string[] = [];
+          line.data.forEach((point, index) => {
+            if (Number.isFinite(point.value)) current.push(`${x(index)},${y(point.value, lineIndex)}`);
+            else if (current.length) { segments.push(current.join(" ")); current = []; }
+          });
+          if (current.length) segments.push(current.join(" "));
+          return segments.map((points, segment) => <polyline key={`${line.name}-${segment}`} points={points}
+            fill="none" stroke={line.color}
+            strokeWidth={focusedLine === line.name ? "3.6" : lineIndex === 0 ? "3" : "2.4"}
             opacity={focusedLine && focusedLine !== line.name ? 0.18 : 1}
-            vectorEffect="non-scaling-stroke"
-          />
-        ))}
-        {visibleLines.flatMap((line) =>
-          line.data.map((point, index) => {
-            const radius = activePoint === index ? 1.8 : 1.05;
-            return (
-              <circle
-                key={`${line.name}-${index}`}
-                cx={x(index)}
-                cy={y(point.value)}
-                r={radius}
-                fill={line.color}
-                stroke="#0d241e"
-                strokeWidth=".45"
-                vectorEffect="non-scaling-stroke"
-                opacity={focusedLine && focusedLine !== line.name ? 0.16 : 1}
-              />
-            );
-          }),
-        )}
+            vectorEffect="non-scaling-stroke" />);
+        })}
         {activePoint !== null && (
           <line
             x1={x(activePoint)}
@@ -4194,57 +4129,63 @@ function InteractiveChart({
           />
         ))}
       </svg>
-      <div className="xlabels">
+      {axisTicks.map((value) => (
+        <span key={value} className="chart-y-label left" style={{top:`${y(value) / 170 * 100}%`}}>
+          {axisText(value)}
+        </span>
+      ))}
+      {secondaryValues.length > 0 && secondaryTicks.map((value) => (
+        <span key={value} className="chart-y-label right" style={{top:`${y(value, 1) / 170 * 100}%`}}>
+          {secondaryAxisText(value)}
+        </span>
+      ))}
+      {visibleLines.flatMap((line, lineIndex) => line.data.map((point, index) => Number.isFinite(point.value) && (
+        <i key={`${line.name}-${index}`} className={`chart-active-point${activePoint === index ? " active" : ""}`} style={{left:`${x(index)}%`,top:`${y(point.value,lineIndex) / 170 * 100}%`,background:line.color,opacity:focusedLine && focusedLine !== line.name ? 0.18 : 1}} />
+      )))}
+      </div>
+      <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
         {weeks.map((week) => (
-          <span key={week}>{week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
+          <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
         ))}
       </div>
-      {showPrimaryLabels &&
-        visibleLines[0]?.data.map((point, index) => (
-          <span
-            className="chart-value-label"
-            key={`primary-label-${point.week}`}
-            style={{
-              left: `${x(index)}%`,
-              top: `${20 + (y(point.value) / 170) * 184 - 15}px`,
-            }}
-          >
-            {primaryLabelFormatter(point.value)}
-          </span>
-        ))}
       {activePoint !== null &&
         weeks[activePoint] &&
         (!tooltipRequiresPin || pinned !== null) && (
         <div
           className={`chart-tooltip ${rankedTooltip ? "ranked" : ""}`}
-          style={{ left: `${Math.min(82, Math.max(9, x(activePoint)))}%` }}
+          style={x(activePoint) < 30
+            ? { left: 0, transform: "none" }
+            : x(activePoint) > 70
+              ? { left: "auto", right: 0, transform: "none" }
+              : { left: `${x(activePoint)}%` }}
         >
           <b>{weeks[activePoint]}{pinned !== null ? " · 已固定" : ""}</b>
-          {visibleLines.map((line) => (
-            <span key={line.name}>
+          {tooltipLines.map((line) => {
+            const current = line.data[activePoint]?.value;
+            const previous = activePoint > 0 ? line.data[activePoint - 1]?.value : undefined;
+            const showComparison = activePoint > 0 && activePoint >= Math.max(0, weeks.length - 4);
+            const change = typeof current === "number" && Number.isFinite(current) && typeof previous === "number" && Number.isFinite(previous) && previous !== 0
+              ? current / previous - 1 : null;
+            const rank = rankedTooltip ? visibleLines
+              .filter((item) => item.name !== "全场趋势")
+              .sort((a, b) => (b.data[activePoint]?.value || 0) - (a.data[activePoint]?.value || 0))
+              .findIndex((item) => item.name === line.name) + 1 : 0;
+            return <span key={line.name}>
               <i style={{ background: line.color }} />
               {line.name}
               <strong>
-                {valueFormatter(line.data[activePoint]?.value || 0)}
-                {rankedTooltip &&
-                  activePoint > 0 &&
-                  (() => {
-                    const current = line.data[activePoint]?.value || 0,
-                      previous = line.data[activePoint - 1]?.value || 0,
-                      rank =
-                        visibleLines
-                          .filter((item) => item.name !== "全场趋势")
-                          .sort(
-                            (a, b) =>
-                              (b.data[activePoint]?.value || 0) -
-                              (a.data[activePoint]?.value || 0),
-                          )
-                          .findIndex((item) => item.name === line.name) + 1;
-                    return ` · 上周 ${valueFormatter(previous)} · ${previous ? pct(current / previous - 1) : "—"}${line.name === "全场趋势" ? "" : ` · 第${rank}名`}`;
-                  })()}
+                {Number.isFinite(current) ? valueFormatter(current) : "无数据"}
+                {showComparison && <>
+                  {` · 上周 ${typeof previous === "number" && Number.isFinite(previous) ? valueFormatter(previous) : "无数据"} · `}
+                  <em className={change === null || Math.round(change * 100) === 0 ? "flat" : change > 0 ? "up" : "down"}>
+                    {change === null ? "—" : chartPct(change)}
+                  </em>
+                  {rankedTooltip && line.name !== "全场趋势" && rank > 0 ? ` · 第${rank}名` : ""}
+                </>}
               </strong>
-            </span>
-          ))}
+            </span>;
+          })}
+          {rankedTooltip && visibleLines.length > tooltipLines.length && <small>显示前 6 站；选择场站可查看单站明细</small>}
         </div>
       )}
     </div>
@@ -4253,18 +4194,26 @@ function InteractiveChart({
 function BarList({
   rows,
   danger = false,
+  scrollable = false,
+  onStationSelect,
 }: {
   rows: { station: S; record: R }[];
   danger?: boolean;
+  scrollable?: boolean;
+  onStationSelect?: (name:string)=>void;
 }) {
-  const max = Math.max(...rows.map((x) => num(x.record.profit)), 1);
+  const [showAll, setShowAll] = useState(false);
+  const rankedRows = rows.filter((x) => x.record.profit != null);
+  const pendingRows = rows.filter((x) => x.record.profit == null);
+  const max = Math.max(...rankedRows.map((x) => num(x.record.profit)), 1);
   return (
-    <div className="bar-list">
-      {rows.map((x, i) => (
+    <>
+    <div className={`bar-list${scrollable ? " ranking-scroll" : ""}`}>
+      {(scrollable || showAll ? rankedRows : rankedRows.slice(0, 5)).map((x, i) => (
         <div key={x.station.name} className={i < 3 ? "top-three" : ""}>
           <span>{i + 1}</span>
           <div>
-            <b>{x.station.name}</b>
+            {onStationSelect?<button type="button" className="ranking-station-link" onClick={()=>onStationSelect(x.station.name)} title={`查看${x.station.name}场站分析`}>{x.station.name}</button>:<b>{x.station.name}</b>}
             <i>
               <em
                 style={{
@@ -4281,6 +4230,9 @@ function BarList({
         </div>
       ))}
     </div>
+    {pendingRows.length > 0 && <details className="ranking-pending"><summary>{pendingRows.length} 站整站毛利待核算（不参与排名）</summary>{pendingRows.map((x) => <p key={x.station.name}>{onStationSelect?<button type="button" className="ranking-station-link" onClick={()=>onStationSelect(x.station.name)}>{x.station.name}</button>:<b>{x.station.name}</b>}：{x.record.partialProfit != null ? `${money(x.record.partialProfit)} 为已核算 ${qty(x.record.partialCharge || 0)} / ${qty(num(x.record.charge))} kWh 的部分毛利；其余快充电量缺分时明细` : "毛利待核算"}</p>)}</details>}
+    {!scrollable && rankedRows.length > 5 && <button className="ranking-expand" type="button" onClick={() => setShowAll((value) => !value)} aria-expanded={showAll}>{showAll ? "收起排名" : `查看全部 ${rankedRows.length} 站`}</button>}
+    </>
   );
 }
 function StationTable({

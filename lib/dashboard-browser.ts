@@ -2,9 +2,9 @@
 
 import { createClient } from "@supabase/supabase-js";
 import type { AccessRole } from "@/lib/access-control";
+import { isAcceptanceDashboard, publishSharedState, readSharedState, writeSharedState } from "@/lib/site-state";
 import { validateDashboardData } from "@/lib/import-validation";
 import { recalculateLatestDashboardWeek } from "@/lib/operating-metrics";
-import { publishSharedState, readSharedState, writeSharedState } from "@/lib/site-state";
 import { SUPABASE_PUBLISHABLE_KEY, SUPABASE_URL } from "@/lib/supabase-config";
 
 export const SITE_BASE_PATH = process.env.NEXT_PUBLIC_SITE_BASE_PATH === "/" ? "" : "/sijiu-dashboard";
@@ -117,6 +117,7 @@ export async function dashboardFetch(input: RequestInfo | URL, init?: RequestIni
     }
   }
   if (method === "POST") {
+    if (isAcceptanceDashboard) return jsonResponse({ error: "PR #5 验收环境禁止发布到正式版" }, 403);
     try {
       const body = JSON.parse(String(init?.body || "{}")) as { confirmWarnings?: boolean };
       const [draft, published] = await Promise.all([

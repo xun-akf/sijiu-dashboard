@@ -49,7 +49,7 @@ export function missingMetricConfigs(week: string, config: MetricConfig, monthly
   const electricity = normalizeTouPrice(resolveWeeklyPrice(config.electricityPricesJson || "", week));
   const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", week));
   let costs: Record<string, Record<string, TouPrice>> = {};
-  try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
+  try { costs = JSON.parse(config.monthlyCostsJson || monthly.monthlyCostsJson || "{}"); } catch {}
   const weekPart = parts(week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
   const costType = config.purchaseCostType || config.billingType || "大工业电价";
   const rawCost = costType === "一口价"
@@ -85,8 +85,8 @@ export function calculateOperatingMetrics(record: EnergyRecord, config: MetricCo
   const external = normalizeTouPrice(resolveWeeklyPrice(config.externalPricesJson || "", record.week));
   let costs: Record<string, Record<string, TouPrice>> = {};
   let fees: Record<string, string> = {};
-  try { costs = JSON.parse(monthly.monthlyCostsJson || "{}"); } catch {}
-  try { fees = JSON.parse(monthly.gridFeesJson || "{}"); } catch {}
+  try { costs = JSON.parse(config.monthlyCostsJson || monthly.monthlyCostsJson || "{}"); } catch {}
+  try { fees = JSON.parse(config.gridFeesJson || monthly.gridFeesJson || "{}"); } catch {}
   const weekPart = parts(record.week), month = String(weekPart.month), yearMonth = `${weekPart.year}-${weekPart.month}`;
   const costType = config.purchaseCostType || config.billingType || "大工业电价";
   const rawCost = costType === "一口价"
@@ -120,6 +120,18 @@ export function calculateOperatingMetrics(record: EnergyRecord, config: MetricCo
 }
 
 type DashboardRecord = EnergyRecord & Record<string, unknown>;
+export function calculateHistoricalModeDay(record: {date:string;charge:number;peak:number|null;high:number|null;flat:number|null;valley:number|null}, config:MetricConfig, monthly:MetricConfig) {
+  if ([record.peak,record.high,record.flat,record.valley].some(x=>x==null)) return {electricityRevenue:null,serviceRevenue:null,profit:null};
+  const date=new Date(record.date+'T00:00:00Z');
+  const wednesday=new Date(date);
+  wednesday.setUTCDate(date.getUTCDate()-date.getUTCDay()+3);
+  const first=new Date(Date.UTC(wednesday.getUTCFullYear(),wednesday.getUTCMonth(),1));
+  const firstWednesday=1+(3-first.getUTCDay()+7)%7;
+  const ordinal=1+Math.floor((wednesday.getUTCDate()-firstWednesday)/7);
+  const week=`${wednesday.getUTCFullYear()}年${wednesday.getUTCMonth()+1}月${ordinal}周`;
+  const result=calculateOperatingMetrics({...record,week},config,monthly);
+  return {electricityRevenue:result.electricityRevenue,serviceRevenue:result.serviceRevenue,profit:result.profit};
+}
 type DashboardStation = { name?: unknown; records?: unknown } & Record<string, unknown>;
 
 export function recalculateLatestDashboardWeek(input: unknown, rawConfigs: unknown): unknown {

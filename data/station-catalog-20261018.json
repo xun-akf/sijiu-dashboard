@@ -1,0 +1,2319 @@
+[
+  {
+    "sourceStationId": "102592",
+    "name": "飞凡都江堰充电站",
+    "sourceName": "飞凡都江堰充电站",
+    "matchRequiresReview": false,
+    "region": "都江堰市",
+    "operator": "四川飞凡",
+    "operationType": "加盟",
+    "address": "四川省成都市都江堰市奎光塔街道玖度·阳光",
+    "openedAt": "2025-04-03 18:18:02",
+    "status": "正常运行",
+    "powerKw": 2400,
+    "fastPowerKw": 2400,
+    "slowPowerKw": 0,
+    "guns": 20,
+    "fastGuns": 20,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "都江堰",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.7499,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.5899,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.3999,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "都江堰",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.22,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.24,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.25,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "102723",
+    "name": "飞凡金堂万达充电站",
+    "sourceName": "飞凡金堂万达充电站",
+    "matchRequiresReview": false,
+    "region": "金堂县",
+    "operator": "四川飞凡",
+    "operationType": "加盟",
+    "address": "四川省成都市金堂县赵镇街道万泰北街万达广场(成都金堂店)",
+    "openedAt": "2025-04-07 18:20:48",
+    "status": "正常运行",
+    "powerKw": 1440,
+    "fastPowerKw": 1440,
+    "slowPowerKw": 0,
+    "guns": 14,
+    "fastGuns": 14,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "金堂万达",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.6299,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.4199,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.2799,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "金堂万达",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.18,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.23,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.21,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "102724",
+    "name": "飞凡龙泉万达充电站",
+    "sourceName": "飞凡龙泉万达充电站",
+    "matchRequiresReview": false,
+    "region": "龙泉驿区",
+    "operator": "四川飞凡",
+    "operationType": "加盟",
+    "address": "四川省成都市龙泉驿区龙泉街道永安路万达广场停车场",
+    "openedAt": "2025-04-07 18:37:40",
+    "status": "正常运行",
+    "powerKw": 1200,
+    "fastPowerKw": 1200,
+    "slowPowerKw": 0,
+    "guns": 20,
+    "fastGuns": 20,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "龙泉万达",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.6499,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.4099,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.1899,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "龙泉万达",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.27,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.28,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.3,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "120301",
+    "name": "麦电-佛山创雄华府充电站",
+    "sourceName": "佛山创雄华府充电站",
+    "matchRequiresReview": false,
+    "region": "三水区",
+    "operator": "四九实业",
+    "operationType": "自营",
+    "address": "广东省佛山市三水区西南街道创雄华府",
+    "openedAt": "2025-07-07 15:29:18",
+    "status": "正常运行",
+    "powerKw": 171,
+    "fastPowerKw": 80,
+    "slowPowerKw": 91,
+    "guns": 10,
+    "fastGuns": 1,
+    "slowGuns": 9,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "佛山创雄华府充电站",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.27,
+              "times": [
+                "10:00-12:00",
+                "14:00-19:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.76,
+              "times": [
+                "8:00-10:00",
+                "12:00-14:00",
+                "19:00-24:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.35,
+              "times": [
+                "0:00-8:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "佛山创雄华府充电站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.41,
+              "times": [
+                "0:00-8:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.27,
+              "times": [
+                "8:00-10:00",
+                "12:00-14:00",
+                "19:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.13,
+              "times": [
+                "10:00-12:00",
+                "14:00-19:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122724",
+    "name": "黄埔鱼珠智谷充电站",
+    "sourceName": "蔚景云黄埔鱼珠智谷充电站",
+    "matchRequiresReview": false,
+    "region": "黄埔区",
+    "operator": "四九实业",
+    "operationType": "自营",
+    "address": "广东省广州市黄埔区鱼珠街道茅岗南路9号鱼珠智谷E-PARK",
+    "openedAt": "2025-08-01 15:47:19",
+    "status": "正常运行",
+    "powerKw": 720,
+    "fastPowerKw": 720,
+    "slowPowerKw": 0,
+    "guns": 12,
+    "fastGuns": 12,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "鱼珠智汇",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.8499,
+              "times": [
+                "10:00-12:00",
+                "14:00-19:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.6999,
+              "times": [
+                "8:00-10:00",
+                "12:00-14:00",
+                "19:00-24:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.6899,
+              "times": [
+                "0:00-8:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "鱼珠智汇",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.11,
+              "times": [
+                "0:00-8:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.22,
+              "times": [
+                "8:00-10:00",
+                "12:00-14:00",
+                "19:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.47,
+              "times": [
+                "10:00-12:00",
+                "14:00-19:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "138652",
+    "name": "大电锤一心社区充电站",
+    "sourceName": "大电锤一心社区充电站",
+    "matchRequiresReview": false,
+    "region": "双流区",
+    "operator": "四九实业",
+    "operationType": "自营",
+    "address": "四川省成都市双流区华阳街道牧华路三段辅路海伦堡海伦春天",
+    "openedAt": "2025-12-11 11:14:44",
+    "status": "正常运行",
+    "powerKw": 1200,
+    "fastPowerKw": 1200,
+    "slowPowerKw": 0,
+    "guns": 20,
+    "fastGuns": 20,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "一心社区计费（新）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.8,
+              "times": [
+                "11:00-18:00",
+                "20:00-23:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.57,
+              "times": [
+                "0:00-1:00",
+                "7:00-11:00",
+                "18:00-20:00",
+                "23:00-24:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.32,
+              "times": [
+                "1:00-7:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "一心社区计费（新）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.3,
+              "times": [
+                "0:00-1:00",
+                "7:00-11:00",
+                "11:00-18:00",
+                "18:00-20:00",
+                "20:00-23:00",
+                "23:00-24:00"
+              ]
+            },
+            {
+              "period": "服务费",
+              "rate": 0.31,
+              "times": [
+                "1:00-7:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122105",
+    "name": "蔚景云山水奇境民宿充电站",
+    "sourceName": "蔚景云山水奇境民宿充电站",
+    "matchRequiresReview": false,
+    "region": "九寨沟县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇544国道",
+    "openedAt": "2025-07-26 17:00:43",
+    "status": "正常运行",
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
+    "guns": 3,
+    "fastGuns": 0,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "九寨沟山水奇境民宿",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.4,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "九寨沟山水奇境民宿",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122111",
+    "name": "蔚景云汉庭酒店充电站",
+    "sourceName": "蔚景云汉庭酒店充电站",
+    "matchRequiresReview": false,
+    "region": "锦江区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市锦江区牛市口街道顺江苑天府国际",
+    "openedAt": "2025-07-26 18:59:40",
+    "status": "正常运行",
+    "powerKw": 35,
+    "fastPowerKw": 0,
+    "slowPowerKw": 35,
+    "guns": 5,
+    "fastGuns": 0,
+    "slowGuns": 5,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "成都汉庭酒店（九眼桥）",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "成都汉庭酒店（九眼桥）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122113",
+    "name": "蔚景云桔子酒店充电站",
+    "sourceName": "蔚景云桔子酒店充电站",
+    "matchRequiresReview": false,
+    "region": "龙港市",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "浙江省温州市龙港市龙港市汉庭酒店(泰安路店)置信名都",
+    "openedAt": "2025-07-26 19:01:58",
+    "status": "正常运行",
+    "powerKw": 176,
+    "fastPowerKw": 120,
+    "slowPowerKw": 56,
+    "guns": 10,
+    "fastGuns": 2,
+    "slowGuns": 8,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "浙江温州桔子酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "浙江温州桔子酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122114",
+    "name": "雅悦蓝天酒店慢充站（地下室负二）",
+    "sourceName": "雅悦蓝天酒店慢充站（地下室负二）",
+    "matchRequiresReview": false,
+    "region": "成华区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市成华区保和街道龙门山路弘创名座",
+    "openedAt": "2025-07-26 19:05:01",
+    "status": "正常运行",
+    "powerKw": 469,
+    "fastPowerKw": 0,
+    "slowPowerKw": 469,
+    "guns": 67,
+    "fastGuns": 0,
+    "slowGuns": 67,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "雅悦蓝天酒店（慢充）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.1,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.89,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "雅悦蓝天酒店（慢充）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122115",
+    "name": "蔚景云108社温泉度假酒店充电站",
+    "sourceName": "蔚景云108社温泉度假酒店充电站",
+    "matchRequiresReview": false,
+    "region": "石棉县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省雅安市石棉县新棉街道石棉桐去108社私汤度假酒店",
+    "openedAt": "2025-07-26 19:07:06",
+    "status": "正常运行",
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
+    "guns": 2,
+    "fastGuns": 2,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "石棉108社温泉度假酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "石棉108社温泉度假酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122116",
+    "name": "蔚景云太古里汉庭酒店充电站",
+    "sourceName": "蔚景云太古里汉庭酒店充电站",
+    "matchRequiresReview": false,
+    "region": "锦江区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市锦江区锦官驿街道欧来嘉宾馆欧来嘉酒店(成都太古里店)",
+    "openedAt": "2025-07-26 19:55:24",
+    "status": "正常运行",
+    "powerKw": 42,
+    "fastPowerKw": 0,
+    "slowPowerKw": 42,
+    "guns": 6,
+    "fastGuns": 0,
+    "slowGuns": 6,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "成都汉庭酒店（太古里店）",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "成都汉庭酒店（太古里店）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "122118",
+    "name": "蔚景云希尔顿欢朋酒店充电站",
+    "sourceName": "蔚景云希尔顿欢朋酒店充电站",
+    "matchRequiresReview": false,
+    "region": "市中区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省乐山市市中区绿心街道瑞祥路1019号锦绣星城",
+    "openedAt": "2025-07-26 19:57:21",
+    "status": "正常运行",
+    "powerKw": 112,
+    "fastPowerKw": 0,
+    "slowPowerKw": 112,
+    "guns": 10,
+    "fastGuns": 0,
+    "slowGuns": 10,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "乐山希尔顿欢朋酒店",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.18,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.08,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.98,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "乐山希尔顿欢朋酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "123045",
+    "name": "蔚景云上品雅园小区充电站",
+    "sourceName": "蔚景云上品雅园小区充电站",
+    "matchRequiresReview": false,
+    "region": "碧江区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "贵州省铜仁市碧江区河西街道上品雅园",
+    "openedAt": "2025-08-06 10:16:11",
+    "status": "正常运行",
+    "powerKw": 42,
+    "fastPowerKw": 0,
+    "slowPowerKw": 42,
+    "guns": 6,
+    "fastGuns": 0,
+    "slowGuns": 6,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "贵州上品雅园小区",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 0.9,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "贵州上品雅园小区",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "124487",
+    "name": "蔚景云江上名都酒店充电站",
+    "sourceName": "蔚景云江上名都酒店充电站",
+    "matchRequiresReview": false,
+    "region": "都江堰市",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市都江堰市灌口街道江东街37号都江堰江上名都酒店",
+    "openedAt": "2025-08-24 18:13:20",
+    "status": "正常运行",
+    "powerKw": 91,
+    "fastPowerKw": 0,
+    "slowPowerKw": 91,
+    "guns": 9,
+    "fastGuns": 0,
+    "slowGuns": 9,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "都江堰江上名都酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.38,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "都江堰江上名都酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "126008",
+    "name": "彩虹市场慢充站(充电免停15小时)",
+    "sourceName": "彩虹市场慢充站(充电免停15小时)",
+    "matchRequiresReview": false,
+    "region": "都江堰市",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市都江堰市幸福街道安澜骏景彩虹综合市场",
+    "openedAt": "2025-09-09 19:51:31",
+    "status": "正常运行",
+    "powerKw": 77,
+    "fastPowerKw": 0,
+    "slowPowerKw": 77,
+    "guns": 11,
+    "fastGuns": 0,
+    "slowGuns": 11,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "都江堰彩虹市场充电站",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.25,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.98,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.76,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "都江堰彩虹市场充电站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "127934",
+    "name": "蔚景云三色林度假民宿充电站",
+    "sourceName": "蔚景云三色林度假民宿充电站",
+    "matchRequiresReview": false,
+    "region": "九寨沟县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇九寨沟山水奇境民宿",
+    "openedAt": "2025-09-14 17:04:47",
+    "status": "正常运行",
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
+    "guns": 3,
+    "fastGuns": 0,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "九寨沟三色林度假民宿",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.4,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "九寨沟三色林度假民宿",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "128649",
+    "name": "蔚景云朵兰达S酒店超充站",
+    "sourceName": "蔚景云朵兰达S酒店超充站",
+    "matchRequiresReview": false,
+    "region": "九寨沟县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇漳扎社区居委会见九寨",
+    "openedAt": "2025-09-20 14:44:12",
+    "status": "正常运行",
+    "powerKw": 369,
+    "fastPowerKw": 320,
+    "slowPowerKw": 49,
+    "guns": 10,
+    "fastGuns": 4,
+    "slowGuns": 6,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "九寨沟朵兰达S酒店（快充）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.25,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.1,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.88,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "九寨沟朵兰达S酒店（慢充）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.35,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.25,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 1.25,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "九寨沟朵兰达S酒店（快充）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "九寨沟朵兰达S酒店（慢充）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "128691",
+    "name": "蔚景云星程酒店充电站",
+    "sourceName": "蔚景云星程酒店充电站",
+    "matchRequiresReview": false,
+    "region": "郫都区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市郫都区合作街道星程酒店(犀浦百草路店)金辉悦府优跃",
+    "openedAt": "2025-09-21 20:05:58",
+    "status": "正常运行",
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
+    "guns": 4,
+    "fastGuns": 0,
+    "slowGuns": 4,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "郫都区星程酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.18,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "郫都区星程酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "128692",
+    "name": "蔚景云设计师酒店充电站",
+    "sourceName": "蔚景云设计师酒店充电站",
+    "matchRequiresReview": false,
+    "region": "郫都区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市郫都区合作街道百草路成都高新技术产业开发区(西区)",
+    "openedAt": "2025-09-21 20:07:46",
+    "status": "正常运行",
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
+    "guns": 3,
+    "fastGuns": 0,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "郫都区设计师酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.18,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "郫都区设计师酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "136136",
+    "name": "蔚景云观月雪民宿充电站",
+    "sourceName": "蔚景云观月雪民宿充电站",
+    "matchRequiresReview": false,
+    "region": "九寨沟县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州九寨沟县漳扎镇沙坝",
+    "openedAt": "2025-11-19 11:02:11",
+    "status": "正常运行",
+    "powerKw": 14,
+    "fastPowerKw": 0,
+    "slowPowerKw": 14,
+    "guns": 2,
+    "fastGuns": 0,
+    "slowGuns": 2,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "观月雪民宿",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.4,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "观月雪民宿",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "138997",
+    "name": "雅悦蓝天酒店超充站",
+    "sourceName": "蔚景云雅悦蓝天酒店超充站",
+    "matchRequiresReview": false,
+    "region": "成华区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市成华区保和街道雅悦蓝天酒店弘创名座",
+    "openedAt": "2025-12-14 09:56:43",
+    "status": "正常运行",
+    "powerKw": 1080,
+    "fastPowerKw": 1080,
+    "slowPowerKw": 0,
+    "guns": 18,
+    "fastGuns": 18,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "蓝天酒店（超充站）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.79,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.55,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.33,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "蓝天酒店（超充站）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.2,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "139004",
+    "name": "蔚景云亚朵酒店充电站",
+    "sourceName": "蔚景云亚朵酒店充电站",
+    "matchRequiresReview": false,
+    "region": "成华区",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市成华区双桥子街道双桥社区",
+    "openedAt": "2025-12-14 10:14:12",
+    "status": "正常运行",
+    "powerKw": 176,
+    "fastPowerKw": 120,
+    "slowPowerKw": 56,
+    "guns": 10,
+    "fastGuns": 2,
+    "slowGuns": 8,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "亚朵酒店(快充)",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 0.95,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.72,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.48,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "亚朵酒店（慢充）",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.15,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.89,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.78,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "亚朵酒店(快充)",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "亚朵酒店（慢充）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "139007",
+    "name": "蔚景云汉诚酒店充电站",
+    "sourceName": "蔚景云汉诚酒店充电站",
+    "matchRequiresReview": false,
+    "region": "汉源县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省雅安市汉源县富林镇汉源县汉诚酒店清洁明珠酒店",
+    "openedAt": "2025-12-14 10:18:49",
+    "status": "正常运行",
+    "powerKw": 141,
+    "fastPowerKw": 120,
+    "slowPowerKw": 21,
+    "guns": 5,
+    "fastGuns": 2,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "汉源汉城酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "汉源汉城酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "155028",
+    "name": "蔚景云松潘火车站超充站",
+    "sourceName": "蔚景云松潘火车站超充站",
+    "matchRequiresReview": false,
+    "region": "松潘县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州松潘县青云镇213国道松潘站",
+    "openedAt": "2026-04-20 15:34:40",
+    "status": "正常运行",
+    "powerKw": 320,
+    "fastPowerKw": 320,
+    "slowPowerKw": 0,
+    "guns": 4,
+    "fastGuns": 4,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "松潘火车站",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.2493,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.0139,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.7786,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "松潘火车站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "155225",
+    "name": "蔚景云古尔沟卓邸康钦酒店充电站",
+    "sourceName": "蔚景云古尔沟卓邸康钦酒店充电站",
+    "matchRequiresReview": false,
+    "region": "理县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州理县古尔沟镇317国道",
+    "openedAt": "2026-04-22 11:18:48",
+    "status": "正常运行",
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
+    "guns": 2,
+    "fastGuns": 2,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "古尔沟充电站",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.4,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.35,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 1.3,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "古尔沟充电站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "155235",
+    "name": "蔚景云谢家坝大桥充电站",
+    "sourceName": "蔚景云谢家坝大桥充电站",
+    "matchRequiresReview": false,
+    "region": "邛崃市",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市邛崃市桑园镇谢家坝大桥",
+    "openedAt": "2026-04-22 12:09:57",
+    "status": "正常运行",
+    "powerKw": 56,
+    "fastPowerKw": 0,
+    "slowPowerKw": 56,
+    "guns": 8,
+    "fastGuns": 0,
+    "slowGuns": 8,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "邛崃出江河充电站",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.15,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "邛崃出江河充电站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "159197",
+    "name": "蔚景云稻城云栖酒店超充站",
+    "sourceName": "蔚景云稻城云栖酒店超充站",
+    "matchRequiresReview": false,
+    "region": "稻城县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省甘孜藏族自治州稻城县金珠镇德西路二段稻城旺吉大酒店",
+    "openedAt": "2026-05-21 17:26:19",
+    "status": "正常运行",
+    "powerKw": 254,
+    "fastPowerKw": 240,
+    "slowPowerKw": 14,
+    "guns": 6,
+    "fastGuns": 4,
+    "slowGuns": 2,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "稻城云栖酒店(快充)",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.38,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.13,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.89,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "稻城云栖酒店(慢充)",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.3,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.08,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.89,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "稻城云栖酒店(快充)",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "稻城云栖酒店(慢充)",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "161153",
+    "name": "蔚景云海螺镇重卡站",
+    "sourceName": "蔚景云海螺镇重卡站",
+    "matchRequiresReview": false,
+    "region": "简阳市",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省成都市简阳市海螺镇168乡道",
+    "openedAt": "2026-06-05 10:46:35",
+    "status": "正常运行",
+    "powerKw": 240,
+    "fastPowerKw": 240,
+    "slowPowerKw": 0,
+    "guns": 2,
+    "fastGuns": 2,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "海螺镇重卡-单一制电价",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.0689,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 0.7862,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.5034,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "海螺镇重卡-单一制电价",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "161154",
+    "name": "蔚景云麦子酒店充电站",
+    "sourceName": "蔚景云麦子酒店快充站",
+    "matchRequiresReview": false,
+    "region": "松潘县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州松潘县进安镇顺兴汽修厂",
+    "openedAt": "2026-06-05 10:49:48",
+    "status": "正常运行",
+    "powerKw": 148,
+    "fastPowerKw": 120,
+    "slowPowerKw": 28,
+    "guns": 4,
+    "fastGuns": 2,
+    "slowGuns": 2,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "松潘麦子酒店",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.2,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 0.75,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "松潘麦子酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "162572",
+    "name": "蔚景云东格尔度假酒店充电站",
+    "sourceName": "蔚景云东格尔度假酒店充电站",
+    "matchRequiresReview": false,
+    "region": "松潘县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州松潘县川主寺镇544国道松潘东格尔国际度假酒店",
+    "openedAt": "2026-06-18 21:22:47",
+    "status": "正常运行",
+    "powerKw": 28,
+    "fastPowerKw": 0,
+    "slowPowerKw": 28,
+    "guns": 4,
+    "fastGuns": 0,
+    "slowGuns": 4,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "东格尔度假酒店",
+          "windows": [
+            {
+              "period": "峰",
+              "rate": 1.3,
+              "times": [
+                "10:00-12:00",
+                "17:00-22:00"
+              ]
+            },
+            {
+              "period": "平",
+              "rate": 1.2,
+              "times": [
+                "8:00-10:00",
+                "12:00-17:00"
+              ]
+            },
+            {
+              "period": "谷",
+              "rate": 1.1,
+              "times": [
+                "0:00-8:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "东格尔度假酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-8:00",
+                "8:00-10:00",
+                "10:00-12:00",
+                "12:00-17:00",
+                "17:00-22:00",
+                "22:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "162573",
+    "name": "蔚景云丽呈望山栖酒店充电站",
+    "sourceName": "蔚景云丽呈望山栖酒店充电站",
+    "matchRequiresReview": false,
+    "region": "茂县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州茂县凤仪镇菲雪尔蛋糕屋",
+    "openedAt": "2026-06-18 21:26:19",
+    "status": "正常运行",
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
+    "guns": 3,
+    "fastGuns": 0,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "丽呈望山栖酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.18,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "丽呈望山栖酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "166315",
+    "name": "蔚景云求吉乡快充站",
+    "sourceName": "蔚景云求吉乡快充站",
+    "matchRequiresReview": false,
+    "region": "若尔盖县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省阿坝藏族羌族自治州若尔盖县求吉乡九若路水吧仓民宿",
+    "openedAt": "2026-07-25 11:10:08",
+    "status": "正常运行",
+    "powerKw": 120,
+    "fastPowerKw": 120,
+    "slowPowerKw": 0,
+    "guns": 2,
+    "fastGuns": 2,
+    "slowGuns": 0,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "水吧仓民宿（求吉乡镇）",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.4,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "水吧仓民宿（求吉乡镇）",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "254467",
+    "name": "蔚景云禅驿黑竹沟度假酒店充电站",
+    "sourceName": "蔚景云禅驿黑竹沟度假酒店充电站",
+    "matchRequiresReview": false,
+    "region": "峨边彝族自治县",
+    "operator": "蔚铭充",
+    "operationType": "加盟",
+    "address": "四川省乐山市峨边彝族自治县黑竹沟镇峨边禅驿·黑竹沟度假酒店",
+    "openedAt": "2026-09-17 11:19:20",
+    "status": "正常运行",
+    "powerKw": 21,
+    "fastPowerKw": 0,
+    "slowPowerKw": 21,
+    "guns": 3,
+    "fastGuns": 0,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "黑竹沟充电站",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 1.18,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "黑竹沟充电站",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.1,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  },
+  {
+    "sourceStationId": "141732",
+    "name": "阳充-天鹏酒店充电站",
+    "sourceName": "阳充天鹏酒店充电站",
+    "matchRequiresReview": false,
+    "region": "榕城区",
+    "operator": "阳充充电",
+    "operationType": "加盟",
+    "address": "广东省揭阳市榕城区登岗镇天鹏酒店(东南门)揭阳天鹏酒店",
+    "openedAt": "2025-12-31 17:26:35",
+    "status": "正常运行",
+    "powerKw": 501,
+    "fastPowerKw": 480,
+    "slowPowerKw": 21,
+    "guns": 13,
+    "fastGuns": 10,
+    "slowGuns": 3,
+    "tariffs": {
+      "electricity": [
+        {
+          "name": "阳充天鹏酒店",
+          "windows": [
+            {
+              "period": "标准电费",
+              "rate": 0.85,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ],
+      "service": [
+        {
+          "name": "阳充天鹏酒店",
+          "windows": [
+            {
+              "period": "服务费",
+              "rate": 0.5,
+              "times": [
+                "0:00-24:00"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "effectiveFrom": "2026-10-18"
+  }
+]
