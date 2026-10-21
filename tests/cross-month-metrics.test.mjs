@@ -50,3 +50,19 @@ test('station contracted electricity cost remains ahead of the shared October ta
   const result = calculateOperatingMetrics({ week: '2026年10月2周', charge: 10, peak: 0, high: 0, flat: 10, valley: 0 }, config, monthly);
   assert.ok(Math.abs(result.profit - 10 * (0.8 - 0.126 - 0.237473)) < 1e-8);
 });
+
+test('monthly industrial tariffs vary by month and copied peak uses the shared tariff', () => {
+  const config = {
+    purchaseCostType: '大工业电价',
+    monthlyCostsJson: JSON.stringify({ '2026-10': { '大工业电价': { peak: '0.723618', high: '0.723618', flat: '0.495329', valley: '0.26704' } } }),
+    servicePricesJson: JSON.stringify({ '2026年9月2周': { peak: '0.2', high: '0.2', flat: '0.2', valley: '0.2' }, '2026年10月2周': { peak: '0.2', high: '0.2', flat: '0.2', valley: '0.2' } }),
+    externalPricesJson: JSON.stringify({ '2026年9月2周': { peak: '1.2', high: '1.2', flat: '1.2', valley: '1.2' }, '2026年10月2周': { peak: '1.2', high: '1.2', flat: '1.2', valley: '1.2' } }),
+  };
+  const monthly = { monthlyCostsJson: JSON.stringify({
+    '9': { '大工业电价': { peak: '0.874817', high: '0.749315', flat: '0.513997', valley: '0.278679' } },
+    '2026-10': { '大工业电价': { peak: '0.845373', high: '0.723618', flat: '0.495329', valley: '0.26704' } },
+  }) };
+  const record = { charge: 10, peak: 10, high: 0, flat: 0, valley: 0 };
+  assert.equal(calculateOperatingMetrics({ ...record, week: '2026年9月2周' }, config, monthly).cost.peak, '0.874817');
+  assert.equal(calculateOperatingMetrics({ ...record, week: '2026年10月2周' }, config, monthly).cost.peak, '0.845373');
+});
