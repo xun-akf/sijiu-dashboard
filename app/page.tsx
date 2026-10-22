@@ -2344,6 +2344,7 @@ function CompetitorEditor({
             ? `${changes.largest.name}（${changes.largest.delta > 0 ? "↑" : "↓"}${Math.abs(changes.largest.delta).toFixed(4)} 元/度）`
             : "无变动"}</span>
         </> : <span>暂无可比数据</span>}
+        {!history[week] && week === latestWeek && <span>现有价格尚未记录周次，编辑价格后建立本周记录</span>}
         <span className={advantageChange == null ? "" : advantageChange > 0.00005 ? "up" : advantageChange < -0.00005 ? "down" : ""}>
           本站价格优势：{advantageChange == null ? "暂无可比数据" : advantageChange > 0.00005 ? `增强 ${advantageChange.toFixed(4)} 元/度` : advantageChange < -0.00005 ? `减弱 ${Math.abs(advantageChange).toFixed(4)} 元/度` : "基本持平"}
         </span>
