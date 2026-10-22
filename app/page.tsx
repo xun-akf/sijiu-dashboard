@@ -46,7 +46,7 @@ import { operatorChoices, reportingStationNames, scopedStationNames, type Stored
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
-import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek, type CompetitorPrice } from "@/lib/competitor-history";
+import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
@@ -1641,10 +1641,7 @@ function StationAnalysis({
   };
   const doSave = async () => {
     const latestWeek = selected.records.at(-1)?.week || "";
-    const history = readCompetitorHistory(c.competitorsByWeekJson);
-    if (selectedWeek === latestWeek && !history[selectedWeek] && c.competitorsJson)
-      history[selectedWeek] = safeJson<CompetitorPrice[]>(c.competitorsJson, []);
-    await save({ ...cfg, [selected.name]: { ...c, competitorsByWeekJson: JSON.stringify(history), analysis: stationAnalysis(selected, latestWeek, c) } });
+    await save({ ...cfg, [selected.name]: { ...c, analysis: stationAnalysis(selected, latestWeek, c) } });
     setEditing(false);
     setOriginalCompetitors(null);
     setOriginalCompetitorHistory(null);
