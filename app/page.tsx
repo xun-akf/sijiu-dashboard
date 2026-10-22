@@ -46,6 +46,7 @@ import { operatorChoices, reportingStationNames, scopedStationNames, type Stored
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
+import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek, type CompetitorPrice } from "@/lib/competitor-history";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
@@ -135,6 +136,7 @@ type StationConfig = {
   electricityPricesJson: string;
   servicePricesJson: string;
   competitorsJson: string;
+  competitorsByWeekJson: string;
   analysis: string;
   analysisByWeekJson: string;
   stationAliasesJson: string;
@@ -165,6 +167,7 @@ const emptyConfig: StationConfig = {
   electricityPricesJson: "",
   servicePricesJson: "",
   competitorsJson: "",
+  competitorsByWeekJson: "",
   analysis: "",
   analysisByWeekJson: "",
   stationAliasesJson: "",
@@ -1630,6 +1633,7 @@ function StationAnalysis({
     eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
     [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
+    [originalCompetitorHistory, setOriginalCompetitorHistory] = useState<string | null>(null),
     [totalChargeOnly, setTotalChargeOnly] = useState(false),
     [saved, setSaved] = useState(false);
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
@@ -1637,9 +1641,13 @@ function StationAnalysis({
   };
   const doSave = async () => {
     const latestWeek = selected.records.at(-1)?.week || "";
-    await save({ ...cfg, [selected.name]: { ...c, analysis: stationAnalysis(selected, latestWeek, c) } });
+    const history = readCompetitorHistory(c.competitorsByWeekJson);
+    if (selectedWeek === latestWeek && !history[selectedWeek] && c.competitorsJson)
+      history[selectedWeek] = safeJson<CompetitorPrice[]>(c.competitorsJson, []);
+    await save({ ...cfg, [selected.name]: { ...c, competitorsByWeekJson: JSON.stringify(history), analysis: stationAnalysis(selected, latestWeek, c) } });
     setEditing(false);
     setOriginalCompetitors(null);
+    setOriginalCompetitorHistory(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
   };
@@ -1679,13 +1687,15 @@ function StationAnalysis({
           {editing && (
             <button className="ghost" onClick={() => {
               if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
+              if (originalCompetitorHistory != null) update(selected.name, "competitorsByWeekJson", originalCompetitorHistory);
               setEditing(false);
               setOriginalCompetitors(null);
+              setOriginalCompetitorHistory(null);
             }}>
               取消
             </button>
           )}
-          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setEditing(true))}>
+          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setOriginalCompetitorHistory(c.competitorsByWeekJson), setEditing(true))}>
             {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
           </button>
         </div>}
@@ -1803,7 +1813,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
-      {!isAll && <StationCompetitorSection station={selected} editing={editing} cfg={c} update={update} />}
+      {!isAll && <StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} />}
     </>
   );
 }
@@ -1964,8 +1974,9 @@ function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStati
     </>
   );
 }
-function StationCompetitorSection({ station, editing, cfg, update }: {
+function StationCompetitorSection({ station, week, editing, cfg, update }: {
   station: S;
+  week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
@@ -1973,6 +1984,7 @@ function StationCompetitorSection({ station, editing, cfg, update }: {
   return (
       <CompetitorEditor
         station={station}
+        week={week}
         editing={editing}
         cfg={cfg}
         update={update}
@@ -1993,21 +2005,34 @@ type Competitor = {
 };
 function CompetitorEditor({
   station,
+  week,
   editing,
   cfg,
   update,
 }: {
   station: S;
+  week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
 }) {
-  const competitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
+  const history = readCompetitorHistory(cfg.competitorsByWeekJson);
+  const latestWeek = allWeeks().at(-1) || station.records.at(-1)?.week || "";
+  const legacyCompetitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
+  const emptyCompetitorPrices = (c: Competitor): Competitor => ({
+    ...c, peak: "", high: "", flat: "", valley: "",
+    electricity: blankPrice(), service: blankPrice(), total: blankPrice(),
+  });
+  const competitors = history[week] || (week === latestWeek ? legacyCompetitors : editing ? legacyCompetitors.map(emptyCompetitorPrices) : []);
+  const priorWeek = allWeeks()[allWeeks().indexOf(week) - 1];
+  const previousCompetitors = priorWeek ? history[priorWeek] : undefined;
+  const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
   const keys = ["peak", "high", "flat", "valley"] as const;
   const labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" };
-  const latestWeek = station.records.at(-1)?.week || "2026年9月2周";
-  const ownE = resolveWeeklyPrice(cfg.electricityPricesJson, latestWeek);
-  const ownS = resolveWeeklyPrice(cfg.servicePricesJson, latestWeek);
+  const ownE = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {})[week]
+    || (week === latestWeek ? resolveWeeklyPrice(cfg.electricityPricesJson, week) : blankPrice());
+  const ownS = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {})[week]
+    || (week === latestWeek ? resolveWeeklyPrice(cfg.servicePricesJson, week) : blankPrice());
   const hasSplitOwnPrice = [...Object.values(ownE), ...Object.values(ownS)].some(
     (value) => Number(value) > 0,
   );
@@ -2028,23 +2053,28 @@ function CompetitorEditor({
         flat: addRawPrice(ownE.flat, ownS.flat),
         valley: addRawPrice(ownE.valley, ownS.valley),
       }
-    : {
+    : week === latestWeek ? {
         peak: cfg.weeklyPeak,
         high: cfg.weeklyHigh,
         flat: cfg.weeklyFlat,
         valley: cfg.weeklyValley,
-      };
+      } : blankPrice();
+  const explicitOwnPrice = (selectedWeek: string): PeriodPrice | null => {
+    const e = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {})[selectedWeek];
+    const s = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {})[selectedWeek];
+    if (!e || !s) return null;
+    return Object.fromEntries(keys.map((key) => [key, addRawPrice(e[key], s[key])])) as PeriodPrice;
+  };
+  const advantageChange = competitorAdvantageChange(
+    history[week] || [], previousCompetitors, explicitOwnPrice(week), priorWeek ? explicitOwnPrice(priorWeek) : null,
+  );
   const [sortBy, setSortBy] = useState<"distance" | "low" | "high" | "diff">(
     "distance",
   );
   const [threatOnly, setThreatOnly] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
   const [ownExpanded, setOwnExpanded] = useState(false);
-  const validPrice = (value: string | number | null | undefined) => {
-    if (value === "" || value == null) return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-  };
+  const validPrice = numericPrice;
   const price = (value: string | number | undefined, digits = 2) => {
     const n = validPrice(value);
     return n != null ? `¥${n.toFixed(digits)}` : "—";
@@ -2145,6 +2175,10 @@ function CompetitorEditor({
       )[key],
       value,
     );
+  const updateCompetitors = (next: Competitor[]) => {
+    update(station.name, "competitorsByWeekJson", JSON.stringify(saveCompetitorWeek(history, week, next)));
+    if (week === latestWeek) update(station.name, "competitorsJson", JSON.stringify(next));
+  };
   const change = (
     i: number,
     group: "electricity" | "service",
@@ -2173,16 +2207,12 @@ function CompetitorEditor({
           }
         : c,
     );
-    update(station.name, "competitorsJson", JSON.stringify(next));
+    updateCompetitors(next);
   };
   const changeBase = (i: number, key: "name" | "distance" | "guns", value: string) =>
-    update(
-      station.name,
-      "competitorsJson",
-      JSON.stringify(competitors.map((competitor, index) =>
-        index === i ? { ...competitor, [key]: value } : competitor,
-      )),
-    );
+    updateCompetitors(competitors.map((competitor, index) =>
+      index === i ? { ...competitor, [key]: value } : competitor,
+    ));
   const addCompetitor = () => {
     const next = [
       ...competitors,
@@ -2199,16 +2229,12 @@ function CompetitorEditor({
         total: blankPrice(),
       },
     ];
-    update(station.name, "competitorsJson", JSON.stringify(next));
+    updateCompetitors(next);
     setExpanded((current) => [...current, next.length - 1]);
   };
   const removeCompetitor = (i: number) => {
     if (!window.confirm(`确定删除“${competitors[i]?.name || "该竞站"}”吗？保存后生效。`)) return;
-    update(
-      station.name,
-      "competitorsJson",
-      JSON.stringify(competitors.filter((_, index) => index !== i)),
-    );
+    updateCompetitors(competitors.filter((_, index) => index !== i));
     setExpanded((current) => current.filter((index) => index !== i).map((index) => index > i ? index - 1 : index));
   };
   const renderPriceRows = ({
@@ -2259,7 +2285,7 @@ function CompetitorEditor({
   return (
     <Panel
       title="本站与周边竞站"
-      sub="默认展示用户最终支付总价；展开详情查看电费与服务费"
+      sub={`${displayWeek(week)}竞站总价；展开详情查看电费与服务费`}
       extra="ranking compact-competitor-panel"
       actions={<div className="competitor-tools">
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
@@ -2311,6 +2337,20 @@ function CompetitorEditor({
               : "≈ 本站价格与周边平均水平接近"}
         </p>
       </div>
+      <div className="competitor-week-change" aria-label="竞站价格周度变化">
+        <b>本周对比上周 · 可比时段均价</b>
+        {changes.comparable ? <>
+          <span className="up">↑ 涨价 {changes.rising}</span>
+          <span className="down">↓ 降价 {changes.falling}</span>
+          <span>→ 持平 {changes.steady}</span>
+          <span>变化最大：{changes.largest && Math.abs(changes.largest.delta) > 0.00005
+            ? `${changes.largest.name}（${changes.largest.delta > 0 ? "↑" : "↓"}${Math.abs(changes.largest.delta).toFixed(4)} 元/度）`
+            : "无变动"}</span>
+        </> : <span>暂无可比数据</span>}
+        <span className={advantageChange == null ? "" : advantageChange > 0.00005 ? "up" : advantageChange < -0.00005 ? "down" : ""}>
+          本站价格优势：{advantageChange == null ? "暂无可比数据" : advantageChange > 0.00005 ? `增强 ${advantageChange.toFixed(4)} 元/度` : advantageChange < -0.00005 ? `减弱 ${Math.abs(advantageChange).toFixed(4)} 元/度` : "基本持平"}
+        </span>
+      </div>
       <div className="competitor-table">
         <div className="competitor-table-head">
           <span>站点名称</span>
@@ -2342,7 +2382,8 @@ function CompetitorEditor({
         {sorted.map(({ c, index, total, diff }) => {
           const state = judgment(diff),
             isLowest = lowestRow?.index === index,
-            isOpen = expanded.includes(index);
+            isOpen = expanded.includes(index),
+            weeklyChange = changes.changes.get(c.name.trim().replace(/\s+/g, " "));
           return (
             <div className={"competitor-entry " + state.cls} key={index}>
               <div className="competitor-row">
@@ -2360,9 +2401,14 @@ function CompetitorEditor({
                 {editing ? (
                   <input className="competitor-base-input" value={c.distance} onChange={(event) => changeBase(index, "distance", event.target.value)} placeholder="如 1.2km" aria-label="竞站距离" />
                 ) : <span>{c.distance || "待补充距离"}</span>}
-                {keys.map((k) => (
-                  <span key={k}>{price(total[k])}</span>
-                ))}
+                {keys.map((k) => {
+                  const delta = weeklyChange?.periods[k];
+                  return <span className="competitor-period-price" key={k}>{price(total[k])}
+                    {delta == null ? <small>暂无可比数据</small> : <small className={delta > 0.00005 ? "up" : delta < -0.00005 ? "down" : ""}>
+                      {delta > 0.00005 ? "↑" : delta < -0.00005 ? "↓" : "→"} {Math.abs(delta).toFixed(4)} 元/度
+                    </small>}
+                  </span>;
+                })}
                 <span className={state.cls}>
                   {diff == null ? "—" : `${diff >= 0 ? "+" : "-"}${price(Math.abs(diff))}/kWh`}
                 </span>
