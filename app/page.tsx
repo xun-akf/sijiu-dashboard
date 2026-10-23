@@ -2032,9 +2032,9 @@ function CompetitorEditor({
   const keys = ["peak", "high", "flat", "valley"] as const;
   const labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" };
   const ownE = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {})[week]
-    || (week === latestWeek ? resolveWeeklyPrice(cfg.electricityPricesJson, week) : blankPrice());
+    || (week === stationWeek ? resolveWeeklyPrice(cfg.electricityPricesJson, week) : blankPrice());
   const ownS = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {})[week]
-    || (week === latestWeek ? resolveWeeklyPrice(cfg.servicePricesJson, week) : blankPrice());
+    || (week === stationWeek ? resolveWeeklyPrice(cfg.servicePricesJson, week) : blankPrice());
   const hasSplitOwnPrice = [...Object.values(ownE), ...Object.values(ownS)].some(
     (value) => Number(value) > 0,
   );
@@ -2055,7 +2055,7 @@ function CompetitorEditor({
         flat: addRawPrice(ownE.flat, ownS.flat),
         valley: addRawPrice(ownE.valley, ownS.valley),
       }
-    : week === latestWeek ? {
+    : week === stationWeek ? {
         peak: cfg.weeklyPeak,
         high: cfg.weeklyHigh,
         flat: cfg.weeklyFlat,
