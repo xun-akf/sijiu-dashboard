@@ -2002,7 +2002,7 @@ type Competitor = {
 };
 function CompetitorEditor({
   station,
-  week,
+  week: stationWeek,
   editing,
   cfg,
   update,
@@ -2014,14 +2014,19 @@ function CompetitorEditor({
   update: (n: string, k: keyof StationConfig, v: string) => void;
 }) {
   const history = readCompetitorHistory(cfg.competitorsByWeekJson);
-  const latestWeek = allWeeks().at(-1) || station.records.at(-1)?.week || "";
+  const availableWeeks = [...new Set([...allWeeks(), ...Object.keys(history)])]
+    .sort((left, right) => weekOrderValue(left) - weekOrderValue(right));
+  const [chosenWeek, setChosenWeek] = useState("");
+  const week = chosenWeek && availableWeeks.includes(chosenWeek)
+    ? chosenWeek : availableWeeks.at(-1) || stationWeek;
+  const latestWeek = availableWeeks.at(-1) || station.records.at(-1)?.week || "";
   const legacyCompetitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
   const emptyCompetitorPrices = (c: Competitor): Competitor => ({
     ...c, peak: "", high: "", flat: "", valley: "",
     electricity: blankPrice(), service: blankPrice(), total: blankPrice(),
   });
   const competitors = history[week] || (week === latestWeek ? legacyCompetitors : editing ? legacyCompetitors.map(emptyCompetitorPrices) : []);
-  const priorWeek = allWeeks()[allWeeks().indexOf(week) - 1];
+  const priorWeek = availableWeeks[availableWeeks.indexOf(week) - 1];
   const previousCompetitors = priorWeek ? history[priorWeek] : undefined;
   const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
   const keys = ["peak", "high", "flat", "valley"] as const;
@@ -2285,6 +2290,9 @@ function CompetitorEditor({
       sub={`${displayWeek(week)}竞站总价；展开详情查看电费与服务费`}
       extra="ranking compact-competitor-panel"
       actions={<div className="competitor-tools">
+        <select value={week} onChange={(event) => setChosenWeek(event.target.value)} aria-label="竞站价格周次">
+          {availableWeeks.map((value) => <option value={value} key={value}>{displayWeek(value)}</option>)}
+        </select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
           <option value="distance">距离最近</option>
           <option value="low">价格最低</option>
