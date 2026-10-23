@@ -3381,14 +3381,18 @@ function Config({
             const sameWeek = history[competitorImport.week] || [];
             const basis = sameWeek.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName))
               || previous.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName));
-            const imported = decision.source;
+            const effective = decision.kind === "pending" ? undefined : mergeCompetitorWeek(
+              history, competitorImport.week, [decision], clearCompetitorBlanks,
+              safeJson<Competitor[]>(cfg[decision.site]?.competitorsJson, []),
+            )[competitorImport.week].find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName));
+            const imported = effective || decision.source;
             const priceChanges = (["peak", "high", "flat", "valley"] as const).map((period) => {
               const now = numericPrice(imported.total?.[period]), then = basis ? numericPrice(basis.total?.[period] ?? basis[period]) : null;
               return now == null || then == null ? "—" : `${now > then ? "↑" : now < then ? "↓" : "→"}${Math.abs(now - then).toFixed(4)}`;
             });
             return <tr key={index}><td><b>{decision.site}</b><br />{imported.name}</td>
               <td>{decision.kind === "matched" ? "匹配更新" : decision.kind === "new" ? "新增" : "待确认"}</td>
-              <td>{imported.guns || "—"}枪 / {imported.distance || "沿用已有距离"}</td>
+              <td>{imported.guns || "—"}枪 / {imported.distance || "待补充距离"}</td>
               <td>{(["peak", "high", "flat", "valley"] as const).map((period) => imported.total?.[period] || "—").join(" / ")}</td>
               <td>{priceChanges.join(" / ")}</td></tr>;
           })}</tbody></table></div>
