@@ -45,7 +45,9 @@ import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
-import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
+import { withCompetitorWorkbook, competitorWorkbookVersion } from "@/lib/competitor-workbook";
+import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
+import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCompetitorMatches, weekFromCompetitorFilename, type ImportDecision } from "@/lib/competitor-import";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
@@ -135,6 +137,7 @@ type StationConfig = {
   electricityPricesJson: string;
   servicePricesJson: string;
   competitorsJson: string;
+  competitorsByWeekJson: string;
   analysis: string;
   analysisByWeekJson: string;
   stationAliasesJson: string;
@@ -165,6 +168,7 @@ const emptyConfig: StationConfig = {
   electricityPricesJson: "",
   servicePricesJson: "",
   competitorsJson: "",
+  competitorsByWeekJson: "",
   analysis: "",
   analysisByWeekJson: "",
   stationAliasesJson: "",
@@ -343,6 +347,34 @@ type ImportRecognition = {
   ignoredColumns: string[];
 };
 type WorkbookParseResult = { parsed: S[]; recognition: ImportRecognition };
+
+async function parseCompetitorWorkbook(file: File) {
+  let zip: Record<string, Uint8Array>;
+  try { zip = unzipSync(new Uint8Array(await file.arrayBuffer())); }
+  catch { throw new Error("无法读取 Excel，请上传 .xlsx 文件"); }
+  const parser = new DOMParser();
+  const shared = zip["xl/sharedStrings.xml"]
+    ? [...parser.parseFromString(strFromU8(zip["xl/sharedStrings.xml"]), "text/xml").querySelectorAll("si")]
+      .map((si) => [...si.querySelectorAll("t")].map((node) => node.textContent || "").join(""))
+    : [];
+  const sheets = Object.keys(zip).filter((path) => /^xl\/worksheets\/sheet\d+\.xml$/.test(path))
+    .sort((a, b) => Number(a.match(/sheet(\d+)/)?.[1]) - Number(b.match(/sheet(\d+)/)?.[1]))
+    .map((path) => {
+      const rows: Record<string, string>[] = [];
+      parser.parseFromString(strFromU8(zip[path]), "text/xml").querySelectorAll("row").forEach((row) => {
+        const values: Record<string, string> = {};
+        row.querySelectorAll("c").forEach((cell) => {
+          const col = (cell.getAttribute("r") || "").match(/[A-Z]+/)?.[0] || "";
+          const raw = cell.querySelector("v")?.textContent || "";
+          const inline = [...cell.querySelectorAll("is t")].map((node) => node.textContent || "").join("");
+          values[col] = cell.getAttribute("t") === "s" && raw ? shared[Number(raw)] || "" : inline || raw;
+        });
+        rows.push(values);
+      });
+      return { name: path, rows };
+    });
+  return parseCompetitorRows(sheets);
+}
 
 async function parseLegacyWeeklyWorkbook(file: File): Promise<S[]> {
   const zip = unzipSync(new Uint8Array(await file.arrayBuffer())),
@@ -1630,6 +1662,7 @@ function StationAnalysis({
     eventByWeek = safeJson<Record<string, string>>(c.eventByWeekJson, {}),
     [editing, setEditing] = useState(false),
     [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
+    [originalCompetitorHistory, setOriginalCompetitorHistory] = useState<string | null>(null),
     [totalChargeOnly, setTotalChargeOnly] = useState(false),
     [saved, setSaved] = useState(false);
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
@@ -1640,6 +1673,7 @@ function StationAnalysis({
     await save({ ...cfg, [selected.name]: { ...c, analysis: stationAnalysis(selected, latestWeek, c) } });
     setEditing(false);
     setOriginalCompetitors(null);
+    setOriginalCompetitorHistory(null);
     setSaved(true);
     setTimeout(() => setSaved(false), 1600);
   };
@@ -1679,13 +1713,15 @@ function StationAnalysis({
           {editing && (
             <button className="ghost" onClick={() => {
               if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
+              if (originalCompetitorHistory != null) update(selected.name, "competitorsByWeekJson", originalCompetitorHistory);
               setEditing(false);
               setOriginalCompetitors(null);
+              setOriginalCompetitorHistory(null);
             }}>
               取消
             </button>
           )}
-          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setEditing(true))}>
+          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setOriginalCompetitorHistory(c.competitorsByWeekJson), setEditing(true))}>
             {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
           </button>
         </div>}
@@ -1803,7 +1839,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
-      {!isAll && <StationCompetitorSection station={selected} editing={editing} cfg={c} update={update} />}
+      {!isAll && <StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} />}
     </>
   );
 }
@@ -1964,8 +2000,9 @@ function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStati
     </>
   );
 }
-function StationCompetitorSection({ station, editing, cfg, update }: {
+function StationCompetitorSection({ station, week, editing, cfg, update }: {
   station: S;
+  week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
@@ -1973,6 +2010,7 @@ function StationCompetitorSection({ station, editing, cfg, update }: {
   return (
       <CompetitorEditor
         station={station}
+        week={week}
         editing={editing}
         cfg={cfg}
         update={update}
@@ -1993,21 +2031,44 @@ type Competitor = {
 };
 function CompetitorEditor({
   station,
+  week: stationWeek,
   editing,
   cfg,
   update,
 }: {
   station: S;
+  week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
 }) {
-  const competitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
+  const history = readCompetitorHistory(cfg.competitorsByWeekJson);
+  const availableWeeks = [...new Set([...allWeeks(), ...Object.keys(history)])]
+    .sort((left, right) => weekOrderValue(left) - weekOrderValue(right));
+  const [chosenWeek, setChosenWeek] = useState("");
+  const week = chosenWeek && availableWeeks.includes(chosenWeek)
+    ? chosenWeek : availableWeeks.at(-1) || stationWeek;
+  const latestWeek = availableWeeks.at(-1) || station.records.at(-1)?.week || "";
+  const legacyCompetitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
+  const emptyCompetitorPrices = (c: Competitor): Competitor => ({
+    ...c, peak: "", high: "", flat: "", valley: "",
+    electricity: blankPrice(), service: blankPrice(), total: blankPrice(),
+  });
+  const competitors = history[week] || (week === latestWeek ? legacyCompetitors : editing ? legacyCompetitors.map(emptyCompetitorPrices) : []);
+  const priorWeek = availableWeeks[availableWeeks.indexOf(week) - 1];
+  const previousCompetitors = priorWeek ? history[priorWeek] : undefined;
+  const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
   const keys = ["peak", "high", "flat", "valley"] as const;
   const labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" };
-  const latestWeek = station.records.at(-1)?.week || "2026年9月2周";
-  const ownE = resolveWeeklyPrice(cfg.electricityPricesJson, latestWeek);
-  const ownS = resolveWeeklyPrice(cfg.servicePricesJson, latestWeek);
+  const ownElectricityWeeks = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {});
+  const ownServiceWeeks = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {});
+  const ownE = resolveWeeklyPrice(cfg.electricityPricesJson, week);
+  const ownS = resolveWeeklyPrice(cfg.servicePricesJson, week);
+  const latestConfiguredWeek = (prices: Record<string, PeriodPrice>) => Object.keys(prices)
+    .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
+  const ownElectricityOrigin = latestConfiguredWeek(ownElectricityWeeks);
+  const ownServiceOrigin = latestConfiguredWeek(ownServiceWeeks);
   const hasSplitOwnPrice = [...Object.values(ownE), ...Object.values(ownS)].some(
     (value) => Number(value) > 0,
   );
@@ -2019,7 +2080,7 @@ function CompetitorEditor({
       8,
       Math.max(left.split(".")[1]?.length || 0, right.split(".")[1]?.length || 0),
     );
-    return total.toFixed(decimals).replace(/\.?0+$/, "");
+    return decimals ? total.toFixed(decimals).replace(/\.?0+$/, "") : total.toFixed(0);
   };
   const ownT: PeriodPrice = hasSplitOwnPrice
     ? {
@@ -2028,23 +2089,27 @@ function CompetitorEditor({
         flat: addRawPrice(ownE.flat, ownS.flat),
         valley: addRawPrice(ownE.valley, ownS.valley),
       }
-    : {
+    : week === stationWeek ? {
         peak: cfg.weeklyPeak,
         high: cfg.weeklyHigh,
         flat: cfg.weeklyFlat,
         valley: cfg.weeklyValley,
-      };
+      } : blankPrice();
+  const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
+    const e = resolveWeeklyPrice(cfg.electricityPricesJson, selectedWeek);
+    const s = resolveWeeklyPrice(cfg.servicePricesJson, selectedWeek);
+    return Object.fromEntries(keys.map((key) => [key, addRawPrice(e[key], s[key])])) as PeriodPrice;
+  };
+  const advantageChange = competitorAdvantageChange(
+    history[week] || [], previousCompetitors, effectiveOwnPrice(week), priorWeek ? effectiveOwnPrice(priorWeek) : null,
+  );
   const [sortBy, setSortBy] = useState<"distance" | "low" | "high" | "diff">(
     "distance",
   );
   const [threatOnly, setThreatOnly] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
   const [ownExpanded, setOwnExpanded] = useState(false);
-  const validPrice = (value: string | number | null | undefined) => {
-    if (value === "" || value == null) return null;
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
-  };
+  const validPrice = numericPrice;
   const price = (value: string | number | undefined, digits = 2) => {
     const n = validPrice(value);
     return n != null ? `¥${n.toFixed(digits)}` : "—";
@@ -2093,10 +2158,7 @@ function CompetitorEditor({
       };
     })
     .filter((x) => x.c.name);
-  const pricedRows = rows.filter((row) => row.average != null),
-    competitorAverage = pricedRows.length
-    ? pricedRows.reduce((sum, row) => sum + num(row.average), 0) / pricedRows.length
-    : null;
+  const pricedRows = rows.filter((row) => row.average != null);
   const rankValues = [ownAverage, ...rows.map((row) => row.average)]
     .filter((v): v is number => v != null)
     .sort((a, b) => a - b);
@@ -2108,9 +2170,12 @@ function CompetitorEditor({
   const nearestRow = [...rows]
     .filter((row) => Number.isFinite(row.distance))
     .sort((a, b) => a.distance - b.distance)[0];
-  const advantage = competitorAverage != null && ownAverage != null
-    ? competitorAverage - ownAverage
-    : null;
+  const comparableRows = rows.filter((row): row is typeof row & { diff: number } => row.diff != null);
+  const advantage = comparableRows.length
+    ? comparableRows.reduce((sum, row) => sum + row.diff, 0) / comparableRows.length : null;
+  const cheaperThan = comparableRows.filter((row) => row.diff > 0.00005).length;
+  const dearerThan = comparableRows.filter((row) => row.diff < -0.00005).length;
+  const nearPrice = comparableRows.length - cheaperThan - dearerThan;
   const competition =
     advantage == null ? "待补充价格" : advantage > 0.05 ? "较强" : advantage < -0.03 ? "较弱" : "接近";
   const sorted = [...rows]
@@ -2145,6 +2210,10 @@ function CompetitorEditor({
       )[key],
       value,
     );
+  const updateCompetitors = (next: Competitor[]) => {
+    update(station.name, "competitorsByWeekJson", JSON.stringify(saveCompetitorWeek(history, week, next)));
+    if (week === latestWeek) update(station.name, "competitorsJson", JSON.stringify(next));
+  };
   const change = (
     i: number,
     group: "electricity" | "service",
@@ -2173,16 +2242,12 @@ function CompetitorEditor({
           }
         : c,
     );
-    update(station.name, "competitorsJson", JSON.stringify(next));
+    updateCompetitors(next);
   };
   const changeBase = (i: number, key: "name" | "distance" | "guns", value: string) =>
-    update(
-      station.name,
-      "competitorsJson",
-      JSON.stringify(competitors.map((competitor, index) =>
-        index === i ? { ...competitor, [key]: value } : competitor,
-      )),
-    );
+    updateCompetitors(competitors.map((competitor, index) =>
+      index === i ? { ...competitor, [key]: value } : competitor,
+    ));
   const addCompetitor = () => {
     const next = [
       ...competitors,
@@ -2199,16 +2264,12 @@ function CompetitorEditor({
         total: blankPrice(),
       },
     ];
-    update(station.name, "competitorsJson", JSON.stringify(next));
+    updateCompetitors(next);
     setExpanded((current) => [...current, next.length - 1]);
   };
   const removeCompetitor = (i: number) => {
     if (!window.confirm(`确定删除“${competitors[i]?.name || "该竞站"}”吗？保存后生效。`)) return;
-    update(
-      station.name,
-      "competitorsJson",
-      JSON.stringify(competitors.filter((_, index) => index !== i)),
-    );
+    updateCompetitors(competitors.filter((_, index) => index !== i));
     setExpanded((current) => current.filter((index) => index !== i).map((index) => index > i ? index - 1 : index));
   };
   const renderPriceRows = ({
@@ -2259,9 +2320,12 @@ function CompetitorEditor({
   return (
     <Panel
       title="本站与周边竞站"
-      sub="默认展示用户最终支付总价；展开详情查看电费与服务费"
+      sub={`${displayWeek(week)}竞站总价；展开详情查看电费与服务费`}
       extra="ranking compact-competitor-panel"
       actions={<div className="competitor-tools">
+        <select value={week} onChange={(event) => setChosenWeek(event.target.value)} aria-label="竞站价格周次">
+          {availableWeeks.map((value) => <option value={value} key={value}>{displayWeek(value)}</option>)}
+        </select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
           <option value="distance">距离最近</option>
           <option value="low">价格最低</option>
@@ -2311,6 +2375,28 @@ function CompetitorEditor({
               : "≈ 本站价格与周边平均水平接近"}
         </p>
       </div>
+      <div className="competitor-week-change" aria-label="当前价格优势">
+        <b>本站现价 vs 本周竞站新价</b>
+        <span>{advantage == null ? "暂无可比数据" :
+          `本站低于 ${cheaperThan} 家、高于 ${dearerThan} 家、同价 ${nearPrice} 家；${advantage >= 0 ? "平均低" : "平均高"} ${Math.abs(advantage).toFixed(4)} 元/度`}</span>
+        {(ownElectricityOrigin && ownElectricityOrigin !== week || ownServiceOrigin && ownServiceOrigin !== week) &&
+          <span>本站沿用电费 {ownElectricityOrigin || "未配置"}、服务费 {ownServiceOrigin || "未配置"} 的有效价格</span>}
+      </div>
+      <div className="competitor-week-change" aria-label="竞站价格周度变化">
+        <b>本周对比上周 · 可比时段均价</b>
+        {changes.comparable ? <>
+          <span className="up">↑ 涨价 {changes.rising}</span>
+          <span className="down">↓ 降价 {changes.falling}</span>
+          <span>→ 持平 {changes.steady}</span>
+          <span>变化最大：{changes.largest && Math.abs(changes.largest.delta) > 0.00005
+            ? `${changes.largest.name}（${changes.largest.delta > 0 ? "↑" : "↓"}${Math.abs(changes.largest.delta).toFixed(4)} 元/度）`
+            : "无变动"}</span>
+        </> : <span>暂无可比数据</span>}
+        {!history[week] && week === latestWeek && <span>现有价格尚未记录周次，编辑价格后建立本周记录</span>}
+        <span className={advantageChange == null ? "" : advantageChange > 0.00005 ? "up" : advantageChange < -0.00005 ? "down" : ""}>
+          优势较上周：{advantageChange == null ? "暂无可比数据" : advantageChange > 0.00005 ? `增强 ${advantageChange.toFixed(4)} 元/度` : advantageChange < -0.00005 ? `减弱 ${Math.abs(advantageChange).toFixed(4)} 元/度` : "基本持平"}
+        </span>
+      </div>
       <div className="competitor-table">
         <div className="competitor-table-head">
           <span>站点名称</span>
@@ -2342,7 +2428,8 @@ function CompetitorEditor({
         {sorted.map(({ c, index, total, diff }) => {
           const state = judgment(diff),
             isLowest = lowestRow?.index === index,
-            isOpen = expanded.includes(index);
+            isOpen = expanded.includes(index),
+            weeklyChange = changes.changes.get(c.name.trim().replace(/\s+/g, " "));
           return (
             <div className={"competitor-entry " + state.cls} key={index}>
               <div className="competitor-row">
@@ -2360,9 +2447,14 @@ function CompetitorEditor({
                 {editing ? (
                   <input className="competitor-base-input" value={c.distance} onChange={(event) => changeBase(index, "distance", event.target.value)} placeholder="如 1.2km" aria-label="竞站距离" />
                 ) : <span>{c.distance || "待补充距离"}</span>}
-                {keys.map((k) => (
-                  <span key={k}>{price(total[k])}</span>
-                ))}
+                {keys.map((k) => {
+                  const delta = weeklyChange?.periods[k];
+                  return <span className="competitor-period-price" key={k}>{price(total[k])}
+                    {delta == null ? <small>暂无可比数据</small> : <small className={delta > 0.00005 ? "up" : delta < -0.00005 ? "down" : ""}>
+                      {delta > 0.00005 ? "↑" : delta < -0.00005 ? "↓" : "→"} {Math.abs(delta).toFixed(4)} 元/度
+                    </small>}
+                  </span>;
+                })}
                 <span className={state.cls}>
                   {diff == null ? "—" : `${diff >= 0 ? "+" : "-"}${price(Math.abs(diff))}/kWh`}
                 </span>
@@ -2659,6 +2751,11 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
+    [competitorImport, setCompetitorImport] = useState<{ sites: ReturnType<typeof parseCompetitorRows>; week: string; filename: string } | null>(null),
+    [competitorSiteMatches, setCompetitorSiteMatches] = useState<Record<string, string>>({}),
+    [competitorNameMatches, setCompetitorNameMatches] = useState<Record<string, string>>({}),
+    [clearCompetitorBlanks, setClearCompetitorBlanks] = useState(false),
+    [confirmedCompetitorWarnings, setConfirmedCompetitorWarnings] = useState(false),
     [month, setMonth] = useState(() => String(weekParts(allWeeks().at(-1) || "").month || 10)),
     [dataStation, setDataStation] = useState(stations[0]?.name || ""),
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
@@ -3004,6 +3101,89 @@ function Config({
         setStatus(error instanceof Error ? error.message : "分析发布失败");
       }
     };
+  const readCompetitorFile = async (file?: File) => {
+    if (!file) return;
+    setStatus("正在识别竞站表…");
+    try {
+      const sites = await parseCompetitorWorkbook(file);
+      setCompetitorImport({ sites, week: weekFromCompetitorFilename(file.name), filename: file.name });
+      setCompetitorSiteMatches({});
+      setCompetitorNameMatches({});
+      setClearCompetitorBlanks(false);
+      setConfirmedCompetitorWarnings(false);
+      setStatus(`已识别 ${sites.length} 个场站，${sites.reduce((sum, site) => sum + site.competitors.length, 0)} 条竞站记录；请核对周次和预览`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "竞站表读取失败"); }
+  };
+  const savedAliases = Object.fromEntries(stations.flatMap((station) =>
+    safeJson<string[]>(({ ...emptyConfig, ...cfg[station.name] }).stationAliasesJson, []).map((alias) => [competitorIdentity(alias), station.name])));
+  const competitorSiteOptions = stations.map((station) => station.name);
+  const resolvedCompetitorSites = competitorImport?.sites.map((site) => {
+    const exact = competitorSiteOptions.find((name) => competitorIdentity(name) === competitorIdentity(site.name));
+    const builtIn = competitorIdentity(site.name) === competitorIdentity("蔚景云汉城酒店充电站") ? "蔚景云汉诚酒店充电站" : "";
+    const target = competitorSiteMatches[site.name] || exact || savedAliases[competitorIdentity(site.name)] || builtIn;
+    const suggested = target ? undefined : matchStationNames([site.name], competitorSiteOptions)[0];
+    return { ...site, target: competitorSiteOptions.includes(target) ? target : "", suggested: suggested?.status === "pending" ? suggested.dashboardName : "" };
+  }) || [];
+  const competitorDecisions = resolvedCompetitorSites.flatMap((site) => {
+    if (!site.target) return [];
+    const config = { ...emptyConfig, ...cfg[site.target] };
+    const stored = readCompetitorHistory(config.competitorsByWeekJson)[competitorImport?.week || ""];
+    const roster = stored || safeJson<Competitor[]>(config.competitorsJson, []);
+    return proposeCompetitorMatches(site.target, site.competitors, roster).map((decision) => {
+      const override = competitorNameMatches[`${site.name}\u0000${decision.source.name}`];
+      return override === "__new__" ? { ...decision, kind: "new" as const, targetName: decision.source.name }
+        : override ? { ...decision, kind: "matched" as const, targetName: override } : decision;
+    });
+  });
+  const duplicateCompetitors = new Map<string, ImportDecision>();
+  const competitorWarnings = [
+    ...resolvedCompetitorSites.flatMap((site) => site.warnings.map((warning) => `${site.name}：${warning}`)),
+    ...competitorDecisions.flatMap((decision) => {
+      const key = `${decision.site}\u0000${competitorIdentity(decision.targetName)}`;
+      const earlier = duplicateCompetitors.get(key);
+      duplicateCompetitors.set(key, decision);
+      return earlier && (earlier.source.guns !== decision.source.guns ||
+        ["peak", "high", "flat", "valley"].some((period) => earlier.source.total?.[period as keyof PeriodPrice] !== decision.source.total?.[period as keyof PeriodPrice]))
+        ? [`${decision.site} · ${decision.source.name} 在表中重复且枪数或价格不同；将按后出现的记录更新，请确认`] : [];
+    }),
+  ];
+  const saveCompetitorImport = async () => {
+    if (!competitorImport) return;
+    if (!/^(?:20\d{2})年(?:[1-9]|1[0-2])月[1-5]周$/.test(competitorImport.week)) { setStatus("请先选择正确的导入周次"); return; }
+    if (resolvedCompetitorSites.some((site) => !site.target) || competitorDecisions.some((decision) => decision.kind === "pending")) {
+      setStatus("请先确认所有场站和名称相近的竞站"); return;
+    }
+    if (competitorWarnings.length && !confirmedCompetitorWarnings) { setStatus("请核对异常数据并勾选确认"); return; }
+    setSavingImport(true);
+    setStatus("正在保存竞站价格草稿…");
+    try {
+      const response = await dashboardFetch("/api/dashboard-state", { cache: "no-store" });
+      if (!response.ok) throw new Error("无法读取最新草稿，请刷新后重试");
+      const shared = await response.json() as { configs?: Record<string, StationConfig> };
+      if (!shared.configs) throw new Error("草稿配置尚未加载");
+      const next = { ...shared.configs };
+      const grouped = new Map<string, ImportDecision[]>();
+      for (const decision of competitorDecisions) grouped.set(decision.site, [...(grouped.get(decision.site) || []), decision]);
+      for (const [site, decisions] of grouped) {
+        const config = { ...emptyConfig, ...next[site] };
+        const history = readCompetitorHistory(config.competitorsByWeekJson);
+        const oldRoster = safeJson<Competitor[]>(config.competitorsJson, []);
+        const updated = mergeCompetitorWeek(history, competitorImport.week, decisions, clearCompetitorBlanks, oldRoster);
+        const latest = [...Object.keys(updated), ...allWeeks()].sort((a, b) => weekOrderValue(a) - weekOrderValue(b)).at(-1);
+        const aliases = safeJson<string[]>(config.stationAliasesJson, []);
+        const incomingAliases = resolvedCompetitorSites.filter((row) => row.target === site && row.name !== site).map((row) => row.name);
+        next[site] = { ...config, competitorsByWeekJson: JSON.stringify(updated),
+          competitorsJson: competitorImport.week === latest ? JSON.stringify(updated[competitorImport.week]) : config.competitorsJson,
+          stationAliasesJson: JSON.stringify([...new Set([...aliases, ...incomingAliases])]) };
+      }
+      next.__summary__ = { ...emptyConfig, ...next.__summary__, competitorWorkbookVersion } as StationConfig;
+      await save(next);
+      window.dispatchEvent(new Event("dashboard-state-changed"));
+      setCompetitorImport(null);
+      setStatus(`${competitorImport.week}竞站价格已保存至草稿，刷新后可在场站分析查看`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "竞站价格保存失败"); }
+    finally { setSavingImport(false); }
+  };
   return (
     <>
       <div className="page-heading config-head">
@@ -3020,6 +3200,10 @@ function Config({
               onChange={(e) => importFile(e.target.files?.[0])}
             />
             导入周报 Excel
+          </label>}
+          {configSection === "weekly" && <label className="upload-button">
+            <input type="file" accept=".xlsx" onChange={(event) => { void readCompetitorFile(event.target.files?.[0]); event.target.value = ""; }} />
+            导入竞站价格
           </label>}
           {(configSection === "cost" || configSection === "price" || configSection === "profiles") && <button
             className="ghost edit-toggle"
@@ -3151,6 +3335,80 @@ function Config({
       </div>
       </section>
       <section className="data-center-section" hidden={configSection !== "weekly"}>
+      {competitorImport && <div className="cost-panel import-preview competitor-import-preview">
+        <div className="section-head">
+          <div><h3>竞站价格导入预览</h3><p>{competitorImport.filename} · 保存到草稿后，在场站分析按周查看</p></div>
+          <div className="config-actions">
+            <button className="ghost" onClick={() => setCompetitorImport(null)}>取消</button>
+            <button className="save-button" disabled={savingImport || !competitorImport.week ||
+              resolvedCompetitorSites.some((site) => !site.target) ||
+              competitorDecisions.some((row) => row.kind === "pending") ||
+              (competitorWarnings.length > 0 && !confirmedCompetitorWarnings)}
+              onClick={() => void saveCompetitorImport()}>{savingImport ? "保存中…" : "确认保存竞站价格"}</button>
+          </div>
+        </div>
+        <div className="import-counts">
+          <span>场站 <b>{resolvedCompetitorSites.length}</b></span>
+          <span>匹配 <b>{competitorDecisions.filter((row) => row.kind === "matched").length}</b></span>
+          <span>新增 <b>{competitorDecisions.filter((row) => row.kind === "new").length}</b></span>
+          <span className="pending">待确认 <b>{resolvedCompetitorSites.filter((site) => !site.target).length + competitorDecisions.filter((row) => row.kind === "pending").length}</b></span>
+          <span className={competitorWarnings.length ? "abnormal" : ""}>异常 <b>{competitorWarnings.length}</b></span>
+        </div>
+        <div className="competitor-import-controls">
+          <label>导入周次 <input value={competitorImport.week} placeholder="如 2026年10月3周" onChange={(event) =>
+            setCompetitorImport({ ...competitorImport, week: event.target.value.trim() })} /></label>
+          <label><input type="checkbox" checked={clearCompetitorBlanks} onChange={(event) => setClearCompetitorBlanks(event.target.checked)} />明确清空本次表中留白的已有字段</label>
+        </div>
+        {resolvedCompetitorSites.filter((site) => !site.target).map((site) => <div className="competitor-import-match" key={site.name}>
+          <b>{site.name}</b><span>请选择对应本站{site.suggested ? `（建议：${site.suggested}）` : ""}</span>
+          <select value={competitorSiteMatches[site.name] || ""} onChange={(event) => setCompetitorSiteMatches((current) => ({ ...current, [site.name]: event.target.value }))}>
+            <option value="">待确认</option>{competitorSiteOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>)}
+        {competitorDecisions.filter((row) => row.kind === "pending").map((row) => {
+          const sourceSite = resolvedCompetitorSites.find((site) => site.target === row.site && site.competitors.includes(row.source));
+          const key = `${sourceSite?.name || row.site}\u0000${row.source.name}`;
+          const options = readCompetitorHistory(cfg[row.site]?.competitorsByWeekJson)[competitorImport.week]
+            || safeJson<Competitor[]>(cfg[row.site]?.competitorsJson, []);
+          return <div className="competitor-import-match" key={key}>
+            <b>{row.site} · {row.source.name}</b><span>{row.note}</span>
+            <select value={competitorNameMatches[key] || ""} onChange={(event) => setCompetitorNameMatches((current) => ({ ...current, [key]: event.target.value }))}>
+              <option value="">待确认</option><option value="__new__">作为新竞站</option>
+              {options.map((option) => <option key={option.name} value={option.name}>匹配：{option.name}</option>)}
+            </select>
+          </div>;
+        })}
+        {competitorWarnings.length > 0 && <div className="validation-report">
+          <div className="validation-report-head"><b>异常数据 · {competitorWarnings.length}</b></div>
+          <div className="validation-issues">{competitorWarnings.map((warning, index) => <div className="warning" key={index}>{warning}</div>)}</div>
+          <label><input type="checkbox" checked={confirmedCompetitorWarnings} onChange={(event) => setConfirmedCompetitorWarnings(event.target.checked)} />已核对异常，仍保存可识别数据</label>
+        </div>}
+        <details className="data-disclosure" open><summary>更新明细 <span>点击收起或展开</span></summary>
+          <div className="import-preview-table"><table><thead><tr><th>本站 / 周边竞站</th><th>状态</th><th>枪数 / 距离</th><th>尖 / 峰 / 平 / 谷总价（元/度）</th><th>价格变化</th></tr></thead><tbody>
+          {competitorDecisions.map((decision, index) => {
+            const history = readCompetitorHistory(cfg[decision.site]?.competitorsByWeekJson);
+            const weeks = [...new Set([...allWeeks(), ...Object.keys(history), competitorImport.week])].sort((a, b) => weekOrderValue(a) - weekOrderValue(b));
+            const previous = history[weeks[weeks.indexOf(competitorImport.week) - 1]] || [];
+            const sameWeek = history[competitorImport.week] || [];
+            const basis = sameWeek.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName))
+              || previous.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName));
+            const effective = decision.kind === "pending" ? undefined : mergeCompetitorWeek(
+              history, competitorImport.week, [decision], clearCompetitorBlanks,
+              safeJson<Competitor[]>(cfg[decision.site]?.competitorsJson, []),
+            )[competitorImport.week].find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName));
+            const imported = effective || decision.source;
+            const priceChanges = (["peak", "high", "flat", "valley"] as const).map((period) => {
+              const now = numericPrice(imported.total?.[period]), then = basis ? numericPrice(basis.total?.[period] ?? basis[period]) : null;
+              return now == null || then == null ? "—" : `${now > then ? "↑" : now < then ? "↓" : "→"}${Math.abs(now - then).toFixed(4)}`;
+            });
+            return <tr key={index}><td><b>{decision.site}</b><br />{imported.name}</td>
+              <td>{decision.kind === "matched" ? "匹配更新" : decision.kind === "new" ? "新增" : "待确认"}</td>
+              <td>{imported.guns || "—"}枪 / {imported.distance || "待补充距离"}</td>
+              <td>{(["peak", "high", "flat", "valley"] as const).map((period) => imported.total?.[period] || "—").join(" / ")}</td>
+              <td>{priceChanges.join(" / ")}</td></tr>;
+          })}</tbody></table></div>
+        </details>
+      </div>}
       {!preview && <div className="cost-panel"><h3>周报数据导入</h3><p>点击右上角“导入周报 Excel”，核对字段、场站及异常后保存草稿。</p></div>}
       {preview && (
         <div className="cost-panel import-preview" id="weekly-data">
