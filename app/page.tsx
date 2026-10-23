@@ -45,8 +45,9 @@ import stationCatalog from "@/data/station-catalog-20261018.json";
 import { operatorChoices, reportingStationNames, scopedStationNames, type StoredWeeklyResult } from "@/lib/weekly-display";
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
-import { withCompetitorWorkbook } from "@/lib/competitor-workbook";
+import { withCompetitorWorkbook, competitorWorkbookVersion } from "@/lib/competitor-workbook";
 import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
+import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCompetitorMatches, weekFromCompetitorFilename, type ImportDecision } from "@/lib/competitor-import";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
@@ -346,6 +347,34 @@ type ImportRecognition = {
   ignoredColumns: string[];
 };
 type WorkbookParseResult = { parsed: S[]; recognition: ImportRecognition };
+
+async function parseCompetitorWorkbook(file: File) {
+  let zip: Record<string, Uint8Array>;
+  try { zip = unzipSync(new Uint8Array(await file.arrayBuffer())); }
+  catch { throw new Error("无法读取 Excel，请上传 .xlsx 文件"); }
+  const parser = new DOMParser();
+  const shared = zip["xl/sharedStrings.xml"]
+    ? [...parser.parseFromString(strFromU8(zip["xl/sharedStrings.xml"]), "text/xml").querySelectorAll("si")]
+      .map((si) => [...si.querySelectorAll("t")].map((node) => node.textContent || "").join(""))
+    : [];
+  const sheets = Object.keys(zip).filter((path) => /^xl\/worksheets\/sheet\d+\.xml$/.test(path))
+    .sort((a, b) => Number(a.match(/sheet(\d+)/)?.[1]) - Number(b.match(/sheet(\d+)/)?.[1]))
+    .map((path) => {
+      const rows: Record<string, string>[] = [];
+      parser.parseFromString(strFromU8(zip[path]), "text/xml").querySelectorAll("row").forEach((row) => {
+        const values: Record<string, string> = {};
+        row.querySelectorAll("c").forEach((cell) => {
+          const col = (cell.getAttribute("r") || "").match(/[A-Z]+/)?.[0] || "";
+          const raw = cell.querySelector("v")?.textContent || "";
+          const inline = [...cell.querySelectorAll("is t")].map((node) => node.textContent || "").join("");
+          values[col] = cell.getAttribute("t") === "s" && raw ? shared[Number(raw)] || "" : inline || raw;
+        });
+        rows.push(values);
+      });
+      return { name: path, rows };
+    });
+  return parseCompetitorRows(sheets);
+}
 
 async function parseLegacyWeeklyWorkbook(file: File): Promise<S[]> {
   const zip = unzipSync(new Uint8Array(await file.arrayBuffer())),
@@ -2711,6 +2740,11 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
+    [competitorImport, setCompetitorImport] = useState<{ sites: ReturnType<typeof parseCompetitorRows>; week: string; filename: string } | null>(null),
+    [competitorSiteMatches, setCompetitorSiteMatches] = useState<Record<string, string>>({}),
+    [competitorNameMatches, setCompetitorNameMatches] = useState<Record<string, string>>({}),
+    [clearCompetitorBlanks, setClearCompetitorBlanks] = useState(false),
+    [confirmedCompetitorWarnings, setConfirmedCompetitorWarnings] = useState(false),
     [month, setMonth] = useState(() => String(weekParts(allWeeks().at(-1) || "").month || 10)),
     [dataStation, setDataStation] = useState(stations[0]?.name || ""),
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
@@ -3056,6 +3090,89 @@ function Config({
         setStatus(error instanceof Error ? error.message : "分析发布失败");
       }
     };
+  const readCompetitorFile = async (file?: File) => {
+    if (!file) return;
+    setStatus("正在识别竞站表…");
+    try {
+      const sites = await parseCompetitorWorkbook(file);
+      setCompetitorImport({ sites, week: weekFromCompetitorFilename(file.name), filename: file.name });
+      setCompetitorSiteMatches({});
+      setCompetitorNameMatches({});
+      setClearCompetitorBlanks(false);
+      setConfirmedCompetitorWarnings(false);
+      setStatus(`已识别 ${sites.length} 个场站，${sites.reduce((sum, site) => sum + site.competitors.length, 0)} 条竞站记录；请核对周次和预览`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "竞站表读取失败"); }
+  };
+  const savedAliases = Object.fromEntries(stations.flatMap((station) =>
+    safeJson<string[]>(({ ...emptyConfig, ...cfg[station.name] }).stationAliasesJson, []).map((alias) => [competitorIdentity(alias), station.name])));
+  const competitorSiteOptions = stations.map((station) => station.name);
+  const resolvedCompetitorSites = competitorImport?.sites.map((site) => {
+    const exact = competitorSiteOptions.find((name) => competitorIdentity(name) === competitorIdentity(site.name));
+    const builtIn = competitorIdentity(site.name) === competitorIdentity("蔚景云汉城酒店充电站") ? "蔚景云汉诚酒店充电站" : "";
+    const target = competitorSiteMatches[site.name] || exact || savedAliases[competitorIdentity(site.name)] || builtIn;
+    const suggested = target ? undefined : matchStationNames([site.name], competitorSiteOptions)[0];
+    return { ...site, target: competitorSiteOptions.includes(target) ? target : "", suggested: suggested?.status === "pending" ? suggested.dashboardName : "" };
+  }) || [];
+  const competitorDecisions = resolvedCompetitorSites.flatMap((site) => {
+    if (!site.target) return [];
+    const config = { ...emptyConfig, ...cfg[site.target] };
+    const stored = readCompetitorHistory(config.competitorsByWeekJson)[competitorImport?.week || ""];
+    const roster = stored || safeJson<Competitor[]>(config.competitorsJson, []);
+    return proposeCompetitorMatches(site.target, site.competitors, roster).map((decision) => {
+      const override = competitorNameMatches[`${site.name}\u0000${decision.source.name}`];
+      return override === "__new__" ? { ...decision, kind: "new" as const, targetName: decision.source.name }
+        : override ? { ...decision, kind: "matched" as const, targetName: override } : decision;
+    });
+  });
+  const duplicateCompetitors = new Map<string, ImportDecision>();
+  const competitorWarnings = [
+    ...resolvedCompetitorSites.flatMap((site) => site.warnings.map((warning) => `${site.name}：${warning}`)),
+    ...competitorDecisions.flatMap((decision) => {
+      const key = `${decision.site}\u0000${competitorIdentity(decision.targetName)}`;
+      const earlier = duplicateCompetitors.get(key);
+      duplicateCompetitors.set(key, decision);
+      return earlier && (earlier.source.guns !== decision.source.guns ||
+        ["peak", "high", "flat", "valley"].some((period) => earlier.source.total?.[period as keyof PeriodPrice] !== decision.source.total?.[period as keyof PeriodPrice]))
+        ? [`${decision.site} · ${decision.source.name} 在表中重复且枪数或价格不同；将按后出现的记录更新，请确认`] : [];
+    }),
+  ];
+  const saveCompetitorImport = async () => {
+    if (!competitorImport) return;
+    if (!/^(?:20\d{2})年(?:[1-9]|1[0-2])月[1-5]周$/.test(competitorImport.week)) { setStatus("请先选择正确的导入周次"); return; }
+    if (resolvedCompetitorSites.some((site) => !site.target) || competitorDecisions.some((decision) => decision.kind === "pending")) {
+      setStatus("请先确认所有场站和名称相近的竞站"); return;
+    }
+    if (competitorWarnings.length && !confirmedCompetitorWarnings) { setStatus("请核对异常数据并勾选确认"); return; }
+    setSavingImport(true);
+    setStatus("正在保存竞站价格草稿…");
+    try {
+      const response = await dashboardFetch("/api/dashboard-state", { cache: "no-store" });
+      if (!response.ok) throw new Error("无法读取最新草稿，请刷新后重试");
+      const shared = await response.json() as { configs?: Record<string, StationConfig> };
+      if (!shared.configs) throw new Error("草稿配置尚未加载");
+      const next = { ...shared.configs };
+      const grouped = new Map<string, ImportDecision[]>();
+      for (const decision of competitorDecisions) grouped.set(decision.site, [...(grouped.get(decision.site) || []), decision]);
+      for (const [site, decisions] of grouped) {
+        const config = { ...emptyConfig, ...next[site] };
+        const history = readCompetitorHistory(config.competitorsByWeekJson);
+        const oldRoster = safeJson<Competitor[]>(config.competitorsJson, []);
+        const updated = mergeCompetitorWeek(history, competitorImport.week, decisions, clearCompetitorBlanks, oldRoster);
+        const latest = [...Object.keys(updated), ...allWeeks()].sort((a, b) => weekOrderValue(a) - weekOrderValue(b)).at(-1);
+        const aliases = safeJson<string[]>(config.stationAliasesJson, []);
+        const incomingAliases = resolvedCompetitorSites.filter((row) => row.target === site && row.name !== site).map((row) => row.name);
+        next[site] = { ...config, competitorsByWeekJson: JSON.stringify(updated),
+          competitorsJson: competitorImport.week === latest ? JSON.stringify(updated[competitorImport.week]) : config.competitorsJson,
+          stationAliasesJson: JSON.stringify([...new Set([...aliases, ...incomingAliases])]) };
+      }
+      next.__summary__ = { ...emptyConfig, ...next.__summary__, competitorWorkbookVersion } as StationConfig;
+      await save(next);
+      window.dispatchEvent(new Event("dashboard-state-changed"));
+      setCompetitorImport(null);
+      setStatus(`${competitorImport.week}竞站价格已保存至草稿，刷新后可在场站分析查看`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "竞站价格保存失败"); }
+    finally { setSavingImport(false); }
+  };
   return (
     <>
       <div className="page-heading config-head">
@@ -3072,6 +3189,10 @@ function Config({
               onChange={(e) => importFile(e.target.files?.[0])}
             />
             导入周报 Excel
+          </label>}
+          {configSection === "weekly" && <label className="upload-button">
+            <input type="file" accept=".xlsx" onChange={(event) => { void readCompetitorFile(event.target.files?.[0]); event.target.value = ""; }} />
+            导入竞站价格
           </label>}
           {(configSection === "cost" || configSection === "price" || configSection === "profiles") && <button
             className="ghost edit-toggle"
@@ -3203,6 +3324,76 @@ function Config({
       </div>
       </section>
       <section className="data-center-section" hidden={configSection !== "weekly"}>
+      {competitorImport && <div className="cost-panel import-preview competitor-import-preview">
+        <div className="section-head">
+          <div><h3>竞站价格导入预览</h3><p>{competitorImport.filename} · 保存到草稿后，在场站分析按周查看</p></div>
+          <div className="config-actions">
+            <button className="ghost" onClick={() => setCompetitorImport(null)}>取消</button>
+            <button className="save-button" disabled={savingImport || !competitorImport.week ||
+              resolvedCompetitorSites.some((site) => !site.target) ||
+              competitorDecisions.some((row) => row.kind === "pending") ||
+              (competitorWarnings.length > 0 && !confirmedCompetitorWarnings)}
+              onClick={() => void saveCompetitorImport()}>{savingImport ? "保存中…" : "确认保存竞站价格"}</button>
+          </div>
+        </div>
+        <div className="import-counts">
+          <span>场站 <b>{resolvedCompetitorSites.length}</b></span>
+          <span>匹配 <b>{competitorDecisions.filter((row) => row.kind === "matched").length}</b></span>
+          <span>新增 <b>{competitorDecisions.filter((row) => row.kind === "new").length}</b></span>
+          <span className="pending">待确认 <b>{resolvedCompetitorSites.filter((site) => !site.target).length + competitorDecisions.filter((row) => row.kind === "pending").length}</b></span>
+          <span className={competitorWarnings.length ? "abnormal" : ""}>异常 <b>{competitorWarnings.length}</b></span>
+        </div>
+        <div className="competitor-import-controls">
+          <label>导入周次 <input value={competitorImport.week} placeholder="如 2026年10月3周" onChange={(event) =>
+            setCompetitorImport({ ...competitorImport, week: event.target.value.trim() })} /></label>
+          <label><input type="checkbox" checked={clearCompetitorBlanks} onChange={(event) => setClearCompetitorBlanks(event.target.checked)} />明确清空本次表中留白的已有字段</label>
+        </div>
+        {resolvedCompetitorSites.filter((site) => !site.target).map((site) => <div className="competitor-import-match" key={site.name}>
+          <b>{site.name}</b><span>请选择对应本站{site.suggested ? `（建议：${site.suggested}）` : ""}</span>
+          <select value={competitorSiteMatches[site.name] || ""} onChange={(event) => setCompetitorSiteMatches((current) => ({ ...current, [site.name]: event.target.value }))}>
+            <option value="">待确认</option>{competitorSiteOptions.map((name) => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>)}
+        {competitorDecisions.filter((row) => row.kind === "pending").map((row) => {
+          const sourceSite = resolvedCompetitorSites.find((site) => site.target === row.site && site.competitors.includes(row.source));
+          const key = `${sourceSite?.name || row.site}\u0000${row.source.name}`;
+          const options = readCompetitorHistory(cfg[row.site]?.competitorsByWeekJson)[competitorImport.week]
+            || safeJson<Competitor[]>(cfg[row.site]?.competitorsJson, []);
+          return <div className="competitor-import-match" key={key}>
+            <b>{row.site} · {row.source.name}</b><span>{row.note}</span>
+            <select value={competitorNameMatches[key] || ""} onChange={(event) => setCompetitorNameMatches((current) => ({ ...current, [key]: event.target.value }))}>
+              <option value="">待确认</option><option value="__new__">作为新竞站</option>
+              {options.map((option) => <option key={option.name} value={option.name}>匹配：{option.name}</option>)}
+            </select>
+          </div>;
+        })}
+        {competitorWarnings.length > 0 && <div className="validation-report">
+          <div className="validation-report-head"><b>异常数据 · {competitorWarnings.length}</b></div>
+          <div className="validation-issues">{competitorWarnings.map((warning, index) => <div className="warning" key={index}>{warning}</div>)}</div>
+          <label><input type="checkbox" checked={confirmedCompetitorWarnings} onChange={(event) => setConfirmedCompetitorWarnings(event.target.checked)} />已核对异常，仍保存可识别数据</label>
+        </div>}
+        <details className="data-disclosure" open><summary>更新明细 <span>点击收起或展开</span></summary>
+          <div className="import-preview-table"><table><thead><tr><th>本站 / 周边竞站</th><th>状态</th><th>枪数 / 距离</th><th>尖 / 峰 / 平 / 谷总价（元/度）</th><th>价格变化</th></tr></thead><tbody>
+          {competitorDecisions.map((decision, index) => {
+            const history = readCompetitorHistory(cfg[decision.site]?.competitorsByWeekJson);
+            const weeks = [...new Set([...allWeeks(), ...Object.keys(history), competitorImport.week])].sort((a, b) => weekOrderValue(a) - weekOrderValue(b));
+            const previous = history[weeks[weeks.indexOf(competitorImport.week) - 1]] || [];
+            const sameWeek = history[competitorImport.week] || [];
+            const basis = sameWeek.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName))
+              || previous.find((row) => competitorIdentity(row.name) === competitorIdentity(decision.targetName));
+            const imported = decision.source;
+            const priceChanges = (["peak", "high", "flat", "valley"] as const).map((period) => {
+              const now = numericPrice(imported.total?.[period]), then = basis ? numericPrice(basis.total?.[period] ?? basis[period]) : null;
+              return now == null || then == null ? "—" : `${now > then ? "↑" : now < then ? "↓" : "→"}${Math.abs(now - then).toFixed(4)}`;
+            });
+            return <tr key={index}><td><b>{decision.site}</b><br />{imported.name}</td>
+              <td>{decision.kind === "matched" ? "匹配更新" : decision.kind === "new" ? "新增" : "待确认"}</td>
+              <td>{imported.guns || "—"}枪 / {imported.distance || "沿用已有距离"}</td>
+              <td>{(["peak", "high", "flat", "valley"] as const).map((period) => imported.total?.[period] || "—").join(" / ")}</td>
+              <td>{priceChanges.join(" / ")}</td></tr>;
+          })}</tbody></table></div>
+        </details>
+      </div>}
       {!preview && <div className="cost-panel"><h3>周报数据导入</h3><p>点击右上角“导入周报 Excel”，核对字段、场站及异常后保存草稿。</p></div>}
       {preview && (
         <div className="cost-panel import-preview" id="weekly-data">
