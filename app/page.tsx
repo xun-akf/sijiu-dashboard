@@ -2060,10 +2060,15 @@ function CompetitorEditor({
   const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
   const keys = ["peak", "high", "flat", "valley"] as const;
   const labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" };
-  const ownE = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {})[week]
-    || (week === stationWeek ? resolveWeeklyPrice(cfg.electricityPricesJson, week) : blankPrice());
-  const ownS = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {})[week]
-    || (week === stationWeek ? resolveWeeklyPrice(cfg.servicePricesJson, week) : blankPrice());
+  const ownElectricityWeeks = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {});
+  const ownServiceWeeks = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {});
+  const ownE = resolveWeeklyPrice(cfg.electricityPricesJson, week);
+  const ownS = resolveWeeklyPrice(cfg.servicePricesJson, week);
+  const latestConfiguredWeek = (prices: Record<string, PeriodPrice>) => Object.keys(prices)
+    .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
+  const ownElectricityOrigin = latestConfiguredWeek(ownElectricityWeeks);
+  const ownServiceOrigin = latestConfiguredWeek(ownServiceWeeks);
   const hasSplitOwnPrice = [...Object.values(ownE), ...Object.values(ownS)].some(
     (value) => Number(value) > 0,
   );
@@ -2075,7 +2080,7 @@ function CompetitorEditor({
       8,
       Math.max(left.split(".")[1]?.length || 0, right.split(".")[1]?.length || 0),
     );
-    return total.toFixed(decimals).replace(/\.?0+$/, "");
+    return decimals ? total.toFixed(decimals).replace(/\.?0+$/, "") : total.toFixed(0);
   };
   const ownT: PeriodPrice = hasSplitOwnPrice
     ? {
@@ -2090,14 +2095,13 @@ function CompetitorEditor({
         flat: cfg.weeklyFlat,
         valley: cfg.weeklyValley,
       } : blankPrice();
-  const explicitOwnPrice = (selectedWeek: string): PeriodPrice | null => {
-    const e = safeJson<Record<string, PeriodPrice>>(cfg.electricityPricesJson, {})[selectedWeek];
-    const s = safeJson<Record<string, PeriodPrice>>(cfg.servicePricesJson, {})[selectedWeek];
-    if (!e || !s) return null;
+  const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
+    const e = resolveWeeklyPrice(cfg.electricityPricesJson, selectedWeek);
+    const s = resolveWeeklyPrice(cfg.servicePricesJson, selectedWeek);
     return Object.fromEntries(keys.map((key) => [key, addRawPrice(e[key], s[key])])) as PeriodPrice;
   };
   const advantageChange = competitorAdvantageChange(
-    history[week] || [], previousCompetitors, explicitOwnPrice(week), priorWeek ? explicitOwnPrice(priorWeek) : null,
+    history[week] || [], previousCompetitors, effectiveOwnPrice(week), priorWeek ? effectiveOwnPrice(priorWeek) : null,
   );
   const [sortBy, setSortBy] = useState<"distance" | "low" | "high" | "diff">(
     "distance",
@@ -2154,10 +2158,7 @@ function CompetitorEditor({
       };
     })
     .filter((x) => x.c.name);
-  const pricedRows = rows.filter((row) => row.average != null),
-    competitorAverage = pricedRows.length
-    ? pricedRows.reduce((sum, row) => sum + num(row.average), 0) / pricedRows.length
-    : null;
+  const pricedRows = rows.filter((row) => row.average != null);
   const rankValues = [ownAverage, ...rows.map((row) => row.average)]
     .filter((v): v is number => v != null)
     .sort((a, b) => a - b);
@@ -2169,9 +2170,12 @@ function CompetitorEditor({
   const nearestRow = [...rows]
     .filter((row) => Number.isFinite(row.distance))
     .sort((a, b) => a.distance - b.distance)[0];
-  const advantage = competitorAverage != null && ownAverage != null
-    ? competitorAverage - ownAverage
-    : null;
+  const comparableRows = rows.filter((row): row is typeof row & { diff: number } => row.diff != null);
+  const advantage = comparableRows.length
+    ? comparableRows.reduce((sum, row) => sum + row.diff, 0) / comparableRows.length : null;
+  const cheaperThan = comparableRows.filter((row) => row.diff > 0.00005).length;
+  const dearerThan = comparableRows.filter((row) => row.diff < -0.00005).length;
+  const nearPrice = comparableRows.length - cheaperThan - dearerThan;
   const competition =
     advantage == null ? "待补充价格" : advantage > 0.05 ? "较强" : advantage < -0.03 ? "较弱" : "接近";
   const sorted = [...rows]
@@ -2371,6 +2375,13 @@ function CompetitorEditor({
               : "≈ 本站价格与周边平均水平接近"}
         </p>
       </div>
+      <div className="competitor-week-change" aria-label="当前价格优势">
+        <b>本站现价 vs 本周竞站新价</b>
+        <span>{advantage == null ? "暂无可比数据" :
+          `本站低于 ${cheaperThan} 家、高于 ${dearerThan} 家、同价 ${nearPrice} 家；${advantage >= 0 ? "平均低" : "平均高"} ${Math.abs(advantage).toFixed(4)} 元/度`}</span>
+        {(ownElectricityOrigin && ownElectricityOrigin !== week || ownServiceOrigin && ownServiceOrigin !== week) &&
+          <span>本站沿用电费 {ownElectricityOrigin || "未配置"}、服务费 {ownServiceOrigin || "未配置"} 的有效价格</span>}
+      </div>
       <div className="competitor-week-change" aria-label="竞站价格周度变化">
         <b>本周对比上周 · 可比时段均价</b>
         {changes.comparable ? <>
@@ -2383,7 +2394,7 @@ function CompetitorEditor({
         </> : <span>暂无可比数据</span>}
         {!history[week] && week === latestWeek && <span>现有价格尚未记录周次，编辑价格后建立本周记录</span>}
         <span className={advantageChange == null ? "" : advantageChange > 0.00005 ? "up" : advantageChange < -0.00005 ? "down" : ""}>
-          本站价格优势：{advantageChange == null ? "暂无可比数据" : advantageChange > 0.00005 ? `增强 ${advantageChange.toFixed(4)} 元/度` : advantageChange < -0.00005 ? `减弱 ${Math.abs(advantageChange).toFixed(4)} 元/度` : "基本持平"}
+          优势较上周：{advantageChange == null ? "暂无可比数据" : advantageChange > 0.00005 ? `增强 ${advantageChange.toFixed(4)} 元/度` : advantageChange < -0.00005 ? `减弱 ${Math.abs(advantageChange).toFixed(4)} 元/度` : "基本持平"}
         </span>
       </div>
       <div className="competitor-table">
