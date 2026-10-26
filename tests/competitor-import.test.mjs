@@ -43,3 +43,16 @@ test('similar competitor name requires confirmation, while new name can be added
   const saved = mergeCompetitorWeek({}, '2026年10月3周', choices);
   assert.equal(saved['2026年10月3周'].length, 1);
 });
+
+test('own station is never imported as a competitor', () => {
+  const sites = parseCompetitorRows([{ name: '周报', rows: [
+    { A: '本站', B: '周边竞站数据', D: '本站', E: '本站', G: '竞站甲' },
+    {}, { B: '直流设备数量', E: '4', G: '6' }, { B: '距离（m）', G: '500' },
+    { B: '电费', C: '尖段' }, { C: '峰段', E: '0.9', G: '0.8' }, { C: '平段' }, { C: '谷段' },
+    { B: '服务费', C: '尖段' }, { C: '峰段', E: '0.1', G: '0.2' }, { C: '平段' }, { C: '谷段' },
+  ] }]);
+  assert.deepEqual(sites[0].competitors.map((row) => row.name), ['竞站甲']);
+  assert.deepEqual(proposeCompetitorMatches('本站', [price('本站', '0.9'), price('竞站甲', '0.8')], [] ).map((row) => row.targetName), ['竞站甲']);
+  const malicious = [{ site: '本站', source: price('本站', '0.9'), targetName: '本站', kind: 'new' }];
+  assert.deepEqual(mergeCompetitorWeek({}, '2026年10月3周', malicious)['2026年10月3周'], []);
+});
