@@ -46,7 +46,7 @@ import { operatorChoices, reportingStationNames, scopedStationNames, type Stored
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook, competitorWorkbookVersion } from "@/lib/competitor-workbook";
-import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, pricePeriods, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
+import { compareCompetitorWeeks, competitorAdvantageChange, knownCompetitorDistance, numericPrice, pricePeriods, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
 import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCompetitorMatches, weekFromCompetitorFilename, type ImportDecision } from "@/lib/competitor-import";
 import { buildCompetitorOverview } from "@/lib/competitor-overview";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
@@ -2126,7 +2126,8 @@ function CompetitorEditor({
     ...c, peak: "", high: "", flat: "", valley: "",
     electricity: blankPrice(), service: blankPrice(), total: blankPrice(),
   });
-  const competitors = history[week] || (week === latestWeek ? legacyCompetitors : editing ? legacyCompetitors.map(emptyCompetitorPrices) : []);
+  const competitors = (history[week] || (week === latestWeek ? legacyCompetitors : editing ? legacyCompetitors.map(emptyCompetitorPrices) : []))
+    .map((row) => ({ ...row, distance: row.distance || knownCompetitorDistance(history, row.name, legacyCompetitors) }));
   const priorWeek = availableWeeks[availableWeeks.indexOf(week) - 1];
   const previousCompetitors = priorWeek ? history[priorWeek] : undefined;
   const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
@@ -2522,9 +2523,9 @@ function CompetitorEditor({
                 {keys.map((k) => {
                   const delta = weeklyChange?.periods[k];
                   return <span className="competitor-period-price" key={k}>{price(total[k])}
-                    {delta == null ? <small>暂无可比数据</small> : <small className={delta > 0.00005 ? "up" : delta < -0.00005 ? "down" : ""}>
-                      {delta > 0.00005 ? "↑" : delta < -0.00005 ? "↓" : "→"} {Math.abs(delta).toFixed(4)} 元/度
-                    </small>}
+                    {delta == null ? <small>暂无可比数据</small> : Math.abs(delta) > 0.00005 ? <small className={delta > 0 ? "up" : "down"}>
+                      {delta > 0 ? "↑" : "↓"} {Math.abs(delta).toFixed(4)} 元/度
+                    </small> : null}
                   </span>;
                 })}
                 <span className={state.cls}>
