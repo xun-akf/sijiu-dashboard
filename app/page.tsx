@@ -35,7 +35,7 @@ import { subscribeToDashboardChanges } from "@/lib/dashboard-realtime";
 import { parseImportNumber, validateDashboardData, type ValidationReport } from "@/lib/import-validation";
 import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
-import { calculateOperatingMetrics, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
+import { calculateOperatingMetrics, missingMetricConfigs, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
 import ChargingModePage from "@/components/charging-mode-page";
 import PeriodViews from "@/components/period-views";
 import { ModeImportPanel } from "@/components/mode-import-panel";
@@ -2976,6 +2976,12 @@ function Config({
         // derived. Preserve both actual figures for review instead of silently
         // pricing only the incomplete buckets.
         const touTotal = num(record.peak) + num(record.high) + num(record.flat) + num(record.valley);
+        // For this slow-charging platform, the confirmed source of truth is its
+        // four time-of-use buckets when the source total disagrees.
+        if (stationName === "雅悦蓝天酒店慢充站（地下室负二）"
+          && [record.peak, record.high, record.flat, record.valley].every((value) => value != null)) {
+          record.charge = touTotal;
+        }
         if (record.charge != null && Math.abs(record.charge - touTotal) >= 0.01) {
           record.peakServiceRevenue = null;
           record.highServiceRevenue = null;
@@ -3031,14 +3037,26 @@ function Config({
         const exists = stations.some((station) => station.records.some((record) => record.week === week));
         const report = validateDashboardData(parsed, undefined, { importEnergyOnly: true });
         parsed.forEach((station) => station.records.forEach((record) => {
-          if (record.serviceRevenue == null || record.profit == null) report.issues.push({
+          if (record.serviceRevenue != null && record.profit != null) return;
+          const touTotal = num(record.peak) + num(record.high) + num(record.flat) + num(record.valley);
+          const inconsistentTotal = record.charge != null && Math.abs(record.charge - touTotal) >= 0.01;
+          const missing = missingMetricConfigs(record.week, { ...emptyConfig, ...cfg[station.name] }, cfg.__monthly__ || {});
+          report.issues.push({
             level: "warning",
             station: station.name,
             week: record.week,
             field: "经营指标",
             currentValue: "缺失",
-            reason: "该周缺少可沿用的价格或成本配置，暂时无法生成完整经营数据",
-            suggestion: "先补全该站服务费、售电价格及当月成本，再保存并重算后发布",
+            reason: inconsistentTotal
+              ? `总电量${num(record.charge).toFixed(3)}度与尖峰平谷合计${touTotal.toFixed(3)}度不一致，暂不计算经营指标`
+              : missing.length
+                ? `缺少${missing.join("、")}配置，暂不计算经营指标`
+                : "价格成本配置已齐，但经营指标尚未生成",
+            suggestion: inconsistentTotal
+              ? "核对Excel总电量和分时电量，修正后重新导入"
+              : missing.length
+                ? "补全缺失配置后重新导入并重算"
+                : "重新导入或保存并重算；如仍异常请检查原始电量",
           });
         }));
         if (report.issues.some((issue) => issue.level === "error")) report.status = "error";
