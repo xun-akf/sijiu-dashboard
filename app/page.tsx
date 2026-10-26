@@ -238,11 +238,14 @@ const colIndex = (col: string) =>
   [...col].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0);
 const DEFAULT_COSTS: Record<string, Record<string, PeriodPrice>> = {};
 const DEFAULT_GRID_FEES: Record<string, string> = {};
+let initialSharedConfigs: Record<string, StationConfig> | null = null;
 function useConfigs() {
-  const [cfg, setCfg] = useState<Record<string, StationConfig>>({});
-  const [loaded, setLoaded] = useState(false);
+  const isOperator = useContext(OperatorContext);
+  const [cfg, setCfg] = useState<Record<string, StationConfig>>(() =>
+    initialSharedConfigs ? (isOperator ? withCompetitorWorkbook(initialSharedConfigs) : initialSharedConfigs) : {});
+  const [loaded, setLoaded] = useState(Boolean(initialSharedConfigs));
   const lastLoadedConfig = useRef<string | null>(null);
-  const operatorDraft = useRef(false);
+  const operatorDraft = useRef(isOperator);
   useEffect(() => {
     let live = true;
     const refresh = () => Promise.all([
@@ -263,11 +266,11 @@ function useConfigs() {
             setCfg(configs);
           }
         }
-        if (live) setLoaded(true);
+        if (live) setLoaded(Boolean(shared.configs));
       })
       .catch((error) => {
         console.warn("暂时使用内置配置", error);
-        if (live) setLoaded(true);
+        if (live && !initialSharedConfigs) setLoaded(false);
       });
     void refresh();
     const handleRealtimeChange = () => void refresh();
@@ -280,6 +283,7 @@ function useConfigs() {
         lastLoadedConfig.current = serialized;
         setCfg(next);
       }
+      setLoaded(true);
     };
     window.addEventListener("dashboard-state-changed", handleRealtimeChange);
     window.addEventListener("dashboard-remote-configs", handleRemoteState);
@@ -684,6 +688,7 @@ export default function Home() {
     [publishReport, setPublishReport] = useState<ValidationReport | null>(null),
     [showPublishIssues, setShowPublishIssues] = useState(false),
     [loading, setLoading] = useState(true),
+    [loadError, setLoadError] = useState(false),
     [realtimeStatus, setRealtimeStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
   const lastLoadedData = useRef<string | null>(null);
   const lastLoadedSharedConfigs = useRef<string | null>(null);
@@ -719,9 +724,10 @@ export default function Home() {
           setAdmin(access.role === "operator");
         }
         const stateResponse = await dashboardFetch("/api/dashboard-state", { cache: "no-store" });
-        const shared = stateResponse.ok
-          ? await stateResponse.json() as { stationData?: S[]; meta?: AdminMeta } & PartnerBrand
-          : {};
+        if (!stateResponse.ok) throw new Error("共享数据读取失败");
+        const shared = await stateResponse.json() as { stationData?: S[]; configs?: Record<string, StationConfig>; meta?: AdminMeta } & PartnerBrand;
+        if (!shared.stationData?.length || !shared.configs) throw new Error("共享数据不完整");
+        initialSharedConfigs = shared.configs;
         if (live && shared.stationData?.length) {
           lastLoadedData.current = JSON.stringify(shared.stationData);
           setStationData(shared.stationData);
@@ -732,6 +738,7 @@ export default function Home() {
         if (live && shared.reportName) setPartnerBrand({ operator: shared.operator, operatorName: shared.operatorName, reportName: shared.reportName });
       } catch (error) {
         console.warn("数据库暂不可用", error);
+        if (live) setLoadError(true);
       } finally {
         if (live) setLoading(false);
       }
@@ -881,6 +888,13 @@ export default function Home() {
         <div className="text-center"><RefreshCw className="mx-auto mb-3 animate-spin text-[#35d7a5]" /><p>正在读取周报数据…</p></div>
       </main>
     );
+  }
+  if (loadError) {
+    return <main className="min-h-screen bg-[#061c16] text-[#b6d0c6] flex items-center justify-center px-6">
+      <div className="text-center"><p className="mb-4">暂时无法读取已保存的看板数据，请重试。</p>
+        <button className="rounded-lg bg-[#1b7158] px-5 py-2 text-white" onClick={() => window.location.reload()}>重新读取</button>
+      </div>
+    </main>;
   }
   return (
     <OperatorContext.Provider value={admin}>
