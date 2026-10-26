@@ -46,8 +46,9 @@ import { operatorChoices, reportingStationNames, scopedStationNames, type Stored
 import { isAcceptanceDashboard } from "@/lib/site-state";
 import { dashboardClient } from "@/lib/dashboard-browser";
 import { withCompetitorWorkbook, competitorWorkbookVersion } from "@/lib/competitor-workbook";
-import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
+import { compareCompetitorWeeks, competitorAdvantageChange, numericPrice, pricePeriods, readCompetitorHistory, saveCompetitorWeek } from "@/lib/competitor-history";
 import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCompetitorMatches, weekFromCompetitorFilename, type ImportDecision } from "@/lib/competitor-import";
+import { buildCompetitorOverview } from "@/lib/competitor-overview";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
@@ -976,7 +977,7 @@ export default function Home() {
         </div>}
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
         {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
-        {view === "station" && periodType === "week" && !noWeeklyHistory && (
+        {view === "station" && periodType === "week" && (
           <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
         )}{" "}
         {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} onStationSelect={openStationAnalysis} />}{" "}
@@ -1664,7 +1665,26 @@ function StationAnalysis({
     [originalCompetitors, setOriginalCompetitors] = useState<string | null>(null),
     [originalCompetitorHistory, setOriginalCompetitorHistory] = useState<string | null>(null),
     [totalChargeOnly, setTotalChargeOnly] = useState(false),
+    [showAllCompetitorChanges, setShowAllCompetitorChanges] = useState(false),
+    [jumpToCompetitor, setJumpToCompetitor] = useState(""),
     [saved, setSaved] = useState(false);
+  const competitorOverview = useMemo(() => buildCompetitorOverview(
+    cfg, stations.map((station) => station.name), allWeeks(),
+  ), [cfg, isAll]);
+  const changedCompetitors = competitorOverview.items.filter((item) =>
+    item.status === "rising" || item.status === "falling" || item.status === "mixed");
+  useEffect(() => {
+    if (isAll || !jumpToCompetitor || jumpToCompetitor !== sn) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById("station-competitor-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setJumpToCompetitor("");
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isAll, jumpToCompetitor, sn]);
+  const openCompetitorStation = (name: string) => {
+    setJumpToCompetitor(name);
+    setSn(name);
+  };
   const updateWeekContext = (field: "weatherByWeekJson" | "eventByWeekJson", values: Record<string, string>, value: string) => {
     update(selected.name, field, JSON.stringify({ ...values, [selectedWeek]: value }));
   };
@@ -1684,7 +1704,45 @@ function StationAnalysis({
           <span className="eyebrow">{isAll ? "全场站经营汇总" : "单站经营画像"}</span>
           <h2>{isAll ? `全部场站（${stations.length}个有效场站）` : selected.name}</h2>
           {isAll ? (
-            <div className="station-meta"><span>按周汇总全部有效场站</span><span>单度指标按汇总数据重新计算</span></div>
+            <section className="all-competitor-overview" aria-label="周边竞站价格变化">
+              <div className="all-competitor-overview-head">
+                <b>周边竞站价格变化</b>
+                <small>{competitorOverview.week ? `${competitorOverview.week} 对比 ${competitorOverview.previousWeek || "上周"}` : "暂无竞站周度记录"}</small>
+                <span className="up">↑ 涨价 {competitorOverview.rising}</span>
+                <span className="down">↓ 降价 {competitorOverview.falling}</span>
+                <span>→ 持平 {competitorOverview.steady}</span>
+                {competitorOverview.mixed > 0 && <span>↕ 双向调整 {competitorOverview.mixed}</span>}
+              </div>
+              {changedCompetitors.length ? <>
+                <div className="all-competitor-change-list">
+                  {(showAllCompetitorChanges ? changedCompetitors : changedCompetitors.slice(0, 4)).map((item) =>
+                    <button type="button" key={item.name} onClick={() => openCompetitorStation(item.stations[0])}
+                      title={`查看 ${item.stations.join("、")} 的竞站详情`}>
+                      <span className="station-label">{item.stations.join("、")}</span>
+                      <strong>{item.name}</strong>
+                      <span className="period-deltas">{pricePeriods.flatMap((period) => {
+                        const delta = item.periods[period];
+                        if (delta == null || Math.abs(delta) <= 0.00005) return [];
+                        const label = { peak: "尖", high: "峰", flat: "平", valley: "谷" }[period];
+                        return [<em key={period} className={delta > 0 ? "up" : "down"}>
+                          {label}{delta > 0 ? "↑" : "↓"}{Math.abs(delta).toFixed(4)} 元/度
+                        </em>];
+                      })}</span>
+                    </button>)}
+                </div>
+                {changedCompetitors.length > 4 && <button type="button" className="all-competitor-expand"
+                  onClick={() => setShowAllCompetitorChanges((value) => !value)}>
+                  {showAllCompetitorChanges ? "收起" : `展开其余 ${changedCompetitors.length - 4} 个变化`}
+                </button>}
+              </> : <span className="all-competitor-empty">{competitorOverview.week && competitorOverview.previousWeek
+                ? "本周暂无可核实的竞站调价" : "暂无可比数据"}</span>}
+              {(competitorOverview.unavailable > 0 || competitorOverview.conflict > 0) &&
+                <small className="all-competitor-note">
+                  {competitorOverview.unavailable > 0 && `${competitorOverview.unavailable} 个竞站暂无可比数据`}
+                  {competitorOverview.unavailable > 0 && competitorOverview.conflict > 0 && " · "}
+                  {competitorOverview.conflict > 0 && `${competitorOverview.conflict} 个同名竞站价格记录不一致，待核对`}
+                </small>}
+            </section>
           ) : editing ? (
             <div className="inline-edit">
               <input
@@ -1839,7 +1897,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
-      {!isAll && <StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} />}
+      {!isAll && <div id="station-competitor-detail"><StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} /></div>}
     </>
   );
 }
