@@ -1,5 +1,5 @@
 import type { CompetitorPrice, CompetitorHistory, PeriodPrices } from "./competitor-history.ts";
-import { competitorTotal, pricePeriods } from "./competitor-history.ts";
+import { competitorTotal, knownCompetitorDistance, pricePeriods } from "./competitor-history.ts";
 
 export type WorkbookRows = { name: string; rows: Record<string, string>[] };
 export type ImportedCompetitorSite = { name: string; competitors: CompetitorPrice[]; warnings: string[] };
@@ -117,7 +117,7 @@ export function mergeCompetitorWeek(
     const metadata = prior || metadataFallback.find((row) => competitorIdentity(row.name) === competitorIdentity(targetName));
     const next: CompetitorPrice = {
       ...prior, ...source, name: prior?.name || targetName,
-      distance: source.distance || (clearBlanks ? "" : existingDistanceMeters(metadata?.distance || "")),
+      distance: source.distance || (clearBlanks ? "" : existingDistanceMeters(knownCompetitorDistance(history, targetName, metadataFallback) || metadata?.distance || "")),
       guns: source.guns || (clearBlanks ? "" : metadata?.guns || ""),
       electricity: clearBlanks ? source.electricity : fillPrices(source.electricity, prior?.electricity),
       service: clearBlanks ? source.service : fillPrices(source.service, prior?.service),
