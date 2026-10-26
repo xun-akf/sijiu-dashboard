@@ -53,7 +53,8 @@ export function parseCompetitorRows(sheets: WorkbookRows[]): ImportedCompetitorS
     const competitors: CompetitorPrice[] = [];
     for (let index = 5; index <= 18; index += 2) {
       const col = column(index), competitorName = clean(heading[col]);
-      if (!competitorName || competitorName === "竞站ID" || competitorName.toLowerCase() === "s") continue;
+      if (!competitorName || competitorName === "竞站ID" || competitorName.toLowerCase() === "s"
+        || competitorIdentity(competitorName) === competitorIdentity(name)) continue;
       const e = {} as PeriodPrices, s = {} as PeriodPrices, total = {} as PeriodPrices;
       for (const [offset, period] of pricePeriods.entries()) {
         const label = `${competitorName}·${period}`;
@@ -87,7 +88,7 @@ export type ImportDecision = { site: string; source: CompetitorPrice; targetName
 export function proposeCompetitorMatches(site: string, incoming: CompetitorPrice[], current: CompetitorPrice[]): ImportDecision[] {
   const byName = new Map(current.map((row) => [competitorIdentity(row.name), row.name]));
   const core = (name: string) => competitorIdentity(name).replace(/(超充站|快充站|慢充站|充电站)$/, "");
-  return incoming.map((source) => {
+  return incoming.filter((source) => competitorIdentity(source.name) !== competitorIdentity(site)).map((source) => {
     const exact = byName.get(competitorIdentity(source.name));
     if (exact) return { site, source, targetName: exact, kind: "matched" };
     const prefix = current.filter((row) => {
@@ -106,8 +107,11 @@ export function mergeCompetitorWeek(
 ): CompetitorHistory {
   const existing = history[week] || [];
   const rows = existing.map((row) => ({ ...row }));
-  for (const { source, targetName, kind } of decisions) {
-    if (kind === "pending") continue;
+  for (const { site, source, targetName, kind } of decisions) {
+    // Imported sheets may repeat the own station among competitor columns.
+    // Never turn it into a competitor, even after a manual name match.
+    if (kind === "pending" || competitorIdentity(source.name) === competitorIdentity(site)
+      || competitorIdentity(targetName) === competitorIdentity(site)) continue;
     const index = rows.findIndex((row) => competitorIdentity(row.name) === competitorIdentity(targetName));
     const prior = index >= 0 ? rows[index] : undefined;
     const metadata = prior || metadataFallback.find((row) => competitorIdentity(row.name) === competitorIdentity(targetName));
