@@ -17,6 +17,13 @@ export function readCompetitorHistory(raw?: string): CompetitorHistory {
   } catch { return {}; }
 }
 
+/** Distance is site metadata, so a blank weekly import inherits a known value. */
+export function knownCompetitorDistance(history: CompetitorHistory, name: string, fallback: CompetitorPrice[] = []): string {
+  const identity = (value: string) => value.trim().toLowerCase().replace(/[\\s\\-—_（）()【】\\[\\]·]/g, "");
+  const rows = [...Object.values(history).reverse().flat(), ...fallback];
+  return rows.find((row) => identity(row.name) === identity(name) && row.distance?.trim())?.distance || "";
+}
+
 export function saveCompetitorWeek(history: CompetitorHistory, week: string, rows: CompetitorPrice[]): CompetitorHistory {
   return { ...history, [week]: rows };
 }
