@@ -14,7 +14,7 @@ begin
   update public.dashboard_station_profiles p set published=exists (
     select 1 from public.dashboard_state s cross join lateral jsonb_array_elements(s.value) station
     where s.key='station_data_published' and station->>'name'=p.station_name
-  );
+  ) where p.station_name is not null;
   update public.dashboard_tariff_versions t set published=p.published
     from public.dashboard_station_profiles p where t.station_name=p.station_name;
   update public.dashboard_station_energy_calendar c set published=p.published
