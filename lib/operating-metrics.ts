@@ -30,6 +30,15 @@ export function normalizeTouPrice(price: TouPrice): TouPrice {
 }
 
 export type EnergyRecord = { week: string; charge?: number | null; peak?: number | null; high?: number | null; flat?: number | null; valley?: number | null; weeklySegments?: EnergyRecord[] };
+/** Use the confirmed TOU buckets as the weekly total when every bucket is present. */
+export function normalizeTouEnergy<T extends EnergyRecord>(record: T): T {
+  const keys: TouKey[] = ["peak", "high", "flat", "valley"];
+  if (!keys.every((key) => typeof record[key] === "number" && Number.isFinite(record[key]))) return record;
+  const charge = keys.reduce((sum, key) => sum + Number(record[key]), 0);
+  return { ...record, charge,
+    ...(record.weeklySegments ? { weeklySegments: record.weeklySegments.map((segment) => normalizeTouEnergy(segment)) } : {}),
+  } as T;
+}
 export type MetricConfig = {
   guns?: string;
   billingType?: string; purchaseCostType?: string; unifiedPrice?: string; servicePricesJson?: string;
@@ -172,7 +181,8 @@ export function recalculateLatestDashboardWeek(input: unknown, rawConfigs: unkno
     const records = Array.isArray(station.records) ? (station.records as DashboardRecord[]).map((record) => ({ ...record })) : [];
     const index = records.findIndex((record) => record.week === latestWeek);
     if (index < 0) return { ...station, records };
-    const current = records[index];
+    const current = normalizeTouEnergy(records[index]);
+    records[index] = current;
     const stationConfig = configs[stationName] || {};
     const metrics = calculateOperatingMetrics(current, stationConfig, configs.__monthly__ || {});
     if (Number(stationConfig.guns) > 0) current.guns = Number(stationConfig.guns);
