@@ -2065,7 +2065,7 @@ function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStati
         </div>}
       </div>
       {analysisView === "contribution" && <div className="business-ranking-grid">
-        <Panel title="经营利润排名" sub="默认展示前10名；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable onStationSelect={onStationSelect} /></Panel>
+        <Panel title="经营利润排名" sub="金额后显示毛利环比；下滑查看其余场站" extra="business-rank-panel"><BarList rows={rows} scrollable onStationSelect={onStationSelect} /></Panel>
         <Panel title="充电量环比变化最大的5站" sub="本周对比上周，按环比变化幅度排序" extra="business-rank-panel">
           <div className="business-change-list">{changes.length ? changes.map((x) => <button type="button" onClick={()=>onStationSelect(x.station.name)} aria-label={`查看${x.station.name}场站分析`} key={x.station.name}>
             <b>{x.station.name}</b><strong className={x.rate >= 0 ? "up" : "down"}>{x.rate >= 0 ? "↑" : "↓"} {Math.abs(x.rate * 100).toFixed(1)}%</strong><small>{x.delta >= 0 ? "+" : ""}{qty(x.delta)} kWh</small>
@@ -4620,9 +4620,15 @@ function BarList({
             </i>
           </div>
           <strong>{money(num(x.record.profit))}</strong>
-          <small className={num(x.record.chargeChange) >= 0 ? "up" : "down"}>
-            {pct(x.record.chargeChange)}
-          </small>
+          {(() => {
+            const index = allWeeks().findIndex((week) => week === x.record.week);
+            const previousProfit = index > 0 ? recordAt(x.station, index - 1)?.profit : null;
+            const change = x.record.profit != null && previousProfit != null && previousProfit > 0
+              ? x.record.profit / previousProfit - 1 : null;
+            return <small className={change == null ? "" : change >= 0 ? "up" : "down"} title="经营毛利较上周">
+              {pct(change)}
+            </small>;
+          })()}
         </div>
       ))}
     </div>
