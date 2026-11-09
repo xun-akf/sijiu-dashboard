@@ -86,6 +86,16 @@ export async function dashboardFetch(input: RequestInfo | URL, init?: RequestIni
   if (url.includes("/api/access")) return jsonResponse(auth);
   if (!auth.role) return jsonResponse({ error: "未授权" }, 401);
 
+  if (url.includes("/api/station-import")) {
+    if (auth.role !== "operator" || isAcceptanceDashboard) return jsonResponse({ error: "仅正式版主管理员可新增场站" }, 403);
+    if (method !== "POST") return jsonResponse({ error: "不支持的请求" }, 405);
+    try {
+      const body = JSON.parse(String(init?.body || "{}")) as { stations?: unknown[] };
+      const { data, error } = await dashboardClient.rpc("import_dashboard_stations", { p_stations: body.stations });
+      return error ? jsonResponse({ error: error.message }, 400) : jsonResponse(data);
+    } catch { return jsonResponse({ error: "新站数据格式无效" }, 400); }
+  }
+
   if (url.includes("/api/operators")) {
     if (auth.role !== "operator") return jsonResponse({ error: "仅主管理员可管理账号权限" }, 403);
     if (method === "GET") {
