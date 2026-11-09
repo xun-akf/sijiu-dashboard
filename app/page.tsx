@@ -3222,7 +3222,7 @@ function Config({
   };
   const savedAliases = Object.fromEntries(stations.flatMap((station) =>
     safeJson<string[]>(({ ...emptyConfig, ...cfg[station.name] }).stationAliasesJson, []).map((alias) => [competitorIdentity(alias), station.name])));
-  const competitorSiteOptions = stations.map((station) => station.name);
+  const competitorSiteOptions = [...new Set([...stations.map((station) => station.name), ...Object.keys(cfg).filter((name) => !name.startsWith("__"))])];
   const resolvedCompetitorSites = competitorImport?.sites.map((site) => {
     const exact = competitorSiteOptions.find((name) => competitorIdentity(name) === competitorIdentity(site.name));
     const builtIn = competitorIdentity(site.name) === competitorIdentity("蔚景云汉城酒店充电站") ? "蔚景云汉诚酒店充电站" : "";
