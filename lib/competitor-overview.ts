@@ -35,12 +35,13 @@ export function buildCompetitorOverview(
   configs: Record<string, { competitorsByWeekJson?: string }>,
   stationNames: string[],
   operatingWeeks: string[] = [],
+  selectedWeek = "",
 ): CompetitorOverview {
   const historyByStation = stationNames.map((station) => ({
     station, history: readCompetitorHistory(configs[station]?.competitorsByWeekJson),
   }));
   const historyWeeks = [...new Set(historyByStation.flatMap(({ history }) => Object.keys(history)))].filter((week) => order(week) >= 0);
-  const week = historyWeeks.sort((a, b) => order(b) - order(a))[0] || "";
+  const week = selectedWeek && order(selectedWeek) >= 0 ? selectedWeek : historyWeeks.sort((a, b) => order(b) - order(a))[0] || "";
   const timeline = [...new Set([...operatingWeeks, ...historyWeeks])].filter((value) => order(value) >= 0)
     .sort((a, b) => order(a) - order(b));
   const previousWeek = timeline[timeline.indexOf(week) - 1] || "";
