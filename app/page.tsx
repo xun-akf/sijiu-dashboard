@@ -35,6 +35,7 @@ import { subscribeToDashboardChanges } from "@/lib/dashboard-realtime";
 import { parseImportNumber, validateDashboardData, type ValidationReport } from "@/lib/import-validation";
 import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
 import { matchStationNames, type StationMatch } from "@/lib/station-matching";
+import { parseStationDetailRows } from "@/lib/station-profile-import.mjs";
 import { calculateOperatingMetrics, missingMetricConfigs, normalizeTouEnergy, resolveWeeklyPrice, type EnergyRecord } from "@/lib/operating-metrics";
 import ChargingModePage from "@/components/charging-mode-page";
 import PeriodViews from "@/components/period-views";
@@ -353,7 +354,7 @@ type ImportRecognition = {
 };
 type WorkbookParseResult = { parsed: S[]; recognition: ImportRecognition };
 
-async function parseCompetitorWorkbook(file: File) {
+async function readWorkbookSheets(file: File) {
   let zip: Record<string, Uint8Array>;
   try { zip = unzipSync(new Uint8Array(await file.arrayBuffer())); }
   catch { throw new Error("无法读取 Excel，请上传 .xlsx 文件"); }
@@ -378,7 +379,11 @@ async function parseCompetitorWorkbook(file: File) {
       });
       return { name: path, rows };
     });
-  return parseCompetitorRows(sheets);
+  return sheets;
+}
+
+async function parseCompetitorWorkbook(file: File) {
+  return parseCompetitorRows(await readWorkbookSheets(file));
 }
 
 async function parseLegacyWeeklyWorkbook(file: File): Promise<S[]> {
@@ -2831,6 +2836,7 @@ function Config({
       matches: StationMatch[];
       source: S[];
     } | null>(null),
+    [newStationImport, setNewStationImport] = useState<{ stations: ReturnType<typeof parseStationDetailRows>["stations"]; week: string; filename: string } | null>(null),
     [competitorImport, setCompetitorImport] = useState<{ sites: ReturnType<typeof parseCompetitorRows>; week: string; filename: string } | null>(null),
     [competitorSiteMatches, setCompetitorSiteMatches] = useState<Record<string, string>>({}),
     [competitorNameMatches, setCompetitorNameMatches] = useState<Record<string, string>>({}),
@@ -2841,7 +2847,7 @@ function Config({
     [stationQuery, setStationQuery] = useState(stations[0]?.name || ""),
     [stationPickerOpen, setStationPickerOpen] = useState(false),
     [dataWeek, setDataWeek] = useState(allWeeks().at(-1) || ""),
-    [configSection, setConfigSection] = useState<"weekly" | "mode" | "record" | "analysis" | "cost" | "price" | "profiles" | "accounts">("weekly"),
+    [configSection, setConfigSection] = useState<"weekly" | "mode" | "record" | "analysis" | "cost" | "price" | "profiles" | "accounts" | "newStation">("weekly"),
     [openPanels, setOpenPanels] = useState<Record<string, boolean>>({}),
     [dataDraft, setDataDraft] = useState<Partial<R>>({}),
     [analysisPreview, setAnalysisPreview] = useState<Record<string, StationConfig> | null>(null),
@@ -3172,6 +3178,35 @@ function Config({
         setStatus(error instanceof Error ? error.message : "分析发布失败");
       }
     };
+  const readNewStationFile = async (file?: File) => {
+    if (!file) return;
+    setStatus("正在识别新站明细…");
+    try {
+      const chinaDate = new Date(Date.now() + 8 * 60 * 60 * 1000);
+      const week = weekLabelFromDateUtc(chinaDate);
+      const parsed = parseStationDetailRows(await readWorkbookSheets(file), week);
+      setNewStationImport({ stations: parsed.stations, week, filename: file.name });
+      setStatus(`识别到 ${parsed.stations.length} 个场站；请核对价格和站点资料后确认`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "新站明细读取失败"); }
+  };
+  const confirmNewStations = async () => {
+    if (!newStationImport) return;
+    const fresh = newStationImport.stations.filter((item) => !stations.some((station) => station.name === item.name));
+    if (!fresh.length) { setStatus("表内场站均已存在，没有新增内容"); return; }
+    setSavingImport(true);
+    try {
+      const response = await dashboardFetch("/api/station-import", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stations: fresh }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "新站保存失败");
+      setNewStationImport(null);
+      window.dispatchEvent(new Event("dashboard-state-changed"));
+      setStatus(`已新增 ${result.added} 个场站到草稿；后续周报、竞站表可按站名匹配。请检查后点击“发布更新”`);
+    } catch (error) { setStatus(error instanceof Error ? error.message : "新站保存失败"); }
+    finally { setSavingImport(false); }
+  };
   const readCompetitorFile = async (file?: File) => {
     if (!file) return;
     setStatus("正在识别竞站表…");
@@ -3264,6 +3299,7 @@ function Config({
           <p>月度成本按月份自动匹配；对外电费按场站、按周匹配并重算利润。</p>
         </div>
         <div className="config-actions">
+          {configSection === "newStation" && <label className="upload-button"><input type="file" accept=".xlsx" onChange={(event) => { void readNewStationFile(event.target.files?.[0]); event.target.value = ""; }} />导入新站明细 Excel</label>}
           {configSection === "weekly" && <label className="upload-button">
             <input
               type="file"
@@ -3305,7 +3341,7 @@ function Config({
       </div>
       <nav className="data-center-shortcuts" aria-label="数据中心板块">
         {([
-          ["weekly", "周报导入"], ["mode", "充电模式导入"], ["record", "历史数据修改"],
+          ["weekly", "周报导入"], ["newStation", "新站导入"], ["mode", "充电模式导入"], ["record", "历史数据修改"],
           ["analysis", "本周分析"], ["cost", "月度电费成本"], ["price", "场站对外价格"],
           ["profiles", "场站资料"], ["accounts", "账号权限"],
         ] as const).map(([section, title]) => <button key={section} type="button" className={configSection === section ? "active" : ""} aria-current={configSection === section ? "page" : undefined} onClick={() => setConfigSection(section)}>{title}</button>)}
@@ -3343,6 +3379,29 @@ function Config({
           {allWeeks().map((week) => <option key={week} value={week}>{displayWeek(week)}</option>)}
         </select>
       </div>}
+      <section className="data-center-section" hidden={configSection !== "newStation"}>
+        <div className="cost-panel">
+          <div className="section-head"><div><h3>新站导入</h3><p>上传“充电站明细”表，核对后建立场站。周报电量和竞站价格之后按站名自动匹配；没有上传的数据保持空白。</p></div></div>
+          {newStationImport ? <>
+            <div className="import-counts"><span>文件 <b>{newStationImport.filename}</b></span><span>识别 <b>{newStationImport.stations.length}</b></span><span>新增 <b>{newStationImport.stations.filter((item) => !stations.some((station) => station.name === item.name)).length}</b></span></div>
+            <div className="form-row"><label>新站对外价格归属周次 <input value={newStationImport.week} onChange={(event) => setNewStationImport({ ...newStationImport, week: event.target.value, stations: newStationImport.stations.map((item) => {
+              const remap = (json: string) => { if (!json) return ""; const original = Object.values(JSON.parse(json))[0]; return JSON.stringify({ [event.target.value]: original }); };
+              return { ...item, config: { ...item.config, electricityPricesJson: remap(item.config.electricityPricesJson), servicePricesJson: remap(item.config.servicePricesJson), externalPricesJson: remap(item.config.externalPricesJson) } };
+            }) })} /></label></div>
+            <div className="import-preview-list">{newStationImport.stations.map((item) => {
+              const exists = stations.some((station) => station.name === item.name);
+              const prices = item.config.externalPricesJson ? Object.values(JSON.parse(item.config.externalPricesJson))[0] as PeriodPrice : null;
+              return <div className="compact-config-summary" key={item.profile.source_station_id}>
+                <span><b>{item.name}</b> · ID {item.profile.source_station_id} · {item.profile.operator_name || "运营商待补"}</span>
+                <span>{item.profile.region || item.profile.address || "地址待补"} · {item.profile.guns ?? "—"} 枪</span>
+                <span>{exists ? "已存在：不会覆盖历史" : "待新增"} · 对外价格 尖/峰/平/谷 {prices ? [prices.peak, prices.high, prices.flat, prices.valley].map((v) => v || "—").join(" / ") : "待补"}</span>
+                {item.warnings.map((warning) => <span key={warning} className="pending">{warning}</span>)}
+              </div>;
+            })}</div>
+            <div className="config-actions"><button type="button" className="ghost" onClick={() => setNewStationImport(null)}>取消</button><button type="button" className="save-button" disabled={savingImport || !newStationImport.stations.some((item) => !stations.some((station) => station.name === item.name))} onClick={() => void confirmNewStations()}>{savingImport ? "保存中…" : "确认新增场站"}</button></div>
+          </> : <p>点击右上角“导入新站明细 Excel”选择文件，先预览再保存。</p>}
+        </div>
+      </section>
       <section className="data-center-section" hidden={configSection !== "accounts"}>
       <SuboperatorManager stationNames={stations.map((station) => station.name)} onStatus={setStatus} />
       </section>
