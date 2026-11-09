@@ -48,10 +48,10 @@ export function parseCompetitorRows(sheets: WorkbookRows[]): ImportedCompetitorS
     const block = sheet.rows.slice(start, end < 0 ? undefined : end);
     const find = (label: string) => block.findIndex((row) => clean(row.B) === label);
     const energy = find("电费"), service = find("服务费"), combined = find("综合价");
-    const guns = find("直流设备数量"), meters = find("距离（m）");
+    const guns = find("直流设备数量") >= 0 ? find("直流设备数量") : find("交流设备数量"), meters = find("距离（m）");
     if (energy < 0 || service < 0) { warnings.push("缺少电费或服务费分时行"); sites.set(name, { name, competitors: [], warnings }); continue; }
     const competitors: CompetitorPrice[] = [];
-    for (let index = 5; index <= 18; index += 2) {
+    for (let index = 5; index <= Math.max(18, ...Object.keys(heading).map((key) => { let n = 0; for (const letter of key) n = n * 26 + letter.charCodeAt(0) - 64; return n; })); index += 1) {
       const col = column(index), competitorName = clean(heading[col]);
       if (!competitorName || competitorName === "竞站ID" || competitorName.toLowerCase() === "s"
         || competitorIdentity(competitorName) === competitorIdentity(name)) continue;
