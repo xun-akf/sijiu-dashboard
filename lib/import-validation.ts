@@ -109,9 +109,14 @@ export function validateDashboardData(
   stations.forEach((station) => {
     const stationName = String(station.name || "").trim();
     const records = Array.isArray(station.records) ? station.records as RecordLike[] : [];
-    if (!records.length && expectedNames.includes(stationName))
-      add("error", stationName, "—", "周次", "缺失", "已有场站的全部历史周次被清空", "恢复历史数据");
-    else if (!records.length && !options.allowPublishedHistory)
+    if (!records.length && expectedNames.includes(stationName)) {
+      const published = expectedStations.find((item) => String(item.name || "").trim() === stationName);
+      const publishedRecords = Array.isArray(published?.records) ? published.records : [];
+      if (publishedRecords.length)
+        add("error", stationName, "—", "周次", "缺失", "已有场站的全部历史周次被清空", "恢复历史数据");
+      else if (!options.allowPublishedHistory)
+        add("warning", stationName, "—", "周次", "缺失", "新场站暂无经营数据", "后续导入真实数据；勿填0");
+    } else if (!records.length && !options.allowPublishedHistory)
       add("warning", stationName, "—", "周次", "缺失", "新场站暂无经营数据", "后续导入真实数据；勿填0");
     const weeks = records.map((record) => String(record.week || "").trim());
     allWeekSets.push(weeks.filter(Boolean));
@@ -190,10 +195,22 @@ export function validateDashboardData(
   });
 
   const canonicalWeeks = [...new Set(allWeekSets.flat())];
-  allWeekSets.forEach((weeks, index) => {
-    canonicalWeeks.filter((week) => !weeks.includes(week)).forEach((week) =>
-      add("warning", names[index], week, "周次", "缺失", "其他场站存在该周，但本场站缺失", "确认该站当周是否尚未运营；如应有数据请补充导入"));
-  });
+  // Stations start operating at different times. A week present at another station
+  // does not imply missing data here; only flag a newly absent latest week for a
+  // station that had a published record in that same week.
+  if (options.allowPublishedHistory && canonicalWeeks.length) {
+    const latest = [...canonicalWeeks].sort((a, b) => {
+      const parts = (value: string) => {
+        const match = value.match(/^(?:([0-9]{4})年)?([0-9]{1,2})月(?:第)?([0-9]+)周$/);
+        return Number(match?.[1] || 2026) * 1000 + Number(match?.[2] || 0) * 10 + Number(match?.[3] || 0);
+      };
+      return parts(a) - parts(b);
+    }).at(-1);
+    allWeekSets.forEach((weeks, index) => {
+      if (!latest || weeks.includes(latest) || expectedValue(names[index], latest, "charge") == null) return;
+      add("warning", names[index], latest, "周次", "缺失", "该站已发布的最新周记录在草稿中缺失", "检查合并结果；不要以其他场站的周次补零");
+    });
+  }
   if (expectedStations.length) {
     const historicalWeeks = new Set(expectedStations.flatMap((station) =>
       Array.isArray(station.records) ? (station.records as RecordLike[]).map((record) => String(record.week || "")) : []));
