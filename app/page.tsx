@@ -52,6 +52,7 @@ import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCo
 import { buildCompetitorOverview } from "@/lib/competitor-overview";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
 import { comparableProfitTotals } from "@/lib/comparable-profit";
+// Keep overview and trend profit comparisons on the same filtered, common-basis period.
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
