@@ -1688,8 +1688,8 @@ function StationAnalysis({
     [jumpToCompetitor, setJumpToCompetitor] = useState(""),
     [saved, setSaved] = useState(false);
   const competitorOverview = useMemo(() => buildCompetitorOverview(
-    cfg, stations.map((station) => station.name), allWeeks(),
-  ), [cfg, isAll]);
+    cfg, stations.map((station) => station.name), allWeeks(), selectedWeek,
+  ), [cfg, isAll, selectedWeek]);
   const changedCompetitors = competitorOverview.items.filter((item) =>
     item.status === "rising" || item.status === "falling" || item.status === "mixed");
   useEffect(() => {
