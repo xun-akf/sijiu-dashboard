@@ -75,6 +75,9 @@ export function resolveMonthlyCost(config: MetricConfig, monthly: MetricConfig, 
 }
 
 export function resolveMonthlyGridFee(config: MetricConfig, monthly: MetricConfig, year: number, month: number): number {
+  // Contracted sale-price stations stopped paying the pass-through grid fee in September 2026.
+  // Older station templates still contain a monthly fee; respect the effective date.
+  if (year > 2026 || (year === 2026 && month >= 9)) return 0;
   const own = parseMonthly<string>(config.gridFeesJson);
   const shared = parseMonthly<string>(monthly.gridFeesJson);
   return Number(own[`${year}-${month}`] ?? shared[`${year}-${month}`] ?? own[String(month)] ?? shared[String(month)] ?? 0);
