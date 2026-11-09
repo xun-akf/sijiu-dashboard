@@ -4,7 +4,7 @@ import { competitorTotal, knownCompetitorDistance, pricePeriods } from "./compet
 export type WorkbookRows = { name: string; rows: Record<string, string>[] };
 export type ImportedCompetitorSite = { name: string; competitors: CompetitorPrice[]; warnings: string[] };
 const clean = (value: unknown) => String(value ?? "").trim();
-export const competitorIdentity = (value: string) => clean(value).toLowerCase().replace(/[\s\-—_（）()【】\[\]·]/g, "");
+export const competitorIdentity = (value: string) => clean(value).normalize("NFKC").toLowerCase().replace(/[\s\u200b-\u200f\u2060\ufeff\-—_（）()【】\[\]·]/g, "");
 const column = (index: number) => {
   let result = "";
   for (let n = index; n > 0; n = Math.floor((n - 1) / 26)) result = String.fromCharCode(65 + (n - 1) % 26) + result;
