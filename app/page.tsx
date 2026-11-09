@@ -2126,9 +2126,9 @@ function CompetitorEditor({
     ...allWeeks(), ...Object.keys(history),
     ...Object.keys(ownElectricityWeeks), ...Object.keys(ownServiceWeeks),
   ])].sort((left, right) => weekOrderValue(left) - weekOrderValue(right));
-  const [chosenWeek, setChosenWeek] = useState("");
-  const week = chosenWeek && availableWeeks.includes(chosenWeek)
-    ? chosenWeek : availableWeeks.at(-1) || stationWeek;
+  const [chosenWeek, setChosenWeek] = useState<{ base: string; station: string; value: string }>({ base: "", station: "", value: "" });
+  const week = chosenWeek.base === stationWeek && chosenWeek.station === station.name && availableWeeks.includes(chosenWeek.value)
+    ? chosenWeek.value : stationWeek;
   const latestWeek = availableWeeks.at(-1) || station.records.at(-1)?.week || "";
   const legacyCompetitors = safeJson<Competitor[]>(cfg.competitorsJson, []);
   const emptyCompetitorPrices = (c: Competitor): Competitor => ({
@@ -2408,7 +2408,7 @@ function CompetitorEditor({
       sub={`本站 ${displayWeek(week)} 价格；竞站 ${competitorPriceWeek ? displayWeek(competitorPriceWeek) : "最近记录"} 价格，展开详情查看电费与服务费`}
       extra="ranking compact-competitor-panel"
       actions={<div className="competitor-tools">
-        <select value={week} onChange={(event) => setChosenWeek(event.target.value)} aria-label="竞站价格周次">
+        <select value={week} onChange={(event) => setChosenWeek({ base: stationWeek, station: station.name, value: event.target.value })} aria-label="竞站价格周次">
           {availableWeeks.map((value) => <option value={value} key={value}>{displayWeek(value)}</option>)}
         </select>
         <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} aria-label="竞站排序">
