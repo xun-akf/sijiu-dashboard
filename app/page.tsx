@@ -51,6 +51,7 @@ import { compareCompetitorWeeks, competitorAdvantageChange, knownCompetitorDista
 import { competitorIdentity, mergeCompetitorWeek, parseCompetitorRows, proposeCompetitorMatches, weekFromCompetitorFilename, type ImportDecision } from "@/lib/competitor-import";
 import { buildCompetitorOverview } from "@/lib/competitor-overview";
 import { chartScale, visibleTrendCount } from "@/lib/chart-presentation.mjs";
+import { comparableProfitTotals } from "@/lib/comparable-profit";
 
 import { dashboardFetch, siteUrl } from "@/lib/dashboard-browser";
 const isHistoricalActualWeek = (week: string) => weekOrderValue(week) <= weekOrderValue("2026年9月2周");
@@ -1097,16 +1098,20 @@ function series(sn: string, key: keyof R) {
 }
 function totals(sn: string, wi: number) {
   const ss = scope(sn),
-    cur = ss.map((s) => recordAt(s, wi)).filter((record): record is R => Boolean(record)),
-    prev = ss.map((s) => recordAt(s, Math.max(0, wi - 1))).filter((record): record is R => Boolean(record)),
+    pairs = ss.map((station) => ({
+      current: recordAt(station, wi),
+      previous: wi > 0 ? recordAt(station, wi - 1) : undefined,
+    })),
+    cur = pairs.map(({ current }) => current).filter((record): record is R => Boolean(record)),
+    prev = pairs.map(({ previous }) => previous).filter((record): record is R => Boolean(record)),
     sum = (rs: R[], k: keyof R) =>
       rs.reduce((a, r) => a + num(r[k] as number | null), 0),
     charge = sum(cur, "charge"),
     revenue = sum(cur, "serviceRevenue"),
     profit = sum(cur, "profit"),
-    pc = sum(prev, "charge"),
-    pr = sum(prev, "serviceRevenue"),
-    pp = sum(prev, "profit");
+    previousCharge = sum(prev, "charge"),
+    previousRevenue = sum(prev, "serviceRevenue"),
+    comparableProfit = comparableProfitTotals(pairs);
   return {
     charge,
     revenue,
@@ -1114,11 +1119,13 @@ function totals(sn: string, wi: number) {
     chargeCoverage:cur.filter(r=>r.charge!=null).length,
     serviceCoverage:cur.filter(r=>r.serviceRevenue!=null).length,
     profitCoverage:cur.filter(r=>r.profit!=null).length,
+    profitComparisonCoverage: comparableProfit.coverage,
+    previousComparableProfit: comparableProfit.previous,
     stationCount:ss.length,
     active: cur.filter((r) => num(r.charge) > 0).length,
-    cc: pc ? charge / pc - 1 : null,
-    rc: pr ? revenue / pr - 1 : null,
-    pc: pp ? profit / pp - 1 : null,
+    cc: previousCharge ? charge / previousCharge - 1 : null,
+    rc: previousRevenue ? revenue / previousRevenue - 1 : null,
+    pc: comparableProfit.change,
   };
 }
 function Overview({ wi, sn }: { wi: number; sn: string }) {
@@ -2682,7 +2689,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
     serviceCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.serviceRevenue), 0),
     servicePrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.serviceRevenue), 0),
     profitCurrent = source.reduce((sum, station) => sum + num(recordPair(station).current?.profit), 0),
-    profitPrevious = source.reduce((sum, station) => sum + num(recordPair(station).previous?.profit), 0),
+    comparableProfit = comparableProfitTotals(source.map((station) => recordPair(station))),
     moneyCoverage = source.filter((station) => recordPair(station).current?.profit != null).length,
     stationMoves = source.filter((station) => recordPair(station).current?.charge != null).map((station) => {
       const { current, previous, beforePrevious } = recordPair(station);
@@ -2713,7 +2720,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
   next.__summary__ = {
     ...emptyConfig,
     ...configs.__summary__,
-    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${moneyCoverage < source.length ? `服务费收入可核算小计${money(serviceCurrent)}、经营利润可核算小计${money(profitCurrent)}，覆盖${moneyCoverage}/${source.length}站` : `${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${metricChangeText("经营利润", profitCurrent, profitPrevious)}`}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
+    analysis: `${metricChangeText("全场充电量", totalCurrent, totalPrevious)}，${moneyCoverage < source.length ? `服务费收入可核算小计${money(serviceCurrent)}、经营利润可核算小计${money(profitCurrent)}，覆盖${moneyCoverage}/${source.length}站` : `${metricChangeText("服务费收入", serviceCurrent, servicePrevious)}，${comparableProfit.change == null ? "经营利润暂无可比上期" : `经营利润${comparableProfit.change >= 0 ? "增长" : "下降"}${Math.abs(comparableProfit.change * 100).toFixed(1)}%`}`}。${growth.length ? `主要增长贡献：${growth.map((item) => `${item.name}+${qty(item.contribution)}kWh`).join("、")}；` : "本周暂无明显增长贡献站；"}${attention.length ? `主要拖累：${attention.map((item) => `${item.name}${qty(item.contribution)}kWh`).join("、")}。` : "暂无明显拖累站。"}${continuous.length ? `连续下降需关注：${continuous.map((item) => item.name).join("、")}；` : ""}${pressure.length ? `价格压力站：${pressure.join("、")}。` : "竞站价格不足以证明明显价格压力，建议继续核验。"}`,
   };
   return next;
 }
