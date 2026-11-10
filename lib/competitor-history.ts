@@ -3,6 +3,7 @@ export type PricePeriod = typeof pricePeriods[number];
 export type PeriodPrices = Record<PricePeriod, string>;
 export type CompetitorPrice = {
   name: string; distance: string; guns: string;
+  platform?: string; effectiveDate?: string;
   peak: string; high: string; flat: string; valley: string;
   electricity?: PeriodPrices; service?: PeriodPrices; total?: PeriodPrices;
 };
