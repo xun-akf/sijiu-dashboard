@@ -65,6 +65,10 @@ type R = {
   highServiceRevenue?: number | null;
   flatServiceRevenue?: number | null;
   valleyServiceRevenue?: number | null;
+  peakProfit?: number | null;
+  highProfit?: number | null;
+  flatProfit?: number | null;
+  valleyProfit?: number | null;
   electricityRevenue?: number | null;
   serviceChange: number | null;
   servicePerKwh: number | null;
@@ -1368,13 +1372,20 @@ function OverviewTrends({
       color,
       data: aggregate(raw(key)),
     })),
+    savedPeriodProfit = (record: R) => {
+      const values = { peak: record.peakProfit, high: record.highProfit, flat: record.flatProfit, valley: record.valleyProfit };
+      return record.profit != null &&
+        Object.values(values).every((value) => typeof value === "number" && Number.isFinite(value)) &&
+        Math.abs(Object.values(values).reduce<number>((sum, value) => sum + Number(value), 0) - record.profit) <= 0.02
+        ? values : null;
+    },
     periodProfitAt = (index: number, key: keyof PeriodPrice) => scope(sn).reduce((total, station) => {
-      if (isHistoricalActualWeek(allWeeks()[index] || "")) return total;
       const record = recordAt(station, index);
       if (!record) return total;
-      const stationConfig = { ...emptyConfig, ...configs[station.name] };
-      const monthlyConfig = { ...emptyConfig, ...configs.__monthly__ };
-      const metrics = calculateOperatingMetrics(record, stationConfig, monthlyConfig);
+      const saved = savedPeriodProfit(record);
+      if (saved) return total + Number(saved[key]);
+      if (isHistoricalActualWeek(allWeeks()[index] || "")) return total;
+      const metrics = calculateOperatingMetrics(record, { ...emptyConfig, ...configs[station.name] }, { ...emptyConfig, ...configs.__monthly__ });
       if (record.profit == null || metrics.profit == null ||
           [record.peak, record.high, record.flat, record.valley].some((value) => value == null) ||
           Math.abs(metrics.profit - record.profit) > 0.02) return total;
@@ -1384,7 +1395,9 @@ function OverviewTrends({
       const records = scope(sn).map((station) => ({ station, record: recordAt(station, index) }))
         .filter((item): item is { station: S; record: R } => Boolean(item.record && num(item.record.charge) > 0));
       const matched = records.filter(({ station, record }) => {
-        if (record.profit == null || [record.peak, record.high, record.flat, record.valley].some((v) => v == null)) return false;
+        if (savedPeriodProfit(record)) return true;
+        if (isHistoricalActualWeek(allWeeks()[index] || "") ||
+            record.profit == null || [record.peak, record.high, record.flat, record.valley].some((v) => v == null)) return false;
         const metrics = calculateOperatingMetrics(record, { ...emptyConfig, ...configs[station.name] }, { ...emptyConfig, ...configs.__monthly__ });
         return metrics.profit != null && Math.abs(metrics.profit - record.profit) <= 0.02;
       }).length;
@@ -1438,7 +1451,7 @@ function OverviewTrends({
       ...(slice(profitTotal).some((point) => {
         const indexes = allWeeks().map((week, index) => ({ week, index })).filter(({ week }) =>
           mode === "week" ? week === point.week : `${weekParts(week).year}年${weekParts(week).month}月` === point.week);
-        return !indexes.length || indexes.some(({ week, index }) => isHistoricalActualWeek(week) || !periodProfitMatches(index));
+        return !indexes.length || indexes.some(({ index }) => !periodProfitMatches(index));
       })
         ? [] : profitParts.map((x) => ({ ...x, data: slice(x.data) }))),
     ];
@@ -1527,7 +1540,7 @@ function OverviewTrends({
           />
         </Panel>
         <Panel title="尖峰平谷 · 毛利额" sub="分时毛利额及占比">
-          {isHistoricalActualWeek(allWeeks()[wi] || "") || periodProfitCoverage(wi).matched === 0
+          {periodProfitCoverage(wi).matched === 0
             ? <p className="empty-note">该周尚无可核对的分时毛利；毛利总额仍按已保存的经营记录统计。</p>
             : <>
                 <p className="compact-config-summary">分时图覆盖 {periodProfitCoverage(wi).matched}/{periodProfitCoverage(wi).total} 个有电量站；其余站的分时数据或计费结果待核对。</p>
@@ -2989,6 +3002,10 @@ function Config({
             highServiceRevenue: original.highServiceRevenue,
             flatServiceRevenue: original.flatServiceRevenue,
             valleyServiceRevenue: original.valleyServiceRevenue,
+            peakProfit: original.peakProfit,
+            highProfit: original.highProfit,
+            flatProfit: original.flatProfit,
+            valleyProfit: original.valleyProfit,
             servicePerKwh: original.serviceRevenue != null && num(record.charge) ? original.serviceRevenue / num(record.charge) : null,
             electricityProfitPerKwh: original.profit != null && original.serviceRevenue != null && num(record.charge) ? (original.profit - original.serviceRevenue) / num(record.charge) : null,
           });
@@ -3001,6 +3018,10 @@ function Config({
         record.highServiceRevenue = metrics.periodService.high;
         record.flatServiceRevenue = metrics.periodService.flat;
         record.valleyServiceRevenue = metrics.periodService.valley;
+        record.peakProfit = metrics.periodProfit.peak;
+        record.highProfit = metrics.periodProfit.high;
+        record.flatProfit = metrics.periodProfit.flat;
+        record.valleyProfit = metrics.periodProfit.valley;
         record.electricityRevenue = metrics.electricityRevenue;
         record.serviceRevenue = metrics.serviceRevenue;
         record.profit = metrics.profit;
@@ -3153,6 +3174,10 @@ function Config({
           highServiceRevenue: metrics.periodService.high,
           flatServiceRevenue: metrics.periodService.flat,
           valleyServiceRevenue: metrics.periodService.valley,
+          peakProfit: metrics.periodProfit.peak,
+          highProfit: metrics.periodProfit.high,
+          flatProfit: metrics.periodProfit.flat,
+          valleyProfit: metrics.periodProfit.valley,
           electricityRevenue: metrics.electricityRevenue,
           serviceRevenue: metrics.serviceRevenue,
           profit: metrics.profit,
@@ -4050,6 +4075,10 @@ function StationHistoryTable({
             highServiceRevenue: metrics.periodService.high,
             flatServiceRevenue: metrics.periodService.flat,
             valleyServiceRevenue: metrics.periodService.valley,
+            peakProfit: metrics.periodProfit.peak,
+            highProfit: metrics.periodProfit.high,
+            flatProfit: metrics.periodProfit.flat,
+            valleyProfit: metrics.periodProfit.valley,
             electricityRevenue: metrics.electricityRevenue,
             serviceRevenue: metrics.serviceRevenue ?? serviceRevenue,
             profit: metrics.profit,
