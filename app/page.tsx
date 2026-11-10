@@ -2631,7 +2631,7 @@ function generateStationAnalysis(station: S, week: string, cfg: StationConfig) {
     weakest = [...periodChanges].sort((a, b) => num(a.value) - num(b.value))[0],
     strongest = [...periodChanges].sort((a, b) => num(b.value) - num(a.value))[0],
     competitors = safeJson<Competitor[]>(cfg.competitorsJson, []),
-    resolvedOwnPrices = resolveWeeklyPrice(safeJson<Record<string, Record<string, PeriodPrice>>>(cfg.marketPricesByPlatformJson, {})["新电途"] ? JSON.stringify(safeJson<Record<string, Record<string, PeriodPrice>>>(cfg.marketPricesByPlatformJson, {})["新电途"]) : cfg.externalPricesJson, week),
+    resolvedOwnPrices = resolveWeeklyPrice(safeJson<Record<string, Record<string, PeriodPrice>>>(cfg.marketPricesByPlatformJson, {})["已导入"] ? JSON.stringify(safeJson<Record<string, Record<string, PeriodPrice>>>(cfg.marketPricesByPlatformJson, {})["已导入"]) : cfg.externalPricesJson, week),
     ownPrices = Object.values(resolvedOwnPrices).some(Boolean) ? resolvedOwnPrices
       : { peak: cfg.weeklyPeak, high: cfg.weeklyHigh, flat: cfg.weeklyFlat, valley: cfg.weeklyValley },
     validPrice = (value: string | number | undefined) => {
@@ -2730,7 +2730,7 @@ function generateWeeklyAnalyses(source: S[], week: string, configs: Record<strin
     continuous = stationMoves.filter((item) => item.consecutiveDown).slice(0, 3),
     pressure = source.flatMap((station) => {
       const stationCfg = { ...emptyConfig, ...configs[station.name] },
-        own = resolveWeeklyPrice(safeJson<Record<string, Record<string, PeriodPrice>>>(stationCfg.marketPricesByPlatformJson, {})["新电途"] ? JSON.stringify(safeJson<Record<string, Record<string, PeriodPrice>>>(stationCfg.marketPricesByPlatformJson, {})["新电途"]) : stationCfg.externalPricesJson, week),
+        own = resolveWeeklyPrice(safeJson<Record<string, Record<string, PeriodPrice>>>(stationCfg.marketPricesByPlatformJson, {})["已导入"] ? JSON.stringify(safeJson<Record<string, Record<string, PeriodPrice>>>(stationCfg.marketPricesByPlatformJson, {})["已导入"]) : stationCfg.externalPricesJson, week),
         competitors = safeJson<Competitor[]>(stationCfg.competitorsJson, []);
       if (!Object.values(own).some(Boolean) || !competitors.length) return [];
       const diffs = (["peak", "high", "flat", "valley"] as const).flatMap((key) => {
