@@ -152,9 +152,9 @@ export function validateDashboardData(
       });
       if (["charge", "peak", "high", "flat", "valley"].every((key) => finiteNumber(record[key]))) {
         const total = Number(record.peak) + Number(record.high) + Number(record.flat) + Number(record.valley);
-        const tolerance = Math.max(1, Math.abs(Number(record.charge)) * 0.005);
+        const tolerance = Math.max(10, Math.abs(Number(record.charge)) * 0.005);
         if (Math.abs(total - Number(record.charge)) > tolerance)
-          add("error", stationName, week, "总充电量", record.charge, `尖峰平谷合计${total.toFixed(3)}，与总充电量${Number(record.charge).toFixed(3)}明显不一致`, "核对总电量或尖峰平谷；差异超过0.5%（且超过1kWh）会阻止发布");
+          add("error", stationName, week, "总充电量", record.charge, `尖峰平谷合计${total.toFixed(3)}，与总充电量${Number(record.charge).toFixed(3)}明显不一致`, "核对总电量或尖峰平谷；差异超过0.5%且超过10kWh才会阻止发布");
       }
       if (!options.importEnergyOnly && finiteNumber(record.charge) && Number(record.charge) > 0 && finiteNumber(record.serviceRevenue) && finiteNumber(record.servicePerKwh)) {
         const calculated = Number(record.serviceRevenue) / Number(record.charge);
