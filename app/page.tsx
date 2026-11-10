@@ -2205,7 +2205,7 @@ function CompetitorEditor({
   const ownT: PeriodPrice = ownMarket;
   const ownOriginal = resolveWeeklyPrice(cfg.ownOriginalPricesJson, week);
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
-    const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "新电途" ? cfg.externalPricesJson : "", selectedWeek);
+    const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", selectedWeek);
     return Object.values(market).some((value) => value !== "") ? market : null;
   };
   const advantageChange = competitorAdvantageChange(
