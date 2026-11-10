@@ -3143,8 +3143,7 @@ function Config({
     ),
     estimate =
       record && complete
-        ? num(record.serviceRevenue) +
-          periods.reduce(
+        ? periods.reduce(
             (sum, [k]) =>
               sum +
               num(record[k]) *
