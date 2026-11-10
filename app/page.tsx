@@ -2197,19 +2197,7 @@ function CompetitorEditor({
     return decimals ? total.toFixed(decimals).replace(/\.?0+$/, "") : total.toFixed(0);
   };
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "新电途" ? cfg.externalPricesJson : "", week);
-  const ownT: PeriodPrice = Object.values(ownMarket).some((value) => value !== "") ? ownMarket : hasSplitOwnPrice
-    ? {
-        peak: addRawPrice(ownE.peak, ownS.peak),
-        high: addRawPrice(ownE.high, ownS.high),
-        flat: addRawPrice(ownE.flat, ownS.flat),
-        valley: addRawPrice(ownE.valley, ownS.valley),
-      }
-    : week === stationWeek ? {
-        peak: cfg.weeklyPeak,
-        high: cfg.weeklyHigh,
-        flat: cfg.weeklyFlat,
-        valley: cfg.weeklyValley,
-      } : blankPrice();
+  const ownT: PeriodPrice = ownMarket;
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
     const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "新电途" ? cfg.externalPricesJson : "", selectedWeek);
     return Object.values(market).some((value) => value !== "") ? market : null;
@@ -3184,14 +3172,14 @@ function Config({
         const metrics = calculateOperatingMetrics({ ...editableRecord, ...dataDraft, week: dataWeek, charge }, stationCfg, monthly);
         const merged = await onRecordSave(dataStation, dataWeek, {
           ...dataDraft, charge,
-          peakServiceRevenue: metrics.periodService.peak,
-          highServiceRevenue: metrics.periodService.high,
-          flatServiceRevenue: metrics.periodService.flat,
-          valleyServiceRevenue: metrics.periodService.valley,
-          peakProfit: metrics.periodProfit.peak,
-          highProfit: metrics.periodProfit.high,
-          flatProfit: metrics.periodProfit.flat,
-          valleyProfit: metrics.periodProfit.valley,
+          peakServiceRevenue: editableRecord?.peakServiceRevenue ?? metrics.periodService.peak,
+          highServiceRevenue: editableRecord?.highServiceRevenue ?? metrics.periodService.high,
+          flatServiceRevenue: editableRecord?.flatServiceRevenue ?? metrics.periodService.flat,
+          valleyServiceRevenue: editableRecord?.valleyServiceRevenue ?? metrics.periodService.valley,
+          peakProfit: editableRecord?.peakProfit ?? metrics.periodProfit.peak,
+          highProfit: editableRecord?.highProfit ?? metrics.periodProfit.high,
+          flatProfit: editableRecord?.flatProfit ?? metrics.periodProfit.flat,
+          valleyProfit: editableRecord?.valleyProfit ?? metrics.periodProfit.valley,
           electricityRevenue: editableRecord?.electricityRevenue ?? metrics.electricityRevenue,
           serviceRevenue: dataDraft.serviceRevenue ?? editableRecord?.serviceRevenue ?? metrics.serviceRevenue,
           profit: dataDraft.profit ?? editableRecord?.profit ?? metrics.profit,
