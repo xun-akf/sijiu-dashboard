@@ -2196,6 +2196,7 @@ function CompetitorEditor({
     );
     return decimals ? total.toFixed(decimals).replace(/\.?0+$/, "") : total.toFixed(0);
   };
+  const [marketPlatform, setMarketPlatform] = useState("新电途");
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "新电途" ? cfg.externalPricesJson : "", week);
   const ownT: PeriodPrice = ownMarket;
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
@@ -2205,7 +2206,6 @@ function CompetitorEditor({
   const advantageChange = competitorAdvantageChange(
     history[week] || [], previousCompetitors, effectiveOwnPrice(week), priorWeek ? effectiveOwnPrice(priorWeek) : null,
   );
-  const [marketPlatform, setMarketPlatform] = useState("新电途");
   const [sortBy, setSortBy] = useState<"distance" | "low" | "high" | "diff">(
     "distance",
   );
