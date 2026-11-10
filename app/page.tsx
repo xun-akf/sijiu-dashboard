@@ -2487,7 +2487,7 @@ function CompetitorEditor({
         </p>
       </div>
       <div className="competitor-week-change" aria-label="当前价格优势">
-        <b>本站现价 vs ${competitorPriceWeek && competitorPriceWeek !== week ? displayWeek(competitorPriceWeek) : "本周"}竞站价</b>
+        <b>本站活动价 vs ${competitorPriceWeek && competitorPriceWeek !== week ? displayWeek(competitorPriceWeek) : "本周"}竞站价</b>
         <span>{advantage == null ? "暂无可比数据" :
           `本站低于 ${cheaperThan} 家、高于 ${dearerThan} 家、同价 ${nearPrice} 家；${advantage >= 0 ? "平均低" : "平均高"} ${Math.abs(advantage).toFixed(4)} 元/度`}</span>
         <span>本站原价与活动价独立记录；原价待补充时不推算折扣金额。</span>
@@ -2521,7 +2521,7 @@ function CompetitorEditor({
         </div>
         <div className="competitor-entry own-entry">
           <div className="competitor-row own-row">
-            <b>本站 · {station.name}</b>
+            <b>本站 · {station.name}<small>活动价 · {marketPlatform}；原价{Object.values(ownOriginal).some((v) => v !== "") ? "见详情" : "待补充"}</small></b>
             <span>{cfg.guns ? `${cfg.guns}枪` : "—"}</span>
             <span>本站</span>
             {keys.map((k) => (
