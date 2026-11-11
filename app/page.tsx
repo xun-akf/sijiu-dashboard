@@ -2238,22 +2238,25 @@ function CompetitorEditor({
   const draftBreakdown = validDiscount
     ? calculateDiscountedPeriods(ownOriginal, serviceInput, Number(discountInput))
     : null;
-  const canApplyDiscount = editing && originalDisplayWeek === week && Object.values(ownOriginal).some(Boolean) && validDiscount
+  // The displayed original can belong to the newly prepared week while the comparison still shows last week.
+  // Save the discount against the original's own week; never rewrite the selected historical week.
+  const discountWeek = originalDisplayWeek;
+  const canApplyDiscount = editing && !!discountWeek && Object.values(ownOriginal).some(Boolean) && validDiscount
     && (["peak", "high", "flat", "valley"] as const).every((key) =>
       ownOriginal[key] === "" || draftBreakdown?.total[key] !== "");
   const openDiscount = () => {
     setServiceInput(ownOriginalService);
-    setDiscountInput(String(activityDiscounts[marketPlatform]?.[week] ?? 100));
+    setDiscountInput(String(activityDiscounts[marketPlatform]?.[discountWeek || ""] ?? 100));
     setDiscountOpen(true);
   };
   const applyDiscount = () => {
-    if (!canApplyDiscount) return;
+    if (!canApplyDiscount || !discountWeek) return;
     update(station.name, "ownOriginalServicePricesJson", JSON.stringify({
-      ...originalServices, [week]: { ...serviceInput },
+      ...originalServices, [discountWeek]: { ...serviceInput },
     }));
     update(station.name, "marketActivityDiscountsJson", JSON.stringify({
       ...activityDiscounts,
-      [marketPlatform]: { ...activityDiscounts[marketPlatform], [week]: Number(discountInput) },
+      [marketPlatform]: { ...activityDiscounts[marketPlatform], [discountWeek]: Number(discountInput) },
     }));
     setDiscountOpen(false);
   };
@@ -2603,12 +2606,12 @@ function CompetitorEditor({
           </div>}
           {discountOpen && <div className="own-discount-overlay" role="dialog" aria-modal="true" aria-label="编辑活动服务费折扣" onMouseDown={(event) => { if (event.target === event.currentTarget) setDiscountOpen(false); }}>
             <div className="own-discount-dialog">
-              <div className="own-discount-head"><b>编辑活动服务费折扣</b><button type="button" onClick={() => setDiscountOpen(false)} aria-label="关闭">×</button></div>
+              <div className="own-discount-head"><b>编辑活动服务费折扣{discountWeek ? ` · ${discountWeek}` : ""}</b><button type="button" onClick={() => setDiscountOpen(false)} aria-label="关闭">×</button></div>
               <label>服务费折扣 <input type="number" min="0" max="100" step="0.01" value={discountInput} onChange={(event) => setDiscountInput(event.target.value)} /> %</label>
               <div className="own-discount-presets">{[70, 75, 80, 85, 100].map((rate) => <button type="button" className={Number(discountInput) === rate ? "active" : ""} key={rate} onClick={() => setDiscountInput(String(rate))}>{rate === 100 ? "不打折" : `${rate / 10} 折`}</button>)}</div>
-              {originalDisplayWeek === week && keys.some((key) => ownOriginal[key] !== "" && ownOriginalService[key] === "") && <div className="own-service-inputs"><b>补充平台原价中的服务费</b>{keys.filter((key) => ownOriginal[key] !== "").map((key) => <label key={key}>{labels[key]} <input type="number" min="0" step="0.0001" value={serviceInput[key]} onChange={(event) => setServiceInput((previous) => ({ ...previous, [key]: event.target.value }))} /> 元/度</label>)}</div>}
+              {keys.some((key) => ownOriginal[key] !== "" && ownOriginalService[key] === "") && <div className="own-service-inputs"><b>补充平台原价中的服务费</b>{keys.filter((key) => ownOriginal[key] !== "").map((key) => <label key={key}>{labels[key]} <input type="number" min="0" step="0.0001" value={serviceInput[key]} onChange={(event) => setServiceInput((previous) => ({ ...previous, [key]: event.target.value }))} /> 元/度</label>)}</div>}
               <div className="own-discount-preview">{keys.filter((key) => ownOriginal[key] !== "").map((key) => <div key={key}><span>{labels[key]}段活动总价</span><b>{price(draftBreakdown?.total[key], 4)}</b></div>)}</div>
-              {!canApplyDiscount && <small>{originalDisplayWeek !== week ? "请先补充本周平台原价，再编辑本周折扣。" : "请填写 0–100% 折扣及对应原服务费。"}</small>}
+              {!canApplyDiscount && <small>请填写 0–100% 折扣及对应原服务费。</small>}
               <footer><button type="button" onClick={() => setDiscountOpen(false)}>取消</button><button type="button" disabled={!canApplyDiscount} onClick={applyDiscount}>应用折扣</button></footer>
             </div>
           </div>}
