@@ -2552,7 +2552,7 @@ function CompetitorEditor({
             {originalObservedAt && <small>原价采集于 {originalObservedAt}；实际生效日期待核对。</small>}
             {!originalDisplayWeek && <small>平台原价待补充。</small>}
             {originalIsSameWeek && <small>同周活动价与原价仅供查看，不参与经营收益重算。</small>}
-          </div>
+          </div>}
         </div>
         {sorted.map(({ c, index, total, diff }) => {
           const state = judgment(diff),
