@@ -1696,3 +1696,34 @@
   .own-price-detail-grid { min-width: 590px; }
   .own-price-detail { overflow-x: auto; }
 }
+
+/* Single station context stays inside the station overview card. */
+.station-context-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px solid #25483d;
+}
+.station-context-inline label { display: grid; gap: 5px; color: #8da99d; font-size: 10px; }
+.station-context-inline input {
+  width: 100%;
+  height: 32px;
+  padding: 0 9px;
+  border: 1px solid #315347;
+  border-radius: 6px;
+  background: #091d17;
+  color: #e1f2e9;
+}
+.station-context-inline .context-readonly { gap: 4px; }
+.station-context-inline .context-readonly span { color: #829c90; font-size: 10px; }
+.station-context-inline .context-readonly b { color: #e1f2e9; font-size: 11px; }
+.station-kpi-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1200px) {
+  .station-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .station-kpi-grid { grid-template-columns: 1fr; }
+  .station-context-inline { grid-template-columns: 1fr; }
+}
