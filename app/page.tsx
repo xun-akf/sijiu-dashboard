@@ -2205,8 +2205,11 @@ function CompetitorEditor({
   const [marketPlatform, setMarketPlatform] = useState("已导入");
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", week);
   const ownT: PeriodPrice = ownMarket;
-  const ownOriginal = resolveWeeklyPrice(cfg.ownOriginalPricesJson, week);
-  const originalObservedAt = safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[week];
+  const latestOriginalWeek = Object.keys(ownOriginalWeeks).sort((a, b) => weekOrderValue(a) - weekOrderValue(b)).at(-1);
+  const originalDisplayWeek = ownOriginalWeeks[week] ? week : latestOriginalWeek;
+  const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
+  const originalObservedAt = originalDisplayWeek ? safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[originalDisplayWeek] : undefined;
+  const originalIsSameWeek = originalDisplayWeek === week;
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
     const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", selectedWeek);
     return Object.values(market).some((value) => value !== "") ? market : null;
@@ -2493,7 +2496,7 @@ function CompetitorEditor({
         <b>本站活动价 vs ${competitorPriceWeek && competitorPriceWeek !== week ? displayWeek(competitorPriceWeek) : "本周"}竞站价</b>
         <span>{advantage == null ? "暂无可比数据" :
           `本站低于 ${cheaperThan} 家、高于 ${dearerThan} 家、同价 ${nearPrice} 家；${advantage >= 0 ? "平均低" : "平均高"} ${Math.abs(advantage).toFixed(4)} 元/度`}</span>
-        <span>本站原价与活动价独立记录；原价待补充时不推算折扣金额。</span>
+        <span>{originalDisplayWeek ? `本站平台原价已录入（${originalObservedAt || displayWeek(originalDisplayWeek)}采集）；${originalIsSameWeek ? "可查看原价与活动价差额" : "所选活动周与原价采集周不同，不推算折扣差额"}` : "本站平台原价待补充；不推算折扣金额。"}</span>
       </div>
       <div className="competitor-week-change" aria-label="竞站价格周度变化">
         <b>本周对比上周 · 可比时段均价</b>
@@ -2524,7 +2527,7 @@ function CompetitorEditor({
         </div>
         <div className="competitor-entry own-entry">
           <div className="competitor-row own-row">
-            <b>本站 · {station.name}<small>活动价 · {marketPlatform}；原价{Object.values(ownOriginal).some((v) => v !== "") ? "见详情" : "待补充"}</small></b>
+            <b>本站 · {station.name}<small>活动价 · {marketPlatform}；{originalDisplayWeek ? `当前原价已录（${originalObservedAt || displayWeek(originalDisplayWeek)}）` : "原价待补充"}</small></b>
             <span>{cfg.guns ? `${cfg.guns}枪` : "—"}</span>
             <span>本站</span>
             {keys.map((k) => (
@@ -2537,8 +2540,8 @@ function CompetitorEditor({
             </button>
           </div>
           {ownExpanded && <div className="compact-fee-details">
-            <b>本站平台计费原价 · {displayWeek(week)}</b>{originalObservedAt && <small>采集于 {originalObservedAt}；实际生效日期待核对</small>}{keys.map((key) => <span key={`original-${key}`}>{labels[key]} {price(ownOriginal[key], 4)}</span>)}
-            <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={`market-${key}`}>{labels[key]} {price(ownT[key], 4)}{numericPrice(ownOriginal[key]) != null && numericPrice(ownT[key]) != null && <small>较原价低 {(Number(ownOriginal[key]) - Number(ownT[key])).toFixed(4)} 元/度</small>}</span>)}
+            <b>本站平台当前原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{originalObservedAt && <small>采集于 {originalObservedAt}；实际生效日期待核对</small>}{keys.map((key) => <span key={`original-${key}`}>{labels[key]} {price(ownOriginal[key], 4)}</span>)}
+            <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={`market-${key}`}>{labels[key]} {price(ownT[key], 4)}{originalIsSameWeek && numericPrice(ownOriginal[key]) != null && numericPrice(ownT[key]) != null && <small>较原价低 {(Number(ownOriginal[key]) - Number(ownT[key])).toFixed(4)} 元/度</small>}</span>)}
             <small>原价待你提供平台计费数据后补充；活动价仅用于竞站比较。</small>
           </div>}
         </div>
