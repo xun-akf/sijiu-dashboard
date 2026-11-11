@@ -2259,6 +2259,7 @@ function CompetitorEditor({
       [marketPlatform]: { ...activityDiscounts[marketPlatform], [discountWeek]: Number(discountInput) },
     }));
     setDiscountOpen(false);
+    setChosenWeek({ base: stationWeek, station: station.name, value: discountWeek });
   };
   const advantageChange = competitorAdvantageChange(
     history[week] || [], previousCompetitors, effectiveOwnPrice(week), priorWeek ? effectiveOwnPrice(priorWeek) : null,
