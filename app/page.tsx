@@ -1958,7 +1958,7 @@ function StationAnalysis({
         <p>{stationAnalysis(selected, r.week, c)}</p>
       </Panel>}
       <StationHistoryTable station={chosen} onRecordSave={onRecordSave} aggregate={isAll} />
-      {!isAll && <div id="station-competitor-detail"><StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} /></div>}
+      {!isAll && <div id="station-competitor-detail"><StationCompetitorSection station={selected} week={selectedWeek} editing={editing} cfg={c} update={update} startEditing={() => { if (!editing) { setOriginalCompetitors(c.competitorsJson); setOriginalCompetitorHistory(c.competitorsByWeekJson); setEditing(true); } }} /></div>}
     </>
   );
 }
@@ -2119,12 +2119,13 @@ function Business({ wi, sn, onStationSelect }: { wi: number; sn: string; onStati
     </>
   );
 }
-function StationCompetitorSection({ station, week, editing, cfg, update }: {
+function StationCompetitorSection({ station, week, editing, cfg, update, startEditing }: {
   station: S;
   week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
+  startEditing: () => void;
 }) {
   return (
       <CompetitorEditor
@@ -2133,6 +2134,7 @@ function StationCompetitorSection({ station, week, editing, cfg, update }: {
         editing={editing}
         cfg={cfg}
         update={update}
+        startEditing={startEditing}
       />
   );
 }
@@ -2156,12 +2158,14 @@ function CompetitorEditor({
   editing,
   cfg,
   update,
+  startEditing,
 }: {
   station: S;
   week: string;
   editing: boolean;
   cfg: StationConfig;
   update: (n: string, k: keyof StationConfig, v: string) => void;
+  startEditing: () => void;
 }) {
   const history = readCompetitorHistory(cfg.competitorsByWeekJson);
   const ownMarketWeeks = safeJson<Record<string, Record<string, PeriodPrice>>>(cfg.marketPricesByPlatformJson, {});
@@ -2582,14 +2586,14 @@ function CompetitorEditor({
             <div className="own-card-detail-head"><b>本站价格详情</b><button type="button" onClick={() => setOwnExpanded(false)}>收起 ×</button></div>
             <div className="own-horizontal-cards">
               <section className="own-tariff-card" aria-label="平台原价">
-                <header><b>平台原价</b></header>
+                <header><div><b>平台原价</b><small>独立保留</small></div><span className="own-card-tag">原价</span></header>
                 <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
                 {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
                   <b>{labels[key]}</b><span>{price(originalBreakdown.electricity[key], 4)}</span><span>{price(ownOriginalService[key], 4)}</span><strong>{price(ownOriginal[key], 4)}</strong>
                 </div>)}
               </section>
               <section className="own-tariff-card activity" aria-label="活动价">
-                <header><b>活动价</b>{editing && <button type="button" onClick={openDiscount}>编辑折扣 ✎</button>}</header>
+                <header><div><b>活动总价</b><small>仅服务费打折 · 用于竞站比价</small></div><button type="button" onClick={() => { if (!editing) startEditing(); openDiscount(); }}>编辑折扣 ✎</button></header>
                 <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
                 {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
                   <b>{labels[key]}</b><span>{price(ownActivityBreakdown.electricity[key], 4)}</span><span>{price(ownActivityBreakdown.service[key], 4)}</span><strong>{price(ownT[key], 4)}</strong>
