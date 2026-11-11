@@ -1644,3 +1644,55 @@
   .dashboard-shell .competitor-table { overflow: visible; }
   .dashboard-shell .competitor-row { min-width: 0; }
 }
+
+/* Week over week charge change under each weekly trend label. */
+.interactive-chart .weekly-charge-change {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.interactive-chart .weekly-charge-change.up { color: #36d399; }
+.interactive-chart .weekly-charge-change.down { color: #ff8585; }
+.interactive-chart .weekly-charge-change.flat,
+.interactive-chart .weekly-charge-change.unavailable { color: #829a90; }
+
+/* Keep the own station's activity prices in one row; show original prices in details. */
+.own-price-detail {
+  padding: 12px 14px;
+  border-top: 1px solid #285044;
+  background: #0d2a22;
+}
+.own-price-detail-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: baseline;
+  margin-bottom: 9px;
+}
+.own-price-detail-heading b { color: #d9f4e8; font-size: 11px; }
+.own-price-detail small,
+.own-price-detail-heading small { color: #829e92; font-size: 9px; }
+.own-price-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.5fr) repeat(4, minmax(80px, 1fr));
+  align-items: center;
+  gap: 1px 8px;
+  margin-bottom: 8px;
+  overflow-x: auto;
+}
+.own-price-detail-grid > * {
+  min-width: 0;
+  padding: 7px 6px;
+  border-bottom: 1px solid #24483c;
+  color: #c8e4d7;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.own-price-detail-grid > span:nth-child(-n+5) { color: #83a89a; }
+.own-price-detail-grid > b { color: #b6f4d7; }
+@media (max-width: 720px) {
+  .own-price-detail-grid { min-width: 590px; }
+  .own-price-detail { overflow-x: auto; }
+}
