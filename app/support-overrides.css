@@ -1817,3 +1817,7 @@
 .own-discount-dialog footer button:last-child { background:#42d5a2; color:#073e30; font-weight:700; }
 .own-discount-dialog footer button:disabled { opacity:.45; cursor:not-allowed; }
 @media (max-width:900px) { .own-horizontal-cards { grid-template-columns:1fr; max-width:610px; } }
+
+.own-tariff-card header small { display:block; margin-top:2px; color:#99bca9; font-size:10px; }
+.own-card-tag { border:1px solid #33564a; border-radius:6px; padding:3px 7px; color:#bbd4c3; background:#15382e; font-size:10px; }
+.own-card-detail-head button { font-size:11px; }
