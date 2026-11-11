@@ -2204,7 +2204,8 @@ function CompetitorEditor({
   const historicalOriginalWeek = Object.keys(ownOriginalWeeks)
     .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
     .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
-  const originalDisplayWeek = historicalOriginalWeek;
+  const originalDisplayWeek = historicalOriginalWeek || Object.keys(ownOriginalWeeks)
+    .sort((left, right) => weekOrderValue(right) - weekOrderValue(left))[0];
   const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
   const ownOriginalService = originalDisplayWeek ? { ...blankPrice(), ...originalServices[originalDisplayWeek] } : blankPrice();
   const originalBreakdown = calculateDiscountedPeriods(ownOriginal, ownOriginalService, 100);
