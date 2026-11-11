@@ -2552,18 +2552,27 @@ function CompetitorEditor({
             </button>
           </div>
           {ownExpanded && <div className="own-price-detail">
-            <div className="own-price-detail-heading"><b>本站分时价格</b><small>元/度 · 各行来源和周次独立</small></div>
-            <div className="own-price-detail-grid">
-              <span>价格类型</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}
-              <b>活动总价 · {displayWeek(week)}</b>{keys.map((key) => <span key={key}>{price(ownT[key], 4)}</span>)}
-              <b>平台原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownOriginal[key], 4)}</span>)}
-              <b>结算电费 · {ownElectricityOrigin ? displayWeek(ownElectricityOrigin) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownE[key], 4)}</span>)}
-              <b>结算服务费 · {ownServiceOrigin ? displayWeek(ownServiceOrigin) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownS[key], 4)}</span>)}
+            <div className="own-price-detail-heading"><b>本站价格详情</b><small>活动价用于竞站对比；结算价格用于经营核算</small></div>
+            <div className="compact-fee-details own-fee-details">
+              {([
+                ["结算电费", ownE, ownElectricityOrigin],
+                ["结算服务费", ownS, ownServiceOrigin],
+                ["活动总价", ownT, week],
+              ] as [string, PeriodPrice, string | undefined][]).map(([label, values, origin]) => (
+                <div key={label} className={label === "活动总价" ? "total-fee" : ""}>
+                  <b>{label}<small>{origin ? displayWeek(origin) : "待补充"}</small></b>
+                  {keys.map((key) => <span key={key}><small>{labels[key]}</small>{price(values[key], 4)}</span>)}
+                </div>
+              ))}
             </div>
-            {originalObservedAt && <small>平台原价采集于 {originalObservedAt}，实际生效日期待核对。</small>}
-            {originalDisplayWeek && !historicalOriginalWeek && <small>该原价晚于所选周采集，仅供参考；下方结算电费、服务费按各自记录周次展示，不以此拆分原价。</small>}
-            {!originalDisplayWeek && <small>平台原价待补充，不用结算价格推算。</small>}
-            <small>活动价仅用于竞站比较；历史经营收益仍按已保存的结算记录。</small>
+            <details className="own-original-content">
+              <summary>查看平台原价{originalDisplayWeek ? ` · ${displayWeek(originalDisplayWeek)}` : " · 待补充"}</summary>
+              <div className="compact-fee-details own-fee-details">
+                <div className="total-fee"><b>平台原价</b>{keys.map((key) => <span key={key}><small>{labels[key]}</small>{price(ownOriginal[key], 4)}</span>)}</div>
+              </div>
+              {originalObservedAt && <small>采集于 {originalObservedAt}，实际生效日期待核对。</small>}
+              {originalDisplayWeek && !historicalOriginalWeek && <small>该原价晚于所选周采集，仅供参考。</small>}
+            </details>
           </div>}
         </div>
         {sorted.map(({ c, index, total, diff }) => {
