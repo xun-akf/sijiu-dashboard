@@ -1816,25 +1816,7 @@ function StationAnalysis({
               <span>{c.customers || "主要充电人群暂未填写"}</span>
             </div>
           )}
-        </div>
-        {!isAll && <div className="config-actions">
-          {editing && (
-            <button className="ghost" onClick={() => {
-              if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
-              if (originalCompetitorHistory != null) update(selected.name, "competitorsByWeekJson", originalCompetitorHistory);
-              setEditing(false);
-              setOriginalCompetitors(null);
-              setOriginalCompetitorHistory(null);
-            }}>
-              取消
-            </button>
-          )}
-          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setOriginalCompetitorHistory(c.competitorsByWeekJson), setEditing(true))}>
-            {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
-          </button>
-        </div>}
-      </div>
-      {!isAll && <div className="context-strip">
+          {!isAll && <div className="station-context-inline">
         {editing ? (
           <>
             <label>
@@ -1866,15 +1848,38 @@ function StationAnalysis({
             </div>
           </>
         )}
-        <span>统计周期：上周日—本周六</span>
-      </div>}
-      <div className="kpi-grid">
+          </div>}
+        </div>
+        {!isAll && <div className="config-actions">
+          {editing && (
+            <button className="ghost" onClick={() => {
+              if (originalCompetitors != null) update(selected.name, "competitorsJson", originalCompetitors);
+              if (originalCompetitorHistory != null) update(selected.name, "competitorsByWeekJson", originalCompetitorHistory);
+              setEditing(false);
+              setOriginalCompetitors(null);
+              setOriginalCompetitorHistory(null);
+            }}>
+              取消
+            </button>
+          )}
+          <button onClick={() => editing ? void doSave() : (setOriginalCompetitors(c.competitorsJson), setOriginalCompetitorHistory(c.competitorsByWeekJson), setEditing(true))}>
+            {saved ? "已保存 ✓" : editing ? "保存" : "编辑资料"}
+          </button>
+        </div>}
+      </div>
+      <div className={`kpi-grid${isAll ? "" : " station-kpi-grid"}`}>
         <Kpi
           icon={<BatteryCharging />}
           label="本周充电量"
           value={`${qty(num(r?.charge))} kWh`}
           change={r?.chargeChange ?? null}
         />
+        {!isAll && <Kpi
+          icon={<Gauge />}
+          label="单枪日均充电量"
+          value={r && Number(c.guns) > 0 ? `${(num(r.charge) / Number(c.guns) / 7).toFixed(2)} kWh` : "待补充枪数"}
+          sub={Number(c.guns) > 0 ? `${Number(c.guns)}枪 · 本周7天` : "需配置本站枪数"}
+        />}
         <Kpi
           icon={<CircleDollarSign />}
           label="每度服务费"
@@ -2208,8 +2213,9 @@ function CompetitorEditor({
   const [marketPlatform, setMarketPlatform] = useState("已导入");
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", week);
   const ownT: PeriodPrice = ownMarket;
-  const latestOriginalWeek = Object.keys(ownOriginalWeeks).sort((a, b) => weekOrderValue(a) - weekOrderValue(b)).at(-1);
-  const originalDisplayWeek = ownOriginalWeeks[week] ? week : latestOriginalWeek;
+  const originalDisplayWeek = Object.keys(ownOriginalWeeks)
+    .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
   const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
   const originalObservedAt = originalDisplayWeek ? safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[originalDisplayWeek] : undefined;
   const originalIsSameWeek = originalDisplayWeek === week;
@@ -2603,7 +2609,7 @@ function CompetitorEditor({
                   {editing && <button className="delete-competitor-button" onClick={() => removeCompetitor(index)}>删除</button>}
                 </div>
               </div>
-              {isOpen && <div className="compact-fee-details"><b>外显平台</b>{editing ? <><input value={c.platform || ""} placeholder="新电途 / 快电" onChange={(event) => changeBase(index, "platform", event.target.value)} /><input type="date" value={c.effectiveDate || ""} onChange={(event) => changeBase(index, "effectiveDate", event.target.value)} /></> : <span>{c.platform || "未注明平台"} {c.effectiveDate || ""}</span>}</div>}
+              {isOpen && editing && <div className="compact-fee-details"><b>平台与日期</b><input value={c.platform || ""} placeholder="新电途 / 快电" onChange={(event) => changeBase(index, "platform", event.target.value)} /><input type="date" value={c.effectiveDate || ""} onChange={(event) => changeBase(index, "effectiveDate", event.target.value)} /></div>}
               {isOpen && (
                 renderPriceRows({
                   e: c.electricity || blankPrice(),
