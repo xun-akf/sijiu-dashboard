@@ -10,12 +10,7 @@ export default function AccessPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberPassword, setRememberPassword] = useState(false);
-  const [savedAccount, setSavedAccount] = useState("");
   useEffect(() => {
-    try {
-      const account = window.localStorage.getItem("sijiu-remembered-account");
-      if (account) { setSavedAccount(account); setRememberPassword(true); }
-    } catch { /* Private browsing can disable local storage. */ }
     let active = true;
     void dashboardFetch("/api/access", { cache: "no-store" })
       .then((response) => response.json())
@@ -36,10 +31,6 @@ export default function AccessPage() {
     const password = String(form.get("password") || "");
     try {
       await signInDashboard(account, password);
-      try {
-        if (rememberPassword) window.localStorage.setItem("sijiu-remembered-account", account);
-        else window.localStorage.removeItem("sijiu-remembered-account");
-      } catch { /* The session still works without local storage. */ }
       if (rememberPassword) {
         // The browser password manager owns the credential; never store it in app state storage.
         try {
@@ -69,21 +60,21 @@ export default function AccessPage() {
           <p className="text-sm leading-6 text-[#8fb6a8]">数据分级访问，权限自动识别。验证通过后进入对应工作台。</p>
         </div>
         {checkingSession ? <p className="py-8 text-center text-sm text-[#8fb6a8]">正在检查登录状态…</p> : <form onSubmit={submit} className="space-y-4">
-          <div><label htmlFor="account" className="mb-2 block text-sm text-[#b6d0c6]">请输入账号</label><input id="account" name="account" type="text" autoComplete="username" defaultValue={savedAccount} key={savedAccount} required placeholder="请输入访问账号" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] px-4 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" /></div>
+          <div><label htmlFor="account" className="mb-2 block text-sm text-[#b6d0c6]">请输入账号</label><input id="account" name="account" type="text" autoComplete="username" required placeholder="请输入访问账号" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] px-4 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" /></div>
           <div>
             <label htmlFor="password" className="mb-2 block text-sm text-[#b6d0c6]">请输入密码</label>
             <div className="relative">
-              <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete={rememberPassword ? "current-password" : "off"} required placeholder="请输入访问密码" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] pl-4 pr-14 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" />
+              <input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required placeholder="请输入访问密码" className="h-12 w-full rounded-xl border border-[#245344] bg-[#071f19] pl-4 pr-14 text-base text-white outline-none placeholder:text-[#587c70] focus:border-[#35d7a5]" />
               <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "隐藏密码" : "显示密码"} aria-pressed={showPassword} className="absolute right-1 top-1 flex size-10 items-center justify-center rounded-lg text-[#8fb6a8] hover:bg-[#174437] hover:text-[#edf8f3] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#35d7a5]">
                 {showPassword ? <EyeOff className="size-5" aria-hidden="true" /> : <Eye className="size-5" aria-hidden="true" />}
               </button>
             </div>
             {error ? <p className="mt-2 text-sm text-[#ff9b73]">{error}</p> : null}
           </div>
-          <label className="flex items-center gap-2 text-sm text-[#b6d0c6]"><input type="checkbox" checked={rememberPassword} onChange={(event) => setRememberPassword(event.target.checked)} className="size-4 accent-[#35d7a5]" />保存密码（由浏览器管理）</label>
+          <label className="flex items-center gap-2 text-sm text-[#b6d0c6]"><input type="checkbox" checked={rememberPassword} onChange={(event) => setRememberPassword(event.target.checked)} className="size-4 accent-[#35d7a5]" />记住密码</label>
           <button type="submit" disabled={loading} className="h-12 w-full rounded-xl bg-[#35d7a5] font-semibold text-[#052019] disabled:opacity-60">{loading ? "正在验证…" : "进入周报系统"}</button>
         </form>}
-        <p className="mt-5 text-center text-xs text-[#658c7e]">登录状态将保存在当前浏览器；保存密码时由浏览器密码管理器负责</p>
+        <p className="mt-5 text-center text-xs text-[#658c7e]">登录状态将保存在当前浏览器</p>
       </section>
     </main>
   );
