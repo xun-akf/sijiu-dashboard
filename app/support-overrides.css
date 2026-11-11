@@ -1746,3 +1746,31 @@
 
 .own-price-detail-grid > * { padding-top: 4px; padding-bottom: 4px; }
 .own-price-detail > small { display: block; margin-top: 3px; line-height: 1.4; }
+
+/* Show activity price first; keep original and settlement figures behind a second detail control. */
+.own-activity-line {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(85px, 1fr)) 80px;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.own-activity-line > b { color: #b6f4d7; }
+.own-activity-line > span { color: #d4eee3; }
+.own-activity-line small { color: #8aa99b; font-size: 9px; }
+.own-more-detail { grid-column: 6; grid-row: 1; }
+.own-more-detail summary {
+  list-style: none;
+  padding: 6px 8px;
+  border: 1px solid #315d4d;
+  border-radius: 6px;
+  text-align: center;
+  color: #b9e9d5;
+  cursor: pointer;
+}
+.own-more-detail summary::-webkit-details-marker { display: none; }
+.own-more-detail[open] { grid-column: 1 / -1; grid-row: 2; }
+.own-more-detail[open] summary { justify-self: end; width: 80px; margin-left: auto; }
+.own-more-content { margin-top: 8px; border-top: 1px dashed #315d4d; padding-top: 7px; }
+.own-more-content > small { display: block; margin-top: 3px; }
+@media (max-width: 720px) { .own-activity-line { min-width: 750px; } }
