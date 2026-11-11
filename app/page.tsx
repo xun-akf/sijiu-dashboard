@@ -1,6 +1,7 @@
 "use client";
 import "./diagnosis.css";
 import "./charging-mode.css";
+import { calculateDiscountedPeriods, deriveActivityComponents } from "./market-discount";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { strFromU8, unzipSync } from "fflate";
 import {
@@ -144,6 +145,8 @@ type StationConfig = {
   externalPricesJson: string;
   marketPricesByPlatformJson: string;
   ownOriginalPricesJson: string;
+  ownOriginalServicePricesJson: string;
+  marketActivityDiscountsJson: string;
   originalPriceObservedAtJson: string;
   settlementTotalPricesJson: string;
   electricityPricesJson: string;
@@ -179,6 +182,8 @@ const emptyConfig: StationConfig = {
   externalPricesJson: "",
   marketPricesByPlatformJson: "",
   ownOriginalPricesJson: "",
+  ownOriginalServicePricesJson: "",
+  marketActivityDiscountsJson: "",
   originalPriceObservedAtJson: "",
   settlementTotalPricesJson: "",
   electricityPricesJson: "",
@@ -2190,41 +2195,63 @@ function CompetitorEditor({
   const changes = compareCompetitorWeeks(history[week] || [], previousCompetitors);
   const keys = ["peak", "high", "flat", "valley"] as const;
   const labels = { peak: "尖", high: "峰", flat: "平", valley: "谷" };
-  const ownE = resolveWeeklyPrice(cfg.electricityPricesJson, week);
-  const ownS = resolveWeeklyPrice(cfg.servicePricesJson, week);
-  const latestConfiguredWeek = (prices: Record<string, PeriodPrice>) => Object.keys(prices)
-    .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
-    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
-  const ownElectricityOrigin = latestConfiguredWeek(ownElectricityWeeks);
-  const ownServiceOrigin = latestConfiguredWeek(ownServiceWeeks);
-  const hasSplitOwnPrice = [...Object.values(ownE), ...Object.values(ownS)].some(
-    (value) => Number(value) > 0,
-  );
-  const addRawPrice = (left: string, right: string) => {
-    if (left === "" || right === "") return "";
-    const total = Number(left) + Number(right);
-    if (!Number.isFinite(total)) return "";
-    const decimals = Math.min(
-      8,
-      Math.max(left.split(".")[1]?.length || 0, right.split(".")[1]?.length || 0),
-    );
-    return decimals ? total.toFixed(decimals).replace(/\.?0+$/, "") : total.toFixed(0);
-  };
   const [marketPlatform, setMarketPlatform] = useState("已导入");
-  const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", week);
-  const ownT: PeriodPrice = ownMarket;
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [discountInput, setDiscountInput] = useState("100");
+  const [serviceInput, setServiceInput] = useState<PeriodPrice>(blankPrice());
+  const originalServices = safeJson<Record<string, PeriodPrice>>(cfg.ownOriginalServicePricesJson, {});
+  const activityDiscounts = safeJson<Record<string, Record<string, number>>>(cfg.marketActivityDiscountsJson, {});
   const historicalOriginalWeek = Object.keys(ownOriginalWeeks)
     .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
     .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
-  // A later observed price may be shown as a reference, never treated as this week's effective price.
   const originalDisplayWeek = historicalOriginalWeek || Object.keys(ownOriginalWeeks)
     .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
   const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
-  const originalObservedAt = originalDisplayWeek ? safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[originalDisplayWeek] : undefined;
-  const originalIsSameWeek = originalDisplayWeek === week;
+  const ownOriginalService = originalDisplayWeek ? { ...blankPrice(), ...originalServices[originalDisplayWeek] } : blankPrice();
+  const originalBreakdown = calculateDiscountedPeriods(ownOriginal, ownOriginalService, 100);
+  const marketForWeek = (selectedWeek: string) =>
+    resolveWeeklyPrice(ownMarketWeeks[marketPlatform]
+      ? JSON.stringify(ownMarketWeeks[marketPlatform])
+      : marketPlatform === "已导入" ? cfg.externalPricesJson : "", selectedWeek);
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
-    const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", selectedWeek);
-    return Object.values(market).some((value) => value !== "") ? market : null;
+    const market = marketForWeek(selectedWeek);
+    const rate = activityDiscounts[marketPlatform]?.[selectedWeek];
+    const sourceWeek = Object.keys(ownOriginalWeeks)
+      .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(selectedWeek))
+      .sort((left, right) => weekOrderValue(right) - weekOrderValue(left))[0];
+    const original = sourceWeek ? { ...blankPrice(), ...ownOriginalWeeks[sourceWeek] } : blankPrice();
+    const service = sourceWeek ? { ...blankPrice(), ...originalServices[sourceWeek] } : blankPrice();
+    const discounted = rate == null ? null : calculateDiscountedPeriods(original, service, rate).total;
+    const result = discounted && Object.values(discounted).some((value) => value !== "")
+      ? { ...market, ...Object.fromEntries(Object.entries(discounted).filter(([, value]) => value !== "")) } as PeriodPrice
+      : market;
+    return Object.values(result).some((value) => value !== "") ? result : null;
+  };
+  const ownT = effectiveOwnPrice(week) || blankPrice();
+  const ownActivityBreakdown = deriveActivityComponents(ownOriginal, ownOriginalService, ownT);
+  const validDiscount = discountInput.trim() !== "" && Number.isFinite(Number(discountInput))
+    && Number(discountInput) >= 0 && Number(discountInput) <= 100;
+  const draftBreakdown = validDiscount
+    ? calculateDiscountedPeriods(ownOriginal, serviceInput, Number(discountInput))
+    : null;
+  const canApplyDiscount = editing && originalDisplayWeek === week && Object.values(ownOriginal).some(Boolean) && validDiscount
+    && (["peak", "high", "flat", "valley"] as const).every((key) =>
+      ownOriginal[key] === "" || draftBreakdown?.total[key] !== "");
+  const openDiscount = () => {
+    setServiceInput(ownOriginalService);
+    setDiscountInput(String(activityDiscounts[marketPlatform]?.[week] ?? 100));
+    setDiscountOpen(true);
+  };
+  const applyDiscount = () => {
+    if (!canApplyDiscount) return;
+    update(station.name, "ownOriginalServicePricesJson", JSON.stringify({
+      ...originalServices, [week]: { ...serviceInput },
+    }));
+    update(station.name, "marketActivityDiscountsJson", JSON.stringify({
+      ...activityDiscounts,
+      [marketPlatform]: { ...activityDiscounts[marketPlatform], [week]: Number(discountInput) },
+    }));
+    setDiscountOpen(false);
   };
   const advantageChange = competitorAdvantageChange(
     history[week] || [], previousCompetitors, effectiveOwnPrice(week), priorWeek ? effectiveOwnPrice(priorWeek) : null,
@@ -2446,7 +2473,7 @@ function CompetitorEditor({
   return (
     <Panel
       title="本站与周边竞站"
-      sub={`本站 ${displayWeek(week)} 价格；竞站 ${competitorPriceWeek ? displayWeek(competitorPriceWeek) : "最近记录"} 价格，展开详情查看电费与服务费`}
+      sub="活动价用于竞站对比"
       extra="ranking compact-competitor-panel"
       actions={<div className="competitor-tools">
         <select value={week} onChange={(event) => setChosenWeek({ base: stationWeek, station: station.name, value: event.target.value })} aria-label="竞站价格周次">
@@ -2508,7 +2535,7 @@ function CompetitorEditor({
         <b>本站活动价 vs ${competitorPriceWeek && competitorPriceWeek !== week ? displayWeek(competitorPriceWeek) : "本周"}竞站价</b>
         <span>{advantage == null ? "暂无可比数据" :
           `本站低于 ${cheaperThan} 家、高于 ${dearerThan} 家、同价 ${nearPrice} 家；${advantage >= 0 ? "平均低" : "平均高"} ${Math.abs(advantage).toFixed(4)} 元/度`}</span>
-        <span>{originalDisplayWeek ? `本站平台原价已录入（${originalObservedAt || displayWeek(originalDisplayWeek)}采集）；${originalIsSameWeek ? "可查看原价与活动价差额" : "所选活动周与原价采集周不同，不推算折扣差额"}` : "本站平台原价待补充；不推算折扣金额。"}</span>
+
       </div>
       <div className="competitor-week-change" aria-label="竞站价格周度变化">
         <b>本周对比上周 · 可比时段均价</b>
@@ -2548,27 +2575,37 @@ function CompetitorEditor({
             <span>—</span>
             <em>本站</em>
             <button onClick={() => setOwnExpanded((value) => !value)}>
-              {ownExpanded ? "收起" : "详情"}
+              {ownExpanded ? "收起详情" : "价格详情"}
             </button>
           </div>
-          {ownExpanded && <div className="own-price-detail">
-            <div className="own-activity-line">
-              <b>活动总价 <small>· {displayWeek(week)}</small></b>
-              {keys.map((key) => <span key={key}><small>{labels[key]} </small>{price(ownT[key], 4)}</span>)}
-              <details className="own-more-detail">
-                <summary>详情</summary>
-                <div className="own-more-content">
-                  <div className="own-price-detail-grid">
-                    <span>价格类型</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}
-                    <b>平台原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownOriginal[key], 4)}</span>)}
-                    <b>结算电费 · {ownElectricityOrigin ? displayWeek(ownElectricityOrigin) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownE[key], 4)}</span>)}
-                    <b>结算服务费 · {ownServiceOrigin ? displayWeek(ownServiceOrigin) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownS[key], 4)}</span>)}
-                  </div>
-                  {originalObservedAt && <small>平台原价采集于 {originalObservedAt}，实际生效日期待核对。</small>}
-                  {originalDisplayWeek && !historicalOriginalWeek && <small>该原价晚于所选周采集，仅供参考。</small>}
-                  <small>活动价仅用于竞站比较；历史经营收益仍按已保存的结算记录。</small>
-                </div>
-              </details>
+          {ownExpanded && <div className="own-price-detail own-card-detail">
+            <div className="own-card-detail-head"><b>本站价格详情</b><button type="button" onClick={() => setOwnExpanded(false)}>收起 ×</button></div>
+            <div className="own-horizontal-cards">
+              <section className="own-tariff-card" aria-label="平台原价">
+                <header><b>平台原价</b></header>
+                <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
+                {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
+                  <b>{labels[key]}</b><span>{price(originalBreakdown.electricity[key], 4)}</span><span>{price(ownOriginalService[key], 4)}</span><strong>{price(ownOriginal[key], 4)}</strong>
+                </div>)}
+              </section>
+              <section className="own-tariff-card activity" aria-label="活动价">
+                <header><b>活动价</b>{editing && <button type="button" onClick={openDiscount}>编辑折扣 ✎</button>}</header>
+                <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
+                {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
+                  <b>{labels[key]}</b><span>{price(ownActivityBreakdown.electricity[key], 4)}</span><span>{price(ownActivityBreakdown.service[key], 4)}</span><strong>{price(ownT[key], 4)}</strong>
+                </div>)}
+              </section>
+            </div>
+          </div>}
+          {discountOpen && <div className="own-discount-overlay" role="dialog" aria-modal="true" aria-label="编辑活动服务费折扣" onMouseDown={(event) => { if (event.target === event.currentTarget) setDiscountOpen(false); }}>
+            <div className="own-discount-dialog">
+              <div className="own-discount-head"><b>编辑活动服务费折扣</b><button type="button" onClick={() => setDiscountOpen(false)} aria-label="关闭">×</button></div>
+              <label>服务费折扣 <input type="number" min="0" max="100" step="0.01" value={discountInput} onChange={(event) => setDiscountInput(event.target.value)} /> %</label>
+              <div className="own-discount-presets">{[70, 75, 80, 85, 100].map((rate) => <button type="button" className={Number(discountInput) === rate ? "active" : ""} key={rate} onClick={() => setDiscountInput(String(rate))}>{rate === 100 ? "不打折" : `${rate / 10} 折`}</button>)}</div>
+              {originalDisplayWeek === week && keys.some((key) => ownOriginal[key] !== "" && ownOriginalService[key] === "") && <div className="own-service-inputs"><b>补充平台原价中的服务费</b>{keys.filter((key) => ownOriginal[key] !== "").map((key) => <label key={key}>{labels[key]} <input type="number" min="0" step="0.0001" value={serviceInput[key]} onChange={(event) => setServiceInput((previous) => ({ ...previous, [key]: event.target.value }))} /> 元/度</label>)}</div>}
+              <div className="own-discount-preview">{keys.filter((key) => ownOriginal[key] !== "").map((key) => <div key={key}><span>{labels[key]}段活动总价</span><b>{price(draftBreakdown?.total[key], 4)}</b></div>)}</div>
+              {!canApplyDiscount && <small>{originalDisplayWeek !== week ? "请先补充本周平台原价，再编辑本周折扣。" : "请填写 0–100% 折扣及对应原服务费。"}</small>}
+              <footer><button type="button" onClick={() => setDiscountOpen(false)}>取消</button><button type="button" disabled={!canApplyDiscount} onClick={applyDiscount}>应用折扣</button></footer>
             </div>
           </div>}
         </div>
