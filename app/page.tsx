@@ -2213,8 +2213,11 @@ function CompetitorEditor({
   const [marketPlatform, setMarketPlatform] = useState("已导入");
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", week);
   const ownT: PeriodPrice = ownMarket;
-  const originalDisplayWeek = Object.keys(ownOriginalWeeks)
+  const historicalOriginalWeek = Object.keys(ownOriginalWeeks)
     .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
+    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
+  // A later observed price may be shown as a reference, never treated as this week's effective price.
+  const originalDisplayWeek = historicalOriginalWeek || Object.keys(ownOriginalWeeks)
     .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
   const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
   const originalObservedAt = originalDisplayWeek ? safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[originalDisplayWeek] : undefined;
@@ -2232,6 +2235,7 @@ function CompetitorEditor({
   const [threatOnly, setThreatOnly] = useState(false);
   const [expanded, setExpanded] = useState<number[]>([]);
   const [ownExpanded, setOwnExpanded] = useState(false);
+  const [ownOriginalExpanded, setOwnOriginalExpanded] = useState(false);
   const validPrice = numericPrice;
   const price = (value: string | number | undefined, digits = 2) => {
     const n = validPrice(value);
@@ -2549,15 +2553,22 @@ function CompetitorEditor({
             </button>
           </div>
           {ownExpanded && <div className="own-price-detail">
-            <div className="own-price-detail-heading"><b>本站价格明细</b><small>活动价只用于竞站比较；原价按采集记录展示</small></div>
+            <div className="own-price-detail-heading"><b>本站价格明细</b><small>活动价用于竞站比较，平台原价另行查看</small></div>
             <div className="own-price-detail-grid">
               <span>价格</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}
               <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={key}>{price(ownT[key], 4)}</span>)}
-              <b>平台原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownOriginal[key], 4)}</span>)}
             </div>
-            {originalObservedAt && <small>原价采集于 {originalObservedAt}；实际生效日期待核对。</small>}
-            {!originalDisplayWeek && <small>平台原价待补充。</small>}
-            {originalIsSameWeek && <small>同周活动价与原价仅供查看，不参与经营收益重算。</small>}
+            <button type="button" className="own-original-toggle" onClick={() => setOwnOriginalExpanded((value) => !value)} aria-expanded={ownOriginalExpanded}>{ownOriginalExpanded ? "收起平台原价" : "查看平台原价"}</button>
+            {ownOriginalExpanded && <div className="own-original-content">
+              <div className="own-price-detail-grid">
+                <span>价格</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}
+                <b>平台原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownOriginal[key], 4)}</span>)}
+              </div>
+              {originalObservedAt && <small>采集于 {originalObservedAt}；实际生效日期待核对。</small>}
+              {originalDisplayWeek && !historicalOriginalWeek && <small>这是所选周之后采集的原价，仅供参考，不代表所选周实际执行价格。</small>}
+              {!originalDisplayWeek && <small>该站平台原价待补充。</small>}
+              {originalIsSameWeek && <small>同周两套价格仅供展示，活动价不参与经营收益计算。</small>}
+            </div>}
           </div>}
         </div>
         {sorted.map(({ c, index, total, diff }) => {
