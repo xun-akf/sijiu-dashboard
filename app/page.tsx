@@ -1520,6 +1520,8 @@ function OverviewTrends({
             lines={chargeLines}
             showWeekDateRange
             showPrimaryLabels
+            showWeeklyChange
+            comparisonData={chargeTotal}
             valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
@@ -1921,6 +1923,7 @@ function StationAnalysis({
             onFocusLine={(name) => setTotalChargeOnly(name === "总充电量")}
             isolateFocusedLine
             showPrimaryLabels
+            showWeeklyChange
             valueFormatter={(value) => `${Math.round(value).toLocaleString("zh-CN")} kWh`}
           />
         </Panel>
@@ -2527,7 +2530,7 @@ function CompetitorEditor({
         </div>
         <div className="competitor-entry own-entry">
           <div className="competitor-row own-row">
-            <b>本站 · {station.name}<small>活动价 · {marketPlatform}；{originalDisplayWeek ? `当前原价已录（${originalObservedAt || displayWeek(originalDisplayWeek)}）` : "原价待补充"}</small></b>
+            <b>本站 · {station.name}<small>活动价 · {marketPlatform}</small></b>
             <span>{cfg.guns ? `${cfg.guns}枪` : "—"}</span>
             <span>本站</span>
             {keys.map((k) => (
@@ -2539,11 +2542,17 @@ function CompetitorEditor({
               {ownExpanded ? "收起" : "详情"}
             </button>
           </div>
-          {ownExpanded && <div className="compact-fee-details">
-            <b>本站平台当前原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{originalObservedAt && <small>采集于 {originalObservedAt}；实际生效日期待核对</small>}{keys.map((key) => <span key={`original-${key}`}>{labels[key]} {price(ownOriginal[key], 4)}</span>)}
-            <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={`market-${key}`}>{labels[key]} {price(ownT[key], 4)}{originalIsSameWeek && numericPrice(ownOriginal[key]) != null && numericPrice(ownT[key]) != null && <small>较原价低 {(Number(ownOriginal[key]) - Number(ownT[key])).toFixed(4)} 元/度</small>}</span>)}
-            <small>原价待你提供平台计费数据后补充；活动价仅用于竞站比较。</small>
-          </div>}
+          {ownExpanded && <div className="own-price-detail">
+            <div className="own-price-detail-heading"><b>本站价格明细</b><small>活动价只用于竞站比较；原价按采集记录展示</small></div>
+            <div className="own-price-detail-grid">
+              <span>价格</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}
+              <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={key}>{price(ownT[key], 4)}</span>)}
+              <b>平台原价 · {originalDisplayWeek ? displayWeek(originalDisplayWeek) : "待补充"}</b>{keys.map((key) => <span key={key}>{price(ownOriginal[key], 4)}</span>)}
+            </div>
+            {originalObservedAt && <small>原价采集于 {originalObservedAt}；实际生效日期待核对。</small>}
+            {!originalDisplayWeek && <small>平台原价待补充。</small>}
+            {originalIsSameWeek && <small>同周活动价与原价仅供查看，不参与经营收益重算。</small>}
+          </div>
         </div>
         {sorted.map(({ c, index, total, diff }) => {
           const state = judgment(diff),
@@ -4355,9 +4364,11 @@ function FilteredInteractiveChart({
   valueFormatter = chartWan,
   showPrimaryLabels = true,
   tooltipRequiresPin = false,
+  showWeeklyChange = false,
   primaryLabelFormatter = valueFormatter,
 }: {
   lines: { name: string; color: string; data: { week: string; value: number }[] }[];
+  showWeeklyChange?: boolean;
   large?: boolean;
   focusedLine?: string | null;
   onFocusLine?: (name: string | null) => void;
@@ -4405,6 +4416,8 @@ function FilteredInteractiveChart({
       </div>
       <InteractiveChart
         lines={visible}
+        showWeeklyChange={showWeeklyChange && mode === "week"}
+        comparisonData={aggregated[0]?.data}
         large={large}
         focusedLine={focusedLine}
         onFocusLine={onFocusLine}
@@ -4429,6 +4442,8 @@ function InteractiveChart({
   showPrimaryLabels = false,
   tooltipRequiresPin = false,
   showWeekDateRange = false,
+  showWeeklyChange = false,
+  comparisonData,
   primaryLabelFormatter = valueFormatter,
 }: {
   lines: {
@@ -4445,6 +4460,8 @@ function InteractiveChart({
   showPrimaryLabels?: boolean;
   tooltipRequiresPin?: boolean;
   showWeekDateRange?: boolean;
+  showWeeklyChange?: boolean;
+  comparisonData?: { week: string; value: number }[];
   primaryLabelFormatter?: (value: number) => string;
 }) {
   const [hover, setHover] = useState<number | null>(null);
@@ -4457,6 +4474,12 @@ function InteractiveChart({
       : [...visibleLines].sort((a, b) => (b.data[pinned ?? hover ?? 0]?.value || 0) - (a.data[pinned ?? hover ?? 0]?.value || 0)).slice(0, 6)
     : visibleLines;
   const weeks = lines[0]?.data.map((point) => point.week) ?? [];
+  const weeklyCharge = comparisonData || lines[0]?.data || [];
+  const weeklyChanges = new Map(weeklyCharge.map((point, index) => {
+    const previous = weeklyCharge[index - 1];
+    return [point.week, previous && Number.isFinite(previous.value) && previous.value > 0 && Number.isFinite(point.value)
+      ? (point.value / previous.value - 1) * 100 : null] as const;
+  }));
   const sameYear = new Set(weeks.map((week) => week.match(/^\d{4}年/)?.[0])).size === 1;
   const activePoint = pinned ?? hover;
   const all = visibleLines.flatMap((line) =>
@@ -4595,9 +4618,10 @@ function InteractiveChart({
       )))}
       </div>
       <div className="xlabels" style={{ gridTemplateColumns: `repeat(${Math.max(weeks.length, 1)}, minmax(0, 1fr))` }}>
-        {weeks.map((week) => (
-          <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}</span>
-        ))}
+        {weeks.map((week) => {
+          const change = weeklyChanges.get(week);
+          return <span key={week} title={week}>{sameYear ? week.replace(/^\d{4}年/, "") : week}{showWeekDateRange && weekDateRange(week) && <small style={{ display: "block", fontSize: "0.82em" }}>{weekDateRange(week)}</small>}{showWeeklyChange && <small className={`weekly-charge-change ${change == null ? "unavailable" : change > 0.05 ? "up" : change < -0.05 ? "down" : "flat"}`}>{change == null ? "—" : `${change > 0.05 ? "↑" : change < -0.05 ? "↓" : "→"}${Math.abs(change).toFixed(1)}%`}</small>}</span>;
+        })}
       </div>
       {activePoint !== null &&
         weeks[activePoint] &&
