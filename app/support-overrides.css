@@ -1743,3 +1743,6 @@
   border-top: 1px dashed #315d4d;
 }
 .own-original-content > small { display: block; margin-top: 5px; }
+
+.own-price-detail-grid > * { padding-top: 4px; padding-bottom: 4px; }
+.own-price-detail > small { display: block; margin-top: 3px; line-height: 1.4; }
