@@ -144,6 +144,7 @@ type StationConfig = {
   externalPricesJson: string;
   marketPricesByPlatformJson: string;
   ownOriginalPricesJson: string;
+  originalPriceObservedAtJson: string;
   settlementTotalPricesJson: string;
   electricityPricesJson: string;
   servicePricesJson: string;
@@ -178,6 +179,7 @@ const emptyConfig: StationConfig = {
   externalPricesJson: "",
   marketPricesByPlatformJson: "",
   ownOriginalPricesJson: "",
+  originalPriceObservedAtJson: "",
   settlementTotalPricesJson: "",
   electricityPricesJson: "",
   servicePricesJson: "",
@@ -2204,6 +2206,7 @@ function CompetitorEditor({
   const ownMarket = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", week);
   const ownT: PeriodPrice = ownMarket;
   const ownOriginal = resolveWeeklyPrice(cfg.ownOriginalPricesJson, week);
+  const originalObservedAt = safeJson<Record<string, string>>(cfg.originalPriceObservedAtJson, {})[week];
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
     const market = resolveWeeklyPrice(ownMarketWeeks[marketPlatform] ? JSON.stringify(ownMarketWeeks[marketPlatform]) : marketPlatform === "已导入" ? cfg.externalPricesJson : "", selectedWeek);
     return Object.values(market).some((value) => value !== "") ? market : null;
@@ -2534,7 +2537,7 @@ function CompetitorEditor({
             </button>
           </div>
           {ownExpanded && <div className="compact-fee-details">
-            <b>本站原价 · {displayWeek(week)}</b>{keys.map((key) => <span key={`original-${key}`}>{labels[key]} {price(ownOriginal[key], 4)}</span>)}
+            <b>本站平台计费原价 · {displayWeek(week)}</b>{originalObservedAt && <small>采集于 {originalObservedAt}；实际生效日期待核对</small>}{keys.map((key) => <span key={`original-${key}`}>{labels[key]} {price(ownOriginal[key], 4)}</span>)}
             <b>{marketPlatform}活动价 · {displayWeek(week)}</b>{keys.map((key) => <span key={`market-${key}`}>{labels[key]} {price(ownT[key], 4)}{numericPrice(ownOriginal[key]) != null && numericPrice(ownT[key]) != null && <small>较原价低 {(Number(ownOriginal[key]) - Number(ownT[key])).toFixed(4)} 元/度</small>}</span>)}
             <small>原价待你提供平台计费数据后补充；活动价仅用于竞站比较。</small>
           </div>}
@@ -2906,6 +2909,7 @@ function Config({
     stationCfg = { ...emptyConfig, ...cfg[priceStation] },
     marketByPlatform = safeJson<Record<string, Record<string, PeriodPrice>>>(stationCfg.marketPricesByPlatformJson, {}),
     originalPrices = safeJson<Record<string, PeriodPrice>>(stationCfg.ownOriginalPricesJson, {}),
+    originalObservedDates = safeJson<Record<string, string>>(stationCfg.originalPriceObservedAtJson, {}),
     displayOriginalPrices = originalPrices[priceWeek] || resolveWeeklyPrice(stationCfg.ownOriginalPricesJson, priceWeek),
     external = safeJson<Record<string, PeriodPrice>>(
       stationCfg.externalPricesJson,
@@ -2954,8 +2958,10 @@ function Config({
         "gridFeesJson",
         JSON.stringify({ ...storedGridFees, [`${costYear}-${month}`]: value }),
       ),
-    setOriginalPrice = (key: keyof PeriodPrice, value: string) =>
-      update(priceStation, "ownOriginalPricesJson", JSON.stringify({ ...originalPrices, [priceWeek]: { ...blankPrice(), ...displayOriginalPrices, [key]: value } })),
+    setOriginalPrice = (key: keyof PeriodPrice, value: string) => {
+      update(priceStation, "ownOriginalPricesJson", JSON.stringify({ ...originalPrices, [priceWeek]: { ...blankPrice(), ...displayOriginalPrices, [key]: value } }));
+      update(priceStation, "originalPriceObservedAtJson", JSON.stringify({ ...originalObservedDates, [priceWeek]: new Date().toISOString().slice(0, 10) }));
+    },
     setMarketPrice = (platform: string, key: keyof PeriodPrice, value: string) => {
       const previous = marketByPlatform[platform] || (platform === "已导入" ? external : {});
       const current = previous[priceWeek] || resolveWeeklyPrice(JSON.stringify(previous), priceWeek);
@@ -3767,7 +3773,7 @@ function Config({
             </div>
           ))}
         </div>
-        <div className="weekly-price-group"><b>本站平台原价（仅展示，待补充）</b><div className="weekly-grid">{periods.map(([key, label]) => <label key={key}>{label}<input disabled={!editing} value={displayOriginalPrices[key] || ""} onChange={(event) => setOriginalPrice(key, event.target.value)} placeholder="待补充 元/kWh" /></label>)}</div></div>
+        <div className="weekly-price-group"><b>本站平台计费原价（采集日期 {originalObservedDates[priceWeek] || "待补充"}；实际生效日期待核对）</b><div className="weekly-grid">{periods.map(([key, label]) => <label key={key}>{label}<input disabled={!editing} value={displayOriginalPrices[key] || ""} onChange={(event) => setOriginalPrice(key, event.target.value)} placeholder="待补充 元/kWh" /></label>)}</div></div>
         <div className="weekly-price-group"><b>已导入活动外显价（平台待标注，仅竞站对比）</b><div className="weekly-grid">{periods.map(([key, label]) => <label key={key}>{label}<input disabled={!editing} value={displayMarketPrices[key] || ""} onChange={(event) => setMarketPrice("已导入", key, event.target.value)} placeholder="元/kWh" /></label>)}</div></div>
         <div className="weekly-price-group"><b>市场外显活动价 · 新电途（仅竞站对比）</b><div className="weekly-grid">{periods.map(([key, label]) => <label key={key}>{label}<input disabled={!editing} value={resolveWeeklyPrice(marketByPlatform["新电途"] ? JSON.stringify(marketByPlatform["新电途"]) : "", priceWeek)[key] || ""} onChange={(event) => setMarketPrice("新电途", key, event.target.value)} placeholder="元/kWh" /></label>)}</div></div>
         <div className="weekly-price-group"><b>市场外显活动价 · 快电（仅竞站对比）</b><div className="weekly-grid">{periods.map(([key, label]) => <label key={key}>{label}<input disabled={!editing} value={resolveWeeklyPrice(marketByPlatform["快电"] ? JSON.stringify(marketByPlatform["快电"]) : "", priceWeek)[key] || ""} onChange={(event) => setMarketPrice("快电", key, event.target.value)} placeholder="元/kWh" /></label>)}</div></div>
