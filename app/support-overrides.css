@@ -1774,3 +1774,46 @@
 .own-more-content { margin-top: 8px; border-top: 1px dashed #315d4d; padding-top: 7px; }
 .own-more-content > small { display: block; margin-top: 3px; }
 @media (max-width: 720px) { .own-activity-line { min-width: 750px; } }
+
+/* Confirmed side-by-side original and activity price prototype. */
+.own-card-detail { padding: 14px 16px 17px; }
+.own-card-detail-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.own-card-detail-head b { color:#ecf9f1; font-size:14px; }
+.own-card-detail-head button, .own-tariff-card header button {
+  border:1px solid #347058; border-radius:7px; padding:6px 10px;
+  background:#123d30; color:#d2f4e1; cursor:pointer;
+}
+.own-horizontal-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:1120px; }
+.own-tariff-card { min-width:0; border:1px solid #315e4b; border-radius:9px; background:#0b2c22; overflow:hidden; }
+.own-tariff-card.activity { background:#0e372a; border-color:#349c74; }
+.own-tariff-card header { display:flex; min-height:45px; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; border-bottom:1px solid #29523f; }
+.own-tariff-card header b { font-size:13px; color:#ecf9f1; }
+.own-tariff-card header button { background:#42d5a2; color:#073e30; font-weight:700; border-color:#42d5a2; }
+.own-tariff-columns, .own-tariff-line { display:grid; grid-template-columns:36px repeat(2,minmax(0,1fr)) minmax(0,1.08fr); align-items:center; gap:5px; padding-left:12px; padding-right:12px; }
+.own-tariff-columns { padding-top:7px; padding-bottom:6px; font-size:10px; color:#83ad9a; border-bottom:1px solid #244b3c; }
+.own-tariff-line { min-height:38px; border-bottom:1px solid #204538; font-size:11px; color:#b6d9c7; }
+.own-tariff-line:last-child { border-bottom:0; }
+.own-tariff-line b { font-size:11px; color:#c7e4d6; }
+.own-tariff-line span, .own-tariff-line strong { white-space:nowrap; }
+.own-tariff-line strong { font-size:13px; color:#f2fff9; }
+.own-tariff-card.activity .own-tariff-line strong { color:#73e9b3; }
+.own-discount-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:15px; background:rgba(0,14,10,.72); }
+.own-discount-dialog { width:min(480px,100%); max-height:90vh; overflow-y:auto; border:1px solid #418269; border-radius:14px; padding:20px; background:#0d2b22; box-shadow:0 25px 65px #0007; }
+.own-discount-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; color:#ecf9f1; font-size:17px; }
+.own-discount-head button { padding:3px 9px; border:1px solid #39745a; border-radius:6px; background:#1b4938; color:#dcefe5; }
+.own-discount-dialog label { display:flex; align-items:center; gap:8px; font-size:12px; color:#afcfbb; }
+.own-discount-dialog input { width:88px; padding:8px; border:1px solid #44715c; border-radius:7px; background:#09281f; color:#fff; font-size:15px; }
+.own-discount-presets { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0; }
+.own-discount-presets button { padding:6px 10px; border:1px solid #36644f; border-radius:6px; background:#163f32; color:#c6e3d0; }
+.own-discount-presets button.active { background:#32b990; color:#003b2e; }
+.own-service-inputs { display:flex; flex-wrap:wrap; gap:8px; padding:10px 0; border-top:1px solid #285043; }
+.own-service-inputs > b { flex-basis:100%; font-size:11px; color:#d4eee3; }
+.own-discount-preview { margin-top:10px; padding:10px; border:1px solid #2a6449; border-radius:8px; background:#11392b; }
+.own-discount-preview div { display:flex; justify-content:space-between; margin:4px 0; }
+.own-discount-preview b { color:#86f0be; }
+.own-discount-dialog > small { display:block; margin:8px 0; color:#ffb9a5; }
+.own-discount-dialog footer { display:flex; justify-content:flex-end; gap:8px; margin-top:15px; }
+.own-discount-dialog footer button { padding:7px 12px; border:1px solid #39745a; border-radius:6px; background:#1b4938; color:#e4f6e8; }
+.own-discount-dialog footer button:last-child { background:#42d5a2; color:#073e30; font-weight:700; }
+.own-discount-dialog footer button:disabled { opacity:.45; cursor:not-allowed; }
+@media (max-width:900px) { .own-horizontal-cards { grid-template-columns:1fr; max-width:610px; } }
