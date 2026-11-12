@@ -1847,8 +1847,8 @@
 @media (min-width:721px) {
   .own-card-detail { padding-left:9px; padding-right:9px; }
   .own-compare-heading, .own-compare-body {
-    grid-template-columns:minmax(220px,1.75fr) 62px minmax(58px,.55fr)
-      repeat(4,minmax(58px,.55fr)) minmax(110px,.9fr) 84px 54px;
+    grid-template-columns:minmax(190px,1.7fr) minmax(62px,.45fr) minmax(92px,.65fr)
+      repeat(4,minmax(78px,.72fr)) minmax(110px,.95fr) minmax(90px,.85fr) minmax(94px,.7fr);
     column-gap:7px;
   }
   .own-compare-heading > :nth-child(2),
