@@ -2590,18 +2590,18 @@ function CompetitorEditor({
             <div className="own-card-detail-head"><b>本站价格详情</b><button type="button" onClick={() => setOwnExpanded(false)}>收起 ×</button></div>
             <div className="own-compare-scroll">
               <div className="own-compare-table" role="table" aria-label="本站平台原价与活动价对照">
-                <div className="own-compare-heading" role="row"><span>价格</span><span>费用</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}</div>
+                <div className="own-compare-heading" role="row"><span>价格</span><span>费用</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}<span aria-hidden="true" /></div>
                 <div className="own-compare-body" role="rowgroup">
                   <div className="own-compare-group original"><b>平台原价</b><small>经营基础价</small></div>
-                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(originalBreakdown.electricity[key], 4)}</span>)}
-                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownOriginalService[key], 4)}</span>)}
-                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownOriginal[key], 4)}</strong>)}
+                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(originalBreakdown.electricity[key], 4)}</span>)}<span className="own-compare-spacer" aria-hidden="true" />
+                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownOriginalService[key], 4)}</span>)}<span className="own-compare-spacer" aria-hidden="true" />
+                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownOriginal[key], 4)}</strong>)}<span className="own-compare-spacer" aria-hidden="true" />
                 </div>
                 <div className="own-compare-body activity" role="rowgroup">
                   <div className="own-compare-group activity"><b>活动价</b><small>竞站比价</small><button type="button" onClick={() => { if (!editing) startEditing(); openDiscount(); }}>编辑折扣 ✎</button></div>
-                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.electricity[key], 4)}</span>)}
-                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.service[key], 4)}</span>)}
-                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownT[key], 4)}</strong>)}
+                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.electricity[key], 4)}</span>)}<span className="own-compare-spacer" aria-hidden="true" />
+                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.service[key], 4)}</span>)}<span className="own-compare-spacer" aria-hidden="true" />
+                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownT[key], 4)}</strong>)}<span className="own-compare-spacer" aria-hidden="true" />
                 </div>
               </div>
             </div>
