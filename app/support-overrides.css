@@ -1867,3 +1867,48 @@
   .own-compare-heading > :last-child,
   .own-compare-body > .own-compare-spacer { display:none; }
 }
+
+/* Align detail periods to the exact ten tracks used by the surrounding station rows. */
+@media (min-width:721px) {
+  .dashboard-shell .compact-competitor-panel .own-card-detail {
+    padding-left:0;
+    padding-right:0;
+  }
+  .dashboard-shell .compact-competitor-panel .own-card-detail-head {
+    padding-left:10px;
+    padding-right:10px;
+  }
+  .dashboard-shell .compact-competitor-panel .own-compare-table {
+    border-left:0;
+    border-right:0;
+    border-radius:0;
+  }
+  .dashboard-shell .compact-competitor-panel .own-compare-heading,
+  .dashboard-shell .compact-competitor-panel .own-compare-body {
+    grid-template-columns:minmax(190px,1.7fr) minmax(62px,.45fr) minmax(92px,.65fr)
+      repeat(4,minmax(78px,.72fr)) minmax(110px,.95fr) minmax(90px,.85fr) minmax(94px,.7fr);
+    column-gap:7px;
+    padding-left:10px;
+    padding-right:10px;
+    box-sizing:border-box;
+  }
+  .own-compare-heading > :first-child,
+  .own-compare-body > .own-compare-group { grid-column:1; }
+  .own-compare-heading > :nth-child(2),
+  .own-compare-body > .own-compare-label { grid-column:2 / 4; }
+  .own-compare-heading > :nth-child(3),
+  .own-compare-body > :nth-child(6n+3) { grid-column:4; }
+  .own-compare-heading > :nth-child(4),
+  .own-compare-body > :nth-child(6n+4) { grid-column:5; }
+  .own-compare-heading > :nth-child(5),
+  .own-compare-body > :nth-child(6n+5) { grid-column:6; }
+  .own-compare-heading > :nth-child(6),
+  .own-compare-body > :nth-child(6n+6) { grid-column:7; }
+  .own-compare-heading > :last-child,
+  .own-compare-body > .own-compare-spacer { grid-column:8 / 11; }
+}
+/* One divider between price groups; the rows read as a compact matrix. */
+.own-compare-heading > span { border-bottom:1px solid #315e4b; }
+.own-compare-body > :not(.own-compare-group) { border-bottom:0; }
+.own-compare-group { border-right:0; }
+.own-compare-body.activity { border-top:1px solid #348d6b; }
