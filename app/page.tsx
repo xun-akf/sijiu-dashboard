@@ -2588,21 +2588,22 @@ function CompetitorEditor({
           </div>
           {ownExpanded && <div className="own-price-detail own-card-detail">
             <div className="own-card-detail-head"><b>本站价格详情</b><button type="button" onClick={() => setOwnExpanded(false)}>收起 ×</button></div>
-            <div className="own-horizontal-cards">
-              <section className="own-tariff-card" aria-label="平台原价">
-                <header><div><b>平台原价</b><small>独立保留</small></div><span className="own-card-tag">原价</span></header>
-                <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
-                {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
-                  <b>{labels[key]}</b><span>{price(originalBreakdown.electricity[key], 4)}</span><span>{price(ownOriginalService[key], 4)}</span><strong>{price(ownOriginal[key], 4)}</strong>
-                </div>)}
-              </section>
-              <section className="own-tariff-card activity" aria-label="活动价">
-                <header><div><b>活动总价</b><small>仅服务费打折 · 用于竞站比价</small></div><button type="button" onClick={() => { if (!editing) startEditing(); openDiscount(); }}>编辑折扣 ✎</button></header>
-                <div className="own-tariff-columns"><span>时段</span><span>电费</span><span>服务费</span><span>总价</span></div>
-                {keys.filter((key) => ownOriginal[key] !== "" || ownT[key] !== "").map((key) => <div className="own-tariff-line" key={key}>
-                  <b>{labels[key]}</b><span>{price(ownActivityBreakdown.electricity[key], 4)}</span><span>{price(ownActivityBreakdown.service[key], 4)}</span><strong>{price(ownT[key], 4)}</strong>
-                </div>)}
-              </section>
+            <div className="own-compare-scroll">
+              <div className="own-compare-table" role="table" aria-label="本站平台原价与活动价对照">
+                <div className="own-compare-heading" role="row"><span>价格</span><span>费用</span>{keys.map((key) => <span key={key}>{labels[key]}</span>)}</div>
+                <div className="own-compare-body" role="rowgroup">
+                  <div className="own-compare-group original"><b>平台原价</b><small>经营基础价</small></div>
+                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(originalBreakdown.electricity[key], 4)}</span>)}
+                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownOriginalService[key], 4)}</span>)}
+                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownOriginal[key], 4)}</strong>)}
+                </div>
+                <div className="own-compare-body activity" role="rowgroup">
+                  <div className="own-compare-group activity"><b>活动价</b><small>竞站比价</small><button type="button" onClick={() => { if (!editing) startEditing(); openDiscount(); }}>编辑折扣 ✎</button></div>
+                  <div className="own-compare-label">电费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.electricity[key], 4)}</span>)}
+                  <div className="own-compare-label">服务费</div>{keys.map((key) => <span key={key}>{price(ownActivityBreakdown.service[key], 4)}</span>)}
+                  <div className="own-compare-label total">总价</div>{keys.map((key) => <strong key={key}>{price(ownT[key], 4)}</strong>)}
+                </div>
+              </div>
             </div>
           </div>}
           {discountOpen && <div className="own-discount-overlay" role="dialog" aria-modal="true" aria-label="编辑活动服务费折扣" onMouseDown={(event) => { if (event.target === event.currentTarget) setDiscountOpen(false); }}>
