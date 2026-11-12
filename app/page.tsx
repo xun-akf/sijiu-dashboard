@@ -2205,13 +2205,31 @@ function CompetitorEditor({
   const [serviceInput, setServiceInput] = useState<PeriodPrice>(blankPrice());
   const originalServices = safeJson<Record<string, PeriodPrice>>(cfg.ownOriginalServicePricesJson, {});
   const activityDiscounts = safeJson<Record<string, Record<string, number>>>(cfg.marketActivityDiscountsJson, {});
-  const historicalOriginalWeek = Object.keys(ownOriginalWeeks)
-    .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(week))
-    .sort((a, b) => weekOrderValue(b) - weekOrderValue(a))[0];
-  const originalDisplayWeek = historicalOriginalWeek || Object.keys(ownOriginalWeeks)
-    .sort((left, right) => weekOrderValue(right) - weekOrderValue(left))[0];
-  const ownOriginal = originalDisplayWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalDisplayWeek] } : blankPrice();
-  const ownOriginalService = originalDisplayWeek ? { ...blankPrice(), ...originalServices[originalDisplayWeek] } : blankPrice();
+  // Station platform prices are effective versions, usually monthly. Competitor
+  // observations remain weekly. An entry collected later in the same month can
+  // supply that month's base price when no earlier version exists.
+  const effectiveVersion = (versions: Record<string, PeriodPrice>, target: string) =>
+    Object.keys(versions).filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(target))
+      .sort((left, right) => weekOrderValue(right) - weekOrderValue(left))[0]
+    || Object.keys(versions).filter((candidate) => candidate.slice(0, candidate.indexOf("月") + 1) === target.slice(0, target.indexOf("月") + 1))
+      .sort((left, right) => weekOrderValue(left) - weekOrderValue(right))[0];
+  const platformBreakdownFor = (target: string) => {
+    const originalWeek = effectiveVersion(ownOriginalWeeks, target);
+    const original = originalWeek ? { ...blankPrice(), ...ownOriginalWeeks[originalWeek] } : blankPrice();
+    const explicitWeek = effectiveVersion(originalServices, target);
+    const explicit = explicitWeek ? { ...blankPrice(), ...originalServices[explicitWeek] } : blankPrice();
+    const electricityWeek = effectiveVersion(ownElectricityWeeks, target);
+    const electricity = electricityWeek ? ownElectricityWeeks[electricityWeek] : undefined;
+    const service = { ...explicit };
+    for (const key of keys) {
+      if (service[key] !== "" || !electricity) continue;
+      const total = numericPrice(original[key]);
+      const power = numericPrice(electricity[key]);
+      if (total != null && power != null && total >= power) service[key] = (total - power).toFixed(4);
+    }
+    return { original, service, originalWeek };
+  };
+  const { original: ownOriginal, service: ownOriginalService, originalWeek: originalDisplayWeek } = platformBreakdownFor(week);
   const originalBreakdown = calculateDiscountedPeriods(ownOriginal, ownOriginalService, 100);
   const marketForWeek = (selectedWeek: string) =>
     resolveWeeklyPrice(ownMarketWeeks[marketPlatform]
@@ -2220,11 +2238,7 @@ function CompetitorEditor({
   const effectiveOwnPrice = (selectedWeek: string): PeriodPrice | null => {
     const market = marketForWeek(selectedWeek);
     const rate = activityDiscounts[marketPlatform]?.[selectedWeek];
-    const sourceWeek = Object.keys(ownOriginalWeeks)
-      .filter((candidate) => weekOrderValue(candidate) <= weekOrderValue(selectedWeek))
-      .sort((left, right) => weekOrderValue(right) - weekOrderValue(left))[0];
-    const original = sourceWeek ? { ...blankPrice(), ...ownOriginalWeeks[sourceWeek] } : blankPrice();
-    const service = sourceWeek ? { ...blankPrice(), ...originalServices[sourceWeek] } : blankPrice();
+    const { original, service } = platformBreakdownFor(selectedWeek);
     const discounted = rate == null ? null : calculateDiscountedPeriods(original, service, rate).total;
     const result = discounted && Object.values(discounted).some((value) => value !== "")
       ? { ...market, ...Object.fromEntries(Object.entries(discounted).filter(([, value]) => value !== "")) } as PeriodPrice
@@ -2238,9 +2252,9 @@ function CompetitorEditor({
   const draftBreakdown = validDiscount
     ? calculateDiscountedPeriods(ownOriginal, serviceInput, Number(discountInput))
     : null;
-  // The displayed original can belong to the newly prepared week while the comparison still shows last week.
-  // Save the discount against the original's own week; never rewrite the selected historical week.
-  const discountWeek = originalDisplayWeek;
+  // The selected comparison week owns its activity discount, independently of
+  // the platform tariff version that supplies the monthly base price.
+  const discountWeek = week;
   const canApplyDiscount = editing && !!discountWeek && Object.values(ownOriginal).some(Boolean) && validDiscount
     && (["peak", "high", "flat", "valley"] as const).every((key) =>
       ownOriginal[key] === "" || draftBreakdown?.total[key] !== "");
@@ -2251,9 +2265,6 @@ function CompetitorEditor({
   };
   const applyDiscount = () => {
     if (!canApplyDiscount || !discountWeek) return;
-    update(station.name, "ownOriginalServicePricesJson", JSON.stringify({
-      ...originalServices, [discountWeek]: { ...serviceInput },
-    }));
     update(station.name, "marketActivityDiscountsJson", JSON.stringify({
       ...activityDiscounts,
       [marketPlatform]: { ...activityDiscounts[marketPlatform], [discountWeek]: Number(discountInput) },
@@ -2611,9 +2622,9 @@ function CompetitorEditor({
               <div className="own-discount-head"><b>编辑活动服务费折扣{discountWeek ? ` · ${discountWeek}` : ""}</b><button type="button" onClick={() => setDiscountOpen(false)} aria-label="关闭">×</button></div>
               <label>服务费折扣 <input type="number" min="0" max="100" step="0.01" value={discountInput} onChange={(event) => setDiscountInput(event.target.value)} /> %</label>
               <div className="own-discount-presets">{[70, 75, 80, 85, 100].map((rate) => <button type="button" className={Number(discountInput) === rate ? "active" : ""} key={rate} onClick={() => setDiscountInput(String(rate))}>{rate === 100 ? "不打折" : `${rate / 10} 折`}</button>)}</div>
-              {keys.some((key) => ownOriginal[key] !== "" && ownOriginalService[key] === "") && <div className="own-service-inputs"><b>补充平台原价中的服务费</b>{keys.filter((key) => ownOriginal[key] !== "").map((key) => <label key={key}>{labels[key]} <input type="number" min="0" step="0.0001" value={serviceInput[key]} onChange={(event) => setServiceInput((previous) => ({ ...previous, [key]: event.target.value }))} /> 元/度</label>)}</div>}
+              {keys.some((key) => ownOriginal[key] !== "" && ownOriginalService[key] === "") && <div className="own-service-inputs"><b>该时段平台原价缺少可核对的电费/服务费构成，请先在价格管理中补齐。</b></div>}
               <div className="own-discount-preview">{keys.filter((key) => ownOriginal[key] !== "").map((key) => <div key={key}><span>{labels[key]}段活动总价</span><b>{price(draftBreakdown?.total[key], 4)}</b></div>)}</div>
-              {!canApplyDiscount && <small>请填写 0–100% 折扣及对应原服务费。</small>}
+              {!canApplyDiscount && <small>请检查折扣和平台原价构成。</small>}
               <footer><button type="button" onClick={() => setDiscountOpen(false)}>取消</button><button type="button" disabled={!canApplyDiscount} onClick={applyDiscount}>应用折扣</button></footer>
             </div>
           </div>}
