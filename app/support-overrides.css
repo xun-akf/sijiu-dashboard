@@ -1821,3 +1821,23 @@
 .own-tariff-card header small { display:block; margin-top:2px; color:#99bca9; font-size:10px; }
 .own-card-tag { border:1px solid #33564a; border-radius:6px; padding:3px 7px; color:#bbd4c3; background:#15382e; font-size:10px; }
 .own-card-detail-head button { font-size:11px; }
+
+/* The same period columns compare platform and activity prices vertically. */
+.own-compare-scroll { width:100%; overflow-x:auto; }
+.own-compare-table { min-width:650px; width:100%; border:1px solid #315e4b; border-radius:9px; overflow:hidden; background:#0b2c22; }
+.own-compare-heading, .own-compare-body { display:grid; grid-template-columns:minmax(105px,1.1fr) minmax(75px,.7fr) repeat(4,minmax(80px,1fr)); }
+.own-compare-heading { background:#0b241d; color:#8fb5a3; font-size:11px; }
+.own-compare-heading > span { padding:10px 12px; border-bottom:1px solid #315e4b; }
+.own-compare-heading > span:nth-child(n+3) { text-align:center; }
+.own-compare-body { grid-template-rows:repeat(3,minmax(34px,auto)); }
+.own-compare-body.activity { border-top:2px solid #348d6b; background:#0d3729; }
+.own-compare-body > :not(.own-compare-group) { display:flex; align-items:center; justify-content:center; min-width:0; padding:7px 8px; border-bottom:1px solid #254c3d; color:#bdd9c9; font-size:12px; }
+.own-compare-body > .own-compare-label { justify-content:flex-start; padding-left:12px; color:#a5cdb7; }
+.own-compare-body > .own-compare-label.total { font-weight:700; color:#edf9f2; }
+.own-compare-body > strong { color:#f1fff8; font-size:14px; }
+.own-compare-body.activity > strong { color:#76e9b6; }
+.own-compare-body > :nth-last-child(-n+5) { border-bottom:0; }
+.own-compare-group { grid-row:span 3; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:3px; padding:10px 12px; border-right:1px solid #315e4b; }
+.own-compare-group b { color:#e8faf0; font-size:13px; }
+.own-compare-group small { color:#8fb5a3; font-size:10px; }
+.own-compare-group button { margin-top:6px; padding:5px 8px; border:1px solid #42d5a2; border-radius:6px; background:#42d5a2; color:#073e30; font-weight:700; cursor:pointer; }
