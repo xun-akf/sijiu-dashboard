@@ -1295,7 +1295,8 @@
 .competitor-row {
   display: grid;
   grid-template-columns:
-    minmax(220px, 1.75fr) 62px repeat(4, minmax(58px, 0.55fr))
+    minmax(220px, 1.75fr) 62px minmax(58px, 0.55fr)
+    repeat(4, minmax(58px, 0.55fr))
     minmax(110px, 0.9fr) 84px 54px;
   align-items: center;
   column-gap: 7px;
@@ -1836,8 +1837,33 @@
 .own-compare-body > .own-compare-label.total { font-weight:700; color:#edf9f2; }
 .own-compare-body > strong { color:#f1fff8; font-size:14px; }
 .own-compare-body.activity > strong { color:#76e9b6; }
-.own-compare-body > :nth-last-child(-n+5) { border-bottom:0; }
+.own-compare-body > :nth-last-child(-n+6) { border-bottom:0; }
 .own-compare-group { grid-row:span 3; display:flex; flex-direction:column; justify-content:center; align-items:flex-start; gap:3px; padding:10px 12px; border-right:1px solid #315e4b; }
 .own-compare-group b { color:#e8faf0; font-size:13px; }
 .own-compare-group small { color:#8fb5a3; font-size:10px; }
 .own-compare-group button { margin-top:6px; padding:5px 8px; border:1px solid #42d5a2; border-radius:6px; background:#42d5a2; color:#073e30; font-weight:700; cursor:pointer; }
+
+/* Line up the price-detail periods with the corresponding columns in the main list. */
+@media (min-width:721px) {
+  .own-card-detail { padding-left:9px; padding-right:9px; }
+  .own-compare-heading, .own-compare-body {
+    grid-template-columns:minmax(220px,1.75fr) 62px minmax(58px,.55fr)
+      repeat(4,minmax(58px,.55fr)) minmax(110px,.9fr) 84px 54px;
+    column-gap:7px;
+  }
+  .own-compare-heading > :nth-child(2),
+  .own-compare-body > .own-compare-label { grid-column:2 / span 2; }
+  .own-compare-heading > :last-child,
+  .own-compare-body > .own-compare-spacer { grid-column:8 / span 3; }
+  .own-compare-body > .own-compare-spacer { border:0; }
+  .own-compare-body > :not(.own-compare-group) { justify-content:flex-start; padding-left:0; padding-right:0; }
+  .own-compare-heading > span { padding-left:0; padding-right:0; }
+  .own-compare-heading > :first-child, .own-compare-group { padding-left:12px; }
+  .own-compare-heading > span:nth-child(n+3) { text-align:left; }
+}
+@media (max-width:720px) {
+  .own-compare-heading > :nth-child(2),
+  .own-compare-body > .own-compare-label { grid-column:auto; }
+  .own-compare-heading > :last-child,
+  .own-compare-body > .own-compare-spacer { display:none; }
+}
