@@ -1783,7 +1783,7 @@
   border:1px solid #347058; border-radius:7px; padding:6px 10px;
   background:#123d30; color:#d2f4e1; cursor:pointer;
 }
-.own-horizontal-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; max-width:1120px; }
+.own-horizontal-cards { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; width:100%; }
 .own-tariff-card { min-width:0; border:1px solid #315e4b; border-radius:9px; background:#0b2c22; overflow:hidden; }
 .own-tariff-card.activity { background:#0e372a; border-color:#349c74; }
 .own-tariff-card header { display:flex; min-height:45px; align-items:center; justify-content:space-between; gap:8px; padding:9px 12px; border-bottom:1px solid #29523f; }
@@ -1816,7 +1816,7 @@
 .own-discount-dialog footer button { padding:7px 12px; border:1px solid #39745a; border-radius:6px; background:#1b4938; color:#e4f6e8; }
 .own-discount-dialog footer button:last-child { background:#42d5a2; color:#073e30; font-weight:700; }
 .own-discount-dialog footer button:disabled { opacity:.45; cursor:not-allowed; }
-@media (max-width:900px) { .own-horizontal-cards { grid-template-columns:1fr; max-width:610px; } }
+@media (max-width:900px) { .own-horizontal-cards { grid-template-columns:1fr; } }
 
 .own-tariff-card header small { display:block; margin-top:2px; color:#99bca9; font-size:10px; }
 .own-card-tag { border:1px solid #33564a; border-radius:6px; padding:3px 7px; color:#bbd4c3; background:#15382e; font-size:10px; }
