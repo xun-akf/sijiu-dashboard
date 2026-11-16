@@ -359,9 +359,11 @@ async function saveManualStationAnalysis(station: string, week: string, analysis
   const shared = await response.json() as { configs?: Record<string, StationConfig> };
   if (!shared.configs) throw new Error("站点配置尚未加载，无法保存分析");
   const config = { ...emptyConfig, ...shared.configs[station] };
-  await saveDashboardPatch({ configs: {
+  const updatedConfigs = {
     ...shared.configs, [station]: withManualAnalysis(config, week, analysis),
-  } });
+  };
+  await saveDashboardPatch({ configs: updatedConfigs });
+  window.dispatchEvent(new CustomEvent("dashboard-remote-configs", { detail: updatedConfigs }));
   window.dispatchEvent(new Event("dashboard-state-changed"));
 }
 type CoreImportField = "station" | "period" | "peak" | "high" | "flat" | "valley" | "charge";
@@ -806,9 +808,11 @@ export default function Home() {
         }
       }, 180);
     };
+    window.addEventListener("dashboard-refresh-requested", refreshSharedData);
     const unsubscribe = subscribeToDashboardChanges(refreshSharedData, setRealtimeStatus);
     return () => {
       if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener("dashboard-refresh-requested", refreshSharedData);
       unsubscribe();
     };
   }, [accessRole]);
@@ -963,7 +967,7 @@ export default function Home() {
           <div className="actions">
             <button
               className="ghost refresh-button"
-              onClick={() => window.location.reload()}
+              onClick={() => window.dispatchEvent(new Event("dashboard-refresh-requested"))}
               title="刷新数据"
             >
               <RefreshCw />
