@@ -45,7 +45,7 @@ export function MemberRepeatAnalysis({ week, previousWeek, operator, station, al
   const current = permitted ? scope.modes[mode][week] : undefined;
   const previous = permitted && previousWeek ? scope.modes[mode][previousWeek] : undefined;
 
-  return <details className="member-repeat-card">
+  return <details className="member-repeat-card kpi">
     <summary><span>会员复购 <strong>{percent(current?.repeat)}</strong></span><small>展开查看留存与电量贡献 ▾</small></summary>
     <p className="empty-note">按充电开始时间归周（周日至周六），统计已完成且电量大于 0 的订单。使用完整手机号识别会员。</p>
     <label>充电模式 <select value={mode} onChange={(event) => setMode(event.target.value as Mode)}>

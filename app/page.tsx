@@ -1920,8 +1920,8 @@ function StationAnalysis({
             <small>重点指标 · 经营利润口径</small>
           </div>
         </article>
+        <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
       </div>
-      <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
       <div className="content-grid equal">
         <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="尖峰平谷与总充电量；点击总充电量可单独查看">
           <FilteredInteractiveChart
