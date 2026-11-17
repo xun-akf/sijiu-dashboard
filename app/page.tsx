@@ -1888,12 +1888,15 @@ function StationAnalysis({
           value={`${qty(num(r?.charge))} kWh`}
           change={r?.chargeChange ?? null}
         />
-        {!isAll && <Kpi
+        {!isAll && <div className="member-repeat-slot">
+        <Kpi
           icon={<Gauge />}
           label="单枪日均充电量"
           value={r && Number(c.guns) > 0 ? `${(num(r.charge) / Number(c.guns) / 7).toFixed(2)} kWh` : "待补充枪数"}
           sub={Number(c.guns) > 0 ? `${Number(c.guns)}枪 · 本周7天` : "需配置本站枪数"}
-        />}
+        />
+        <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
+        </div>}
         <Kpi
           icon={<CircleDollarSign />}
           label="每度服务费"
@@ -1920,7 +1923,6 @@ function StationAnalysis({
             <small>重点指标 · 经营利润口径</small>
           </div>
         </article>
-        <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
       </div>
       <div className="content-grid equal">
         <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="尖峰平谷与总充电量；点击总充电量可单独查看">
