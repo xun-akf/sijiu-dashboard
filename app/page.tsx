@@ -32,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import data from "./dashboard-data.json";
+import { MemberRepeatAnalysis } from "@/components/member-repeat-analysis";
 import { subscribeToDashboardChanges } from "@/lib/dashboard-realtime";
 import { parseImportNumber, validateDashboardData, type ValidationReport } from "@/lib/import-validation";
 import { weekLabelFromDateUtc } from "@/lib/weekly-period.mjs";
@@ -1020,7 +1021,9 @@ export default function Home() {
         {view !== "config" && view !== "mode" && periodType === "week" && noWeeklyHistory && <p className="empty-note">该场站暂无周报经营数据，后续导入真实数据后显示。</p>}
         {view === "overview" && periodType === "week" && !noWeeklyHistory && <Overview key={operatorFilter} wi={wi} sn={sn} />}{" "}
         {view === "station" && periodType === "week" && (
-          <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} onRecordSave={updateWeeklyRecord} />
+          <>
+            <StationAnalysis key={operatorFilter} wi={wi} sn={sn} setSn={setSn} operatorFilter={operatorFilter} onRecordSave={updateWeeklyRecord} />
+          </>
         )}{" "}
         {view === "business" && periodType === "week" && !noWeeklyHistory && <Business key={operatorFilter} wi={wi} sn={sn} onStationSelect={openStationAnalysis} />}{" "}
         {view === "mode" && <ChargingModePage week={allWeeks()[wi] || allWeeks().at(-1) || "2026年10月1周"} station={sn} operator={operatorFilter} selectedMode={chargingMode} periodType={periodType} reportingNames={reportingNames} stationTotals={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi)?.charge ?? null]))} stationRecords={Object.fromEntries(stations.map((item)=>[item.name,recordAt(item,wi) as StoredWeeklyResult|undefined]))} previousStationRecords={Object.fromEntries(stations.map((item)=>[item.name,wi>0?recordAt(item,wi-1) as StoredWeeklyResult|undefined:undefined]))} />}
@@ -1653,9 +1656,11 @@ function StationAnalysis({
   sn,
   setSn,
   onRecordSave,
+  operatorFilter,
 }: {
   wi: number;
   sn: string;
+  operatorFilter: string;
   setSn: (v: string) => void;
   onRecordSave: (station: string, week: string, patch: Partial<R>, deferSave?: boolean) => Promise<S[]>;
 }) {
@@ -1916,6 +1921,7 @@ function StationAnalysis({
           </div>
         </article>
       </div>
+      <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
       <div className="content-grid equal">
         <Panel title={isAll ? "全站充电量趋势" : "单站充电量趋势"} sub="尖峰平谷与总充电量；点击总充电量可单独查看">
           <FilteredInteractiveChart
