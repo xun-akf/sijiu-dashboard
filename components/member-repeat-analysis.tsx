@@ -67,6 +67,6 @@ export function MemberRepeatAnalysis({ week, previousWeek, operator, station, al
           <td>{delta == null ? "暂无数据" : `${delta > 0 ? "+" : ""}${delta.toFixed(2)} 个百分点`}</td></tr>;
       })}</tbody>
     </table>
-    <p className="empty-note">统计电量大于 0 的订单{current?.orders ? ` · 本周有效订单 ${current.orders.toLocaleString()} 笔 · 可识别会员 ${current.members.toLocaleString()} 人 · 手机号覆盖率 ${percent(current.coverage)}` : ""}</p></div>
+    </div>
   </details>;
 }
