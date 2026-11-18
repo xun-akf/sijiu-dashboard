@@ -1888,15 +1888,13 @@ function StationAnalysis({
           value={`${qty(num(r?.charge))} kWh`}
           change={r?.chargeChange ?? null}
         />
-        {!isAll && <div className="member-repeat-slot">
-        <Kpi
+        {!isAll && <Kpi
           icon={<Gauge />}
           label="单枪日均充电量"
           value={r && Number(c.guns) > 0 ? `${(num(r.charge) / Number(c.guns) / 7).toFixed(2)} kWh` : "待补充枪数"}
           sub={Number(c.guns) > 0 ? `${Number(c.guns)}枪 · 本周7天` : "需配置本站枪数"}
-        />
+        />}
         <MemberRepeatAnalysis week={allWeeks()[wi]} previousWeek={allWeeks()[wi - 1]} operator={operatorFilter} station={sn} allowedNames={stations.map(({name}) => name)} />
-        </div>}
         <Kpi
           icon={<CircleDollarSign />}
           label="每度服务费"
