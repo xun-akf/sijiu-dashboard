@@ -48,7 +48,7 @@ export function MemberRepeatAnalysis({ week, previousWeek, operator, station, al
 
   return <details className="member-repeat-card kpi">
     <summary><span>会员复购 <strong>{percent(current?.repeat)}</strong></span><small>展开查看留存与电量贡献 ▾</small></summary>
-    <div className="member-repeat-detail"><p className="empty-note">按充电开始时间归周（周日至周六），统计已完成且电量大于 0 的订单。使用完整手机号识别会员。</p>
+    <div className="member-repeat-detail">
     <div className="member-repeat-mode-picker" onKeyDown={(event) => { if (event.key === "Escape") setModeMenuOpen(false); }}>
       <span>充电模式</span><button type="button" aria-label="选择充电模式" aria-expanded={modeMenuOpen} aria-haspopup="listbox" onClick={() => setModeMenuOpen(!modeMenuOpen)}>
         {mode === "all" ? "全部" : mode === "fast" ? "快充" : "慢充"}<span aria-hidden="true">⌄</span>
@@ -67,6 +67,6 @@ export function MemberRepeatAnalysis({ week, previousWeek, operator, station, al
           <td>{delta == null ? "暂无数据" : `${delta > 0 ? "+" : ""}${delta.toFixed(2)} 个百分点`}</td></tr>;
       })}</tbody>
     </table>
-    {current?.orders ? <p className="empty-note">本周有效订单 {current.orders.toLocaleString()} 笔 · 可识别会员 {current.members.toLocaleString()} 人 · 手机号覆盖率 {percent(current.coverage)}</p> : null}</div>
+    <p className="empty-note">统计电量大于 0 的订单{current?.orders ? ` · 本周有效订单 ${current.orders.toLocaleString()} 笔 · 可识别会员 ${current.members.toLocaleString()} 人 · 手机号覆盖率 ${percent(current.coverage)}` : ""}</p></div>
   </details>;
 }
