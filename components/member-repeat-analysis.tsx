@@ -50,16 +50,11 @@ export function MemberRepeatAnalysis({ week, previousWeek, operator, station, al
     <div className="member-repeat-detail">
     <div className="member-repeat-mode" role="group" aria-label="充电模式"><span>充电模式</span>{([ ["all", "全部"], ["fast", "快充"], ["slow", "慢充"] ] as const).map(([value, label]) =>
       <button key={value} type="button" className={mode === value ? "active" : ""} aria-pressed={mode === value} onClick={() => setMode(value)}>{label}</button>)}</div>
-    <table style={{ width: "100%", textAlign: "left", marginBlock: "0.75rem" }}>
-      <thead><tr><th>指标</th><th>本周</th><th>上周</th><th>环比</th></tr></thead>
-      <tbody>{definitions.map(([key, label, formula]) => {
+    <div className="member-repeat-metrics">{definitions.map(([key, label, formula]) => {
         const now = current?.[key], before = previous?.[key];
         const delta = now == null || before == null ? null : (now - before) * 100;
-        return <tr key={key}><th scope="row" title={formula}>{label}</th><td>{percent(now)}</td><td>{percent(before)}</td>
-          <td>{delta == null ? "暂无数据" : `${delta > 0 ? "+" : ""}${delta.toFixed(2)} 个百分点`}</td></tr>;
-      })}</tbody>
-    </table>
-    {current?.orders ? <p className="empty-note">有效订单 {current.orders.toLocaleString()} 笔 · 可识别会员 {current.members.toLocaleString()} 人 · 手机号覆盖率 {percent(current.coverage)}</p> : null}
-    <p className="empty-note">按充电开始时间归周，统计已完成且电量大于 0 的订单；以完整手机号识别会员。</p></div>
+        return <div key={key} title={formula}><span>{label}</span><strong>{percent(now)}</strong><small>上周 {percent(before)} · 环比 {delta == null ? "暂无数据" : `${delta > 0 ? "+" : ""}${delta.toFixed(2)} 个百分点`}</small></div>;
+      })}</div>
+    {current?.orders ? <p className="empty-note">有效订单 {current.orders.toLocaleString()} 笔 · 可识别会员 {current.members.toLocaleString()} 人 · 手机号覆盖率 {percent(current.coverage)}</p> : null}</div>
   </details>;
 }
